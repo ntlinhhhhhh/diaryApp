@@ -2,6 +2,7 @@ using DiaryApp.Application.Interfaces;
 using DiaryApp.Domain.Entities;
 using DiaryApp.Infrastructure.Data;
 using Google.Cloud.Firestore;
+using BCrypt.Net;
 
 namespace DiaryApp.Infrastructure.Repositories;
 
@@ -9,6 +10,7 @@ public class UserRepository : IUserRepository
 {
     private readonly FirestoreDb _db;
     private readonly CollectionReference _usersCollection;
+    private const string DEFAULT_THEME_ID = "default_theme_id";
 
     public UserRepository(FirestoreProvider provider)
     {
@@ -16,58 +18,140 @@ public class UserRepository : IUserRepository
         _usersCollection = _db.Collection("users");
     }
 
-    Task IUserRepository.AddOwnedThemeAsync(string userId, string themeId)
+    async Task IUserRepository.AddOwnedThemeAsync(string userId, string themeId)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _usersCollection.Document(userId);
+        await docRef.UpdateAsync("OwnedThemeIds", FieldValue.ArrayUnion(themeId));
     }
 
-    Task IUserRepository.CreateAsync(User user)
+    async Task IUserRepository.CreateAsync(User user)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _usersCollection.Document(user.Id);
+        var userData = new Dictionary<string, object>
+        {
+            { "Email", user.Email },
+            { "Name", user.Name ?? "" },
+            { "NameLower", (user.Name  ?? "").ToLower() },
+            { "HashPassword", user.HashPassword },
+            { "AvatarUrl", user.AvatarUrl ?? "" },
+            { "Gender", user.Gender ?? "" },
+            { "Birthday", user.Birthday ?? "" },
+            { "CoinBalane", user.CoinBalance },
+            { "OwnedThemeIds", new List<string> { DEFAULT_THEME_ID } },
+            { "ActiveThemeId", DEFAULT_THEME_ID },
+            { "CreatedAt", Timestamp.FromDateTime(user.CreatedAt.ToUniversalTime()) },
+            { "UpdatedAt", user.UpdatedAt.HasValue ? Timestamp.FromDateTime(user.UpdatedAt.Value.ToUniversalTime()) : null }
+        };
+
+        await docRef.SetAsync(userData);
     }
 
-    Task IUserRepository.DeleteAsync(string userId)
+    async Task IUserRepository.DeleteAsync(string userId)
     {
-        throw new NotImplementedException();
+        await _usersCollection.Document(userId).DeleteAsync();
     }
 
-    Task<bool> IUserRepository.ExistsByEmailAsync(string email)
+    async Task<bool> IUserRepository.ExistsByEmailAsync(string email)
     {
-        throw new NotImplementedException();
+        Query query = _usersCollection.WhereEqualTo("Email", email).Limit(1);
+        QuerySnapshot snapshot = await query.GetSnapshotAsync();
+        
+        return snapshot.Documents.Count > 0;
     }
 
-    Task<User?> IUserRepository.GetByEmailAsync(string email)
+    async Task<User?> IUserRepository.GetByEmailAsync(string email)
     {
-        throw new NotImplementedException();
+        Query query = _usersCollection.WhereEqualTo("Email", email).Limit(1);
+        QuerySnapshot snapshot = await query.GetSnapshotAsync();
+
+        if (snapshot.Documents.Count == 0) return null;
+
+        return MapSnapshotToUser(snapshot.Documents[0]);
     }
 
-    Task<User?> IUserRepository.GetByIdAsync(string id)
+    async Task<User?> IUserRepository.GetByIdAsync(string id)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _usersCollection.Document(id);
+        DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
+
+        if (!snapshot.Exists) return null;
+
+        return MapSnapshotToUser(snapshot);
     }
 
-    Task<List<string>> IUserRepository.GetOwnedThemeIdsAsync(string userId)
+    async Task<List<string>> IUserRepository.GetOwnedThemeIdsAsync(string userId)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _usersCollection.Document(userId);
+        DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
+
+        if (snapshot.Exists && snapshot.ContainsField("OwnedThemeIds"))
+        {
+            return snapshot.GetValue<List<string>>("OwnedThemeIds");
+        }
+
+        return new List<string>();
     }
 
-    Task<IEnumerable<User>> IUserRepository.SearchByNameAsync(string name, int limit)
+    async Task<IEnumerable<User>> IUserRepository.SearchByNameAsync(string name, int limit)
     {
-        throw new NotImplementedException();
+        string searchKeyword = name.ToLower();
+
+        Query query = _usersCollection
+            .WhereGreaterThanOrEqualTo("NameLower", searchKeyword)
+            .WhereLessThanOrEqualTo("NameLower", searchKeyword + "\uf8ff")
+            .Limit(limit);
+        
+        QuerySnapshot snapshot = await query.GetSnapshotAsync();
+        return snapshot.Documents.Select(MapSnapshotToUser);
     }
 
-    Task IUserRepository.SetActiveThemeAsync(string userId, string themeId)
+    async Task IUserRepository.SetActiveThemeAsync(string userId, string themeId)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _usersCollection.Document(userId);
+        await docRef.UpdateAsync("ActiveThemeId", themeId);
     }
 
-    Task IUserRepository.UpdateCoinBalanceAsync(string userId, int amount)
+    async Task IUserRepository.UpdateCoinBalanceAsync(string userId, int amount)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _usersCollection.Document(userId);
+        await docRef.UpdateAsync("CoinBalance", FieldValue.Increment(amount));
     }
 
-    Task IUserRepository.UpdateProfileAsync(string userId, string name, string? avatarUrl, string? gender, string? birthday)
+    async Task IUserRepository.UpdateProfileAsync(string userId, string name, string? newPassword, string? avatarUrl, string? gender, string? birthday)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _usersCollection.Document(userId);
+        var updatedData = new Dictionary<string, Object>
+        {
+            { "Name", name },
+            { "NameLower", name.ToLower() },
+            { "AvatarUrl", avatarUrl ?? "" },
+            { "Gender", gender ?? "" },
+            { "Birthday", birthday ?? " " },
+            { "UpdatedAt", Timestamp.GetCurrentTimestamp() }
+        };
+
+        if (!string.IsNullOrEmpty(newPassword))
+        {
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            updatedData.Add("HashPassword", hashedPassword);
+        }
+        await docRef.UpdateAsync(updatedData);
+    }
+
+    private User MapSnapshotToUser(DocumentSnapshot snapshot)
+    {
+        return new User
+        {
+            Id = snapshot.Id,
+            Email = snapshot.GetValue<string>("Email"),
+            Name = snapshot.GetValue<string>("Name"),
+            HashPassword = snapshot.GetValue<string>("HashPassword"),
+            AvatarUrl = snapshot.GetValue<string>("AvatarUrl"),
+            Gender = snapshot.ContainsField("Gender") ? snapshot.GetValue<string>("Gender") : null,
+            Birthday = snapshot.ContainsField("Birthday") ? snapshot.GetValue<string>("Birthday") : null,
+            CoinBalance = snapshot.ContainsField("CoinBalance") ? snapshot.GetValue<int>("CoinBalance") : 0,
+            CreatedAt = snapshot.GetValue<DateTime>("CreatedAt"),
+            UpdatedAt = snapshot.ContainsField("UpdatedAt") ? snapshot.GetValue<DateTime>("UpdatedAt") : null
+        };
     }
 }

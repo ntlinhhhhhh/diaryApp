@@ -16,29 +16,95 @@ public class ThemeRepository : IThemeRepository
         _themeCollection = _db.Collection("themes");
     }
 
-
-    Task IThemeRepository.CreateThemeAsync(Theme theme)
+    async Task IThemeRepository.CreateThemeAsync(Theme theme)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _themeCollection.Document(theme.Id);
+        
+        var themeData = MapThemeToDictionary(theme);
+        await docRef.SetAsync(themeData);
     }
 
-    Task<IEnumerable<Theme>> IThemeRepository.GetAllActiveThemesAsync()
+    async Task<IEnumerable<Theme>> IThemeRepository.GetAllActiveThemesAsync()
     {
-        throw new NotImplementedException();
+        Query query = _themeCollection.WhereEqualTo("IsActive", true);
+        QuerySnapshot snapshot = await query.GetSnapshotAsync();
+
+        return snapshot.Documents.Select(MapSnapshotToTheme);
     }
 
-    Task<Theme?> IThemeRepository.GetByIdAsync(string themeId)
+    async Task<Theme?> IThemeRepository.GetByIdAsync(string themeId)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _themeCollection.Document(themeId);
+        DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
+
+        if (!snapshot.Exists) return null;
+
+        return MapSnapshotToTheme(snapshot);
     }
 
-    Task<ThemeMoodIcon?> IThemeRepository.GetMoodIconAsync(string themeId, int baseMoodId)
+    async Task<ThemeMoodIcon?> IThemeRepository.GetMoodIconAsync(string themeId, int baseMoodId)
     {
-        throw new NotImplementedException();
+        var theme = await ((IThemeRepository)this).GetByIdAsync(themeId);
+        if (theme == null || theme.Moods == null) return null;
+
+        return theme.Moods.FirstOrDefault(m => m.BaseMoodId == baseMoodId);
     }
 
-    Task IThemeRepository.UpdateThemeAsync(Theme theme)
+    async Task IThemeRepository.UpdateThemeAsync(Theme theme)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _themeCollection.Document(theme.Id);
+        var themeData = MapThemeToDictionary(theme);
+        
+        await docRef.SetAsync(themeData, SetOptions.MergeAll);
+    }
+
+    private Dictionary<string, object> MapThemeToDictionary(Theme theme)
+    {
+        return new Dictionary<string, object>
+        {
+            { "Name", theme.Name },
+            { "Price", theme.Price },
+            { "ThumbnailUrl", theme.ThumbnailUrl },
+            { "BackgroundUrl", theme.BackgroundUrl },
+            { "IsActive", theme.IsActive },
+            { "Moods", theme.Moods.Select(m => new Dictionary<string, object>
+                {
+                    { "BaseMoodId", m.BaseMoodId },
+                    { "IconUrl", m.IconUrl },
+                    { "CustomName", m.CustomName ?? "" }
+                }).ToList() 
+            }
+        };
+    }
+
+    private Theme MapSnapshotToTheme(DocumentSnapshot snapshot)
+    {
+        var theme = new Theme
+        {
+            Id = snapshot.Id,
+            Name = snapshot.GetValue<string>("Name"),
+            Price = snapshot.GetValue<int>("Price"),
+            ThumbnailUrl = snapshot.GetValue<string>("ThumbnailUrl"),
+            BackgroundUrl = snapshot.GetValue<string>("BackgroundUrl"),
+            IsActive = snapshot.GetValue<bool>("IsActive"),
+            Moods = new List<ThemeMoodIcon>()
+        };
+
+        if (snapshot.ContainsField("Moods"))
+        {
+            var moodsData = snapshot.GetValue<List<object>>("Moods");
+            foreach (var item in moodsData)
+            {
+                var dict = (Dictionary<string, object>)item;
+                theme.Moods.Add(new ThemeMoodIcon
+                {
+                    BaseMoodId = Convert.ToInt32(dict["BaseMoodId"]),
+                    IconUrl = dict["IconUrl"].ToString() ?? "",
+                    CustomName = dict.ContainsKey("CustomName") ? dict["CustomName"].ToString() : ""
+                });
+            }
+        }
+
+        return theme;
     }
 }

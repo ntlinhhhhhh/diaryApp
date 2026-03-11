@@ -16,28 +16,86 @@ public class MomentRepository : IMomentRepository
         _momentCollection = _db.Collection("moments");
     }
 
-    Task IMomentRepository.CreateAsync(Moment moment)
+    async Task IMomentRepository.CreateAsync(Moment moment)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _momentCollection.Document(moment.Id);
+
+        var momentData = MapMomentToDictionary(moment);
+        await docRef.SetAsync(momentData);
     }
 
-    Task IMomentRepository.DeleteAsync(string momentId)
+    async Task IMomentRepository.DeleteAsync(string momentId)
     {
-        throw new NotImplementedException();
+        await _momentCollection.Document(momentId).DeleteAsync();
     }
 
-    Task<Moment?> IMomentRepository.GetByIdAsync(string id)
+    async Task<Moment?> IMomentRepository.GetByIdAsync(string id)
     {
-        throw new NotImplementedException();
+        DocumentReference docRef = _momentCollection.Document(id);
+        DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
+
+        if (!snapshot.Exists) return null;
+
+        return MapSnapshotToMoment(snapshot);
     }
 
-    Task<IEnumerable<Moment>> IMomentRepository.GetMomentsByUserIdAsync(string userId)
+    async Task<IEnumerable<Moment>> IMomentRepository.GetMomentsByUserIdAsync(string userId)
     {
-        throw new NotImplementedException();
+        Query query = _momentCollection.WhereEqualTo("UserId", userId);
+        QuerySnapshot snapshot = await query.GetSnapshotAsync();
+
+        return snapshot.Documents.Select(MapSnapshotToMoment);
     }
 
-    Task IMomentRepository.SyncUserMediaInMomentsAsync(string userId, string newName, string newAvatarUrl)
+    async Task IMomentRepository.SyncUserMediaInMomentsAsync(string userId, string newName, string newAvatarUrl)
     {
-        throw new NotImplementedException();
+        Query query = _momentCollection.WhereEqualTo("UserId", userId);
+        QuerySnapshot snapshot = await query.GetSnapshotAsync();
+
+        WriteBatch batch = _db.StartBatch();
+
+        foreach (DocumentSnapshot document in snapshot.Documents)
+        {
+            var updates = new Dictionary<string, object>
+            {
+                { "UserName", newName },
+                { "UserAvatarUrl", newAvatarUrl }
+            };
+            batch.Update(document.Reference, updates);
+        }
+
+        await batch.CommitAsync();
+    }
+
+    private Dictionary<string, object> MapMomentToDictionary(Moment moment)
+    {
+        return new Dictionary<string, object>
+        {
+            { "UserId",  moment.UserId},
+            { "UserName", moment.UserName },
+            { "UserAvatarUrl", moment.UserAvatarUrl },
+            { "DailyLogId", moment.DailyLogId },
+            { "ImageUrl", moment.ImageUrl },
+            { "Caption", moment.Caption ?? "" },
+            { "IsPublic", moment.IsPublic },
+            // Đảm bảo lưu chuẩn UTC
+            { "CapturedAt", Timestamp.FromDateTime(moment.CapturedAt.ToUniversalTime()) }
+        };
+    }
+
+    private Moment MapSnapshotToMoment(DocumentSnapshot snapshot)
+    {
+        return new Moment
+        {
+            Id = snapshot.Id,
+            UserId = snapshot.GetValue<string>("UserId"),
+            UserName = snapshot.GetValue<string>("UserName"),
+            UserAvatarUrl = snapshot.GetValue<string>("UserAvatarUrl"),
+            DailyLogId = snapshot.GetValue<string>("DailyLogId"),
+            ImageUrl = snapshot.GetValue<string>("ImageUrl"),
+            Caption = snapshot.ContainsField("Caption") ? snapshot.GetValue<string>("Caption") : null,
+            IsPublic = snapshot.GetValue<bool>("IsPublic"),
+            CapturedAt = snapshot.GetValue<DateTime>("CapturedAt"),
+        };
     }
 }
