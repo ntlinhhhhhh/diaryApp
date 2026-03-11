@@ -2,7 +2,6 @@ using DiaryApp.Application.Interfaces;
 using DiaryApp.Domain.Entities;
 using DiaryApp.Infrastructure.Data;
 using Google.Cloud.Firestore;
-using Google.Cloud.Firestore.V1;
 
 namespace DiaryApp.Infrastructure.Repositories;
 
