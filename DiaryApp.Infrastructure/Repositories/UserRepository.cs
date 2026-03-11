@@ -36,13 +36,17 @@ public class UserRepository : IUserRepository
             { "AvatarUrl", user.AvatarUrl ?? "" },
             { "Gender", user.Gender ?? "" },
             { "Birthday", user.Birthday ?? "" },
-            { "CoinBalane", user.CoinBalance },
+            { "CoinBalance", user.CoinBalance },
             { "OwnedThemeIds", new List<string> { DEFAULT_THEME_ID } },
             { "ActiveThemeId", DEFAULT_THEME_ID },
             { "CreatedAt", Timestamp.FromDateTime(user.CreatedAt.ToUniversalTime()) },
-            { "UpdatedAt", user.UpdatedAt.HasValue ? Timestamp.FromDateTime(user.UpdatedAt.Value.ToUniversalTime()) : null }
         };
 
+        if (user.UpdatedAt.HasValue)
+        {
+            userData.Add("UpdatedAt", Timestamp.FromDateTime(user.UpdatedAt.Value.ToUniversalTime()));
+        }
+        
         await docRef.SetAsync(userData);
     }
 
