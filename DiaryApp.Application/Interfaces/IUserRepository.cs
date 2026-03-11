@@ -14,7 +14,7 @@ public interface IUserRepository
 
     // profile management
     Task CreateAsync(User user);
-    Task UpdateProfileAsync(string userId, string name, string? avatarUrl, string? gender, string? birthday);
+    Task UpdateProfileAsync(string userId, string name, string newPassword, string? avatarUrl, string? gender, string? birthday);
     Task DeleteAsync(string userId);
 
     // store and coin
