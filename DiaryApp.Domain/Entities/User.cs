@@ -17,6 +17,8 @@ public class User
     public string ActiveThemeId { get; set; } = "theme_default_id";
     public List<string> OwnedThemeIds { get; set; } = new List<string>(); // Collection theme
     public string AuthProvider { get; set; } = "Local";
+    public string? ResetOtp { get; set; }
+    public DateTime? OtpExpiry { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
