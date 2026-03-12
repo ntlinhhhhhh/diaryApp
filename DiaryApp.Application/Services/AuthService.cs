@@ -8,19 +8,16 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BCrypt.Net;
+using DiaryApp.Application.DTOs;
+using Google.Apis.Auth;
 namespace DiaryApp.Application.Services;
 
-public class AuthService : IAuthService
+public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> jwtSettings, IOptions<GoogleSettings> googleSettings) : IAuthService
 {
-    private readonly IUserRepository _userRepository;
-    private readonly JwtSettings _jwtSettings;
+    private readonly IUserRepository _userRepository = userRepository;
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly GoogleSettings _googleSettings = googleSettings.Value;
 
-    // Inject thêm IOptions<JwtSettings>
-    public AuthService(IUserRepository userRepository, IOptions<JwtSettings> jwtSettings)
-    {
-        _userRepository = userRepository;
-        _jwtSettings = jwtSettings.Value;
-    }
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
         bool userExists = await _userRepository.ExistsByEmailAsync(request.Email);
@@ -69,6 +66,56 @@ public class AuthService : IAuthService
             Name = user.Name ?? "username",
             AvatarUrl = user.AvatarUrl
         };
+    }
+
+    public async Task<AuthResponseDto> LoginWithGoogleAsync(GoogleLoginRequestDto request)
+    {
+        try
+        {
+            var validationSettings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new List<string> { _googleSettings.ClientId }
+            };
+
+            var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings);
+            
+            return await HandleSocialLogin(payload.Email, payload.Name, payload.Picture);
+        } catch (InvalidJwtException)
+        {
+            throw new Exception("Lỗi xác thực Google: Token không hợp lệ.");
+        } catch (Exception ex)
+        {
+            throw new Exception("Đã xảy ra lỗi khi đăng nhập bằng Google: " + ex.Message);
+        }
+    }
+
+    private async Task<AuthResponseDto> HandleSocialLogin(string email, string name, string picture)
+    {
+                    var user = await _userRepository.GetByEmailAsync(email);
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Email = email,
+                    Name = name,
+                    HashPassword = "",
+                    AvatarUrl = picture,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _userRepository.CreateAsync(user);
+            }
+
+            string token = GenerateJwtToken(user);
+            return new AuthResponseDto
+            {
+                Token = token,
+                UserId = user.Id,
+                Name = user.Name ?? "username",
+                AvatarUrl = user.AvatarUrl
+            };
     }
 
     private string GenerateJwtToken(User user)
