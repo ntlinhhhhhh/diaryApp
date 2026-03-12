@@ -20,6 +20,12 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
+        var email = request.Email.Trim().ToLower();
+        var name = request.Name.Trim();
+
+        if (string.IsNullOrWhiteSpace(name)) throw new Exception("Tên người dùng không được để trống.");
+
+
         bool userExists = await _userRepository.ExistsByEmailAsync(request.Email);
         if (userExists) throw new Exception("Email này đã được sử dụng. Vui lòng sử dụng email khác!");
 
@@ -27,8 +33,8 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
         User newUser = new User
         {
             Id = Guid.NewGuid().ToString(),
-            Email = request.Email,
-            Name = request.Name,
+            Email = email,
+            Name = name,
             HashPassword = hashPassword,
             AuthProvider = "Local",
             CreatedAt = DateTime.UtcNow
@@ -49,7 +55,8 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
     {
-        var user = await _userRepository.GetByEmailAsync(request.Email);
+        var email = request.Email.Trim().ToLower();
+        var user = await _userRepository.GetByEmailAsync(email);
 
         if (user == null) throw new Exception("Email hoặc mật khẩu không chính xác.");
 
