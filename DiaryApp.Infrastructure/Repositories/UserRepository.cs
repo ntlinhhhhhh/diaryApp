@@ -143,6 +143,39 @@ public class UserRepository : IUserRepository
         await docRef.UpdateAsync(updatedData);
     }
 
+    public async Task UpdateAsync(User user)
+    {
+        DocumentReference docRef = _usersCollection.Document(user.Id);
+        
+        var updatedData = new Dictionary<string, object>
+        {
+            { "Email", user.Email },
+            { "Name", user.Name ?? "" },
+            { "NameLower", (user.Name ?? "").ToLower() },
+            { "HashPassword", user.HashPassword ?? "" },
+            { "AvatarUrl", user.AvatarUrl ?? "" },
+            { "Gender", user.Gender ?? "" },
+            { "Birthday", user.Birthday ?? "" },
+            { "CoinBalance", user.CoinBalance },
+            { "AuthProvider", user.AuthProvider },
+            { "UpdatedAt", Timestamp.GetCurrentTimestamp() }
+        };
+
+        if (!string.IsNullOrEmpty(user.ResetOtp) && user.OtpExpiry.HasValue)
+        {
+            // otp (forgot pasword), save DB
+            updatedData["ResetOtp"] = user.ResetOtp;
+            updatedData["OtpExpiry"] = Timestamp.FromDateTime(user.OtpExpiry.Value.ToUniversalTime());
+        }
+        else
+        {
+            updatedData["ResetOtp"] = FieldValue.Delete;
+            updatedData["OtpExpiry"] = FieldValue.Delete;
+        }
+
+        await docRef.UpdateAsync(updatedData);
+    }
+
     private User MapSnapshotToUser(DocumentSnapshot snapshot)
     {
         return new User
@@ -157,7 +190,9 @@ public class UserRepository : IUserRepository
             CoinBalance = snapshot.ContainsField("CoinBalance") ? snapshot.GetValue<int>("CoinBalance") : 0,
             CreatedAt = snapshot.GetValue<DateTime>("CreatedAt"),
             AuthProvider = snapshot.GetValue<string>("AuthProvider"),
-            UpdatedAt = snapshot.ContainsField("UpdatedAt") ? snapshot.GetValue<DateTime>("UpdatedAt") : null
+            UpdatedAt = snapshot.ContainsField("UpdatedAt") ? snapshot.GetValue<DateTime>("UpdatedAt") : null,
+            ResetOtp = snapshot.ContainsField("ResetOtp") ? snapshot.GetValue<string>("ResetOtp") : null,
+            OtpExpiry = snapshot.ContainsField("OtpExpiry") ? snapshot.GetValue<DateTime>("OtpExpiry") : null
         };
     }
 }
