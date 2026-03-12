@@ -16,6 +16,7 @@ public class User
     public int CoinBalance { get; set; }
     public string ActiveThemeId { get; set; } = "theme_default_id";
     public List<string> OwnedThemeIds { get; set; } = new List<string>(); // Collection theme
+    public string AuthProvider { get; set; } = "Local";
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

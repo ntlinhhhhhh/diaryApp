@@ -39,6 +39,7 @@ public class UserRepository : IUserRepository
             { "CoinBalance", user.CoinBalance },
             { "OwnedThemeIds", new List<string> { DEFAULT_THEME_ID } },
             { "ActiveThemeId", DEFAULT_THEME_ID },
+            { "AuthProvider", user.AuthProvider },
             { "CreatedAt", Timestamp.FromDateTime(user.CreatedAt.ToUniversalTime()) },
         };
 
@@ -155,6 +156,7 @@ public class UserRepository : IUserRepository
             Birthday = snapshot.ContainsField("Birthday") ? snapshot.GetValue<string>("Birthday") : null,
             CoinBalance = snapshot.ContainsField("CoinBalance") ? snapshot.GetValue<int>("CoinBalance") : 0,
             CreatedAt = snapshot.GetValue<DateTime>("CreatedAt"),
+            AuthProvider = snapshot.GetValue<string>("AuthProvider"),
             UpdatedAt = snapshot.ContainsField("UpdatedAt") ? snapshot.GetValue<DateTime>("UpdatedAt") : null
         };
     }

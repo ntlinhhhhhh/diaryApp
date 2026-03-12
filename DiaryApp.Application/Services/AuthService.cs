@@ -30,6 +30,7 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
             Email = request.Email,
             Name = request.Name,
             HashPassword = hashPassword,
+            AuthProvider = "Local",
             CreatedAt = DateTime.UtcNow
         };
 
@@ -51,6 +52,11 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
         var user = await _userRepository.GetByEmailAsync(request.Email);
 
         if (user == null) throw new Exception("Email hoặc mật khẩu không chính xác.");
+
+        if (user.AuthProvider != "Local") 
+        {
+            throw new Exception("Tài khoản này được đăng ký qua Google. Vui lòng đăng nhập bằng Google.");
+        }
 
         bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.HashPassword);
         if (!isPasswordValid)
@@ -91,7 +97,7 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
 
     private async Task<AuthResponseDto> HandleSocialLogin(string email, string name, string picture)
     {
-                    var user = await _userRepository.GetByEmailAsync(email);
+            var user = await _userRepository.GetByEmailAsync(email);
 
             if (user == null)
             {
@@ -102,6 +108,7 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
                     Name = name,
                     HashPassword = "",
                     AvatarUrl = picture,
+                    AuthProvider = "Google",
                     CreatedAt = DateTime.UtcNow
                 };
 
