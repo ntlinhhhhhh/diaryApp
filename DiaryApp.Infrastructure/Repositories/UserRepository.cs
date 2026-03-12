@@ -107,7 +107,7 @@ public class UserRepository : IUserRepository
             .Limit(limit);
         
         QuerySnapshot snapshot = await query.GetSnapshotAsync();
-        return snapshot.Documents.Select(MapSnapshotToUser);
+        return snapshot.Documents.Select(doc => MapSnapshotToUser(doc));
     }
 
     async Task IUserRepository.SetActiveThemeAsync(string userId, string themeId)
