@@ -4,7 +4,7 @@ using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace DiaryApp.Infrastructure.Service;
+namespace DiaryApp.Infrastructure.Services;
 
 public class EmailService(IOptions<EmailSettings> emailSettings) : IEmailService
 {
