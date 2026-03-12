@@ -157,6 +157,7 @@ public class UserRepository : IUserRepository
             { "Gender", user.Gender ?? "" },
             { "Birthday", user.Birthday ?? "" },
             { "CoinBalance", user.CoinBalance },
+            { "ActiveThemeId", user.ActiveThemeId },
             { "AuthProvider", user.AuthProvider },
             { "UpdatedAt", Timestamp.GetCurrentTimestamp() }
         };
@@ -188,6 +189,9 @@ public class UserRepository : IUserRepository
             Gender = snapshot.ContainsField("Gender") ? snapshot.GetValue<string>("Gender") : null,
             Birthday = snapshot.ContainsField("Birthday") ? snapshot.GetValue<string>("Birthday") : null,
             CoinBalance = snapshot.ContainsField("CoinBalance") ? snapshot.GetValue<int>("CoinBalance") : 0,
+            ActiveThemeId = snapshot.ContainsField("ActiveThemeId") 
+                        ? snapshot.GetValue<string>("ActiveThemeId") 
+                        : "default_theme_id",
             CreatedAt = snapshot.GetValue<DateTime>("CreatedAt"),
             AuthProvider = snapshot.GetValue<string>("AuthProvider"),
             UpdatedAt = snapshot.ContainsField("UpdatedAt") ? snapshot.GetValue<DateTime>("UpdatedAt") : null,
