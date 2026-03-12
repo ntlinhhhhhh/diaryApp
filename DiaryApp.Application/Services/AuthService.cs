@@ -12,9 +12,15 @@ using DiaryApp.Application.DTOs;
 using Google.Apis.Auth;
 namespace DiaryApp.Application.Services;
 
-public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> jwtSettings, IOptions<GoogleSettings> googleSettings) : IAuthService
+public class AuthService(
+    IUserRepository userRepository,
+    IEmailService emailService,
+    IOptions<JwtSettings> jwtSettings,
+    IOptions<GoogleSettings> googleSettings
+) : IAuthService
 {
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly IEmailService _emailService = emailService;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly GoogleSettings _googleSettings = googleSettings.Value;
 
@@ -130,6 +136,47 @@ public class AuthService(IUserRepository userRepository, IOptions<JwtSettings> j
                 Name = user.Name ?? "username",
                 AvatarUrl = user.AvatarUrl
             };
+    }
+
+    public async Task ForgotPasswordAsync(ForgotPasswordRequestDto request)
+    {
+        var email = request.Email.Trim().ToLower();
+        var user = await _userRepository.GetByEmailAsync(email);
+
+        if (user == null || user.AuthProvider != "Local") throw new Exception("Email không tồn tại");
+
+        string otp = new Random().Next(100000, 999999).ToString();
+        user.ResetOtp = otp;
+        user.OtpExpiry = DateTime.UtcNow.AddMinutes(5); // limit 5 minute
+        await _userRepository.UpdateAsync(user);
+        string subject = $"[{otp}] Mã xác nhận khôi phục mật khẩu";
+        string emailBody = $@"
+            <h2>Yêu cầu khôi phục mật khẩu</h2>
+            <p>Mã OTP của bạn là: <b style='font-size: 24px; color: #4CAF50;'>{otp}</b></p>
+            <p>Mã này sẽ hết hạn sau 5 phút.</p>";
+        await _emailService.SendEmailAsync(user.Email, subject, emailBody);    
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
+    {
+        var email = request.Email.ToLower();
+        var user = await _userRepository.GetByEmailAsync(email);
+
+        if (user == null || user.AuthProvider != "Local")
+        {
+            throw new Exception("Email không tồn tại");
+        }
+        if (string.IsNullOrEmpty(user.ResetOtp) || user.ResetOtp != request.Otp)
+        {
+            throw new Exception("Mã OTP không chính xác.");
+        }
+
+        if (user.OtpExpiry < DateTime.UtcNow) throw new Exception("Mã OTP đã hết hạn.");
+
+        user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.ResetOtp = null;
+        user.OtpExpiry = null;
+        await _userRepository.UpdateAsync(user);
     }
 
     private string GenerateJwtToken(User user)
