@@ -1,3 +1,4 @@
+using DiaryApp.Application.DTOs;
 using DiaryApp.Application.DTOs.Auth;
 using DiaryApp.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +35,20 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _authService.LoginAsync(request);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("google-login")]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequestDto request)
+    {
+        try
+        {
+            var result = await _authService.LoginWithGoogleAsync(request);
             return Ok(result);
         }
         catch (Exception ex)
