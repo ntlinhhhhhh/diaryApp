@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // configure
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleSettings"));
 
 // dependency injection
 builder.Services.AddControllers();
