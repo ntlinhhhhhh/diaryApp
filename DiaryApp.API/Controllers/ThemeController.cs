@@ -110,7 +110,7 @@ public class ThemeController : ControllerBase
     }
 
     // DELETE: /api/themes/{id}
-    [HttpPost("id")]
+    [HttpDelete("id")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteTheme(string id)
     {
