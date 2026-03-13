@@ -5,9 +5,10 @@ using DiaryApp.Domain.Entities;
 
 namespace DiaryApp.Application.Services;
 
-public class UserService(IUserRepository userRepository) : IUserService
+public class UserService(IUserRepository userRepository, IThemeRepository themeRepository) : IUserService
 {
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly IThemeRepository _themeRepository = themeRepository;
 
     public async Task<UserProfileDto> GetProfileAsync(string userId)
     {
@@ -65,6 +66,13 @@ public class UserService(IUserRepository userRepository) : IUserService
 
     public async Task BuyThemeAsync(string userId, BuyThemeRequestDto request)
     {
+        var theme = await _themeRepository.GetByIdAsync(request.ThemeId);
+    
+        if (theme == null || !theme.IsActive) 
+        {
+            throw new Exception("Giao diện này không tồn tại hoặc đã ngừng bán.");
+        }
+
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) throw new Exception("Không tìm thấy người dùng.");
 
@@ -85,6 +93,12 @@ public class UserService(IUserRepository userRepository) : IUserService
 
     public async Task ChangeActiveThemeAsync(string userId, UpdateThemeRequestDto request)
     {
+        var theme = await _themeRepository.GetByIdAsync(request.ThemeId);
+        if (theme == null || !theme.IsActive)
+        {
+            throw new Exception("Giao diện không hợp lệ hoặc đã bị gỡ bỏ khỏi hệ thống.");
+        }
+        
         var ownedThemes = await _userRepository.GetOwnedThemeIdsAsync(userId);
         if (!ownedThemes.Contains(request.ThemeId)) 
         {
