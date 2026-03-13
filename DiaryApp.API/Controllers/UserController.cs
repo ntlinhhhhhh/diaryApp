@@ -14,6 +14,20 @@ public class UserController(IUserService userService) : ControllerBase
     private readonly IUserService _userService = userService;
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+    [HttpGet("")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        try
+        {
+            var users = await _userService.GetAllUsersAsync();
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("me")]
     public async Task<IActionResult> GetMyProfile()
     {
@@ -35,6 +49,21 @@ public class UserController(IUserService userService) : ControllerBase
         {
             await _userService.UpdateProfileAsync(CurrentUserId, request);
             return Ok(new { message = "Cập nhật hồ sơ thành công!" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        try
+        {
+            await _userService.DeleteUserAsync(id);
+            return Ok( new {message = "Đã xóa người dùng thành công"});
         }
         catch (Exception ex)
         {

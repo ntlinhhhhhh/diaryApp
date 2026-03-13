@@ -66,6 +66,15 @@ public class UserRepository : IUserRepository
         return snapshot.Documents.Count > 0;
     }
 
+    async Task<IEnumerable<User>> IUserRepository.GetAllUsersAsync()
+    {
+        QuerySnapshot snapshot = await _usersCollection.GetSnapshotAsync();
+
+        var users = snapshot.Documents.Select(MapSnapshotToUser);
+
+        return users;
+    }
+
     async Task<User?> IUserRepository.GetByEmailAsync(string email)
     {
         Query query = _usersCollection.WhereEqualTo("Email", email).Limit(1);

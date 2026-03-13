@@ -116,4 +116,26 @@ public class UserService(
     {
         return await _userRepository.GetOwnedThemeIdsAsync(userId);
     }
+
+    public async Task DeleteUserAsync(string userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+        {
+            throw new Exception("Không tìm thấy người dùng cần xóa");
+        }
+        await _userRepository.DeleteAsync(userId);
+    }
+
+    public async Task<IEnumerable<UserSearchResponseDto>> GetAllUsersAsync()
+    {
+        var users = await _userRepository.GetAllUsersAsync();
+        return users.Select(u => new UserSearchResponseDto
+        {
+            Id = u.Id,
+            Name = u.Name,
+            AvatarUrl = u.AvatarUrl,
+            Email = u.Email
+        });
+    }
 }

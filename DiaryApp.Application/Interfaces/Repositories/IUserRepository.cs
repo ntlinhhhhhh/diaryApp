@@ -7,6 +7,7 @@ namespace DiaryApp.Application.Interfaces;
 public interface IUserRepository
 {
     // search --> extend friendship
+    Task <IEnumerable<User>> GetAllUsersAsync();
     Task<User?> GetByIdAsync(string id);
     Task<User?> GetByEmailAsync(string email);
     Task<IEnumerable<User>> SearchByNameAsync(string name, int limit = 10);

@@ -10,4 +10,8 @@ public interface IUserService
     Task<List<string>> GetMyThemeIdsAsync(string userId);
     Task ChangeActiveThemeAsync(string userId, UpdateThemeRequestDto request);
     Task BuyThemeAsync(string userId, BuyThemeRequestDto request);
+
+    Task<IEnumerable<UserSearchResponseDto>> GetAllUsersAsync();
+    Task DeleteUserAsync(string userId);
+
 }
