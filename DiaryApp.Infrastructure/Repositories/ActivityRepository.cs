@@ -15,7 +15,28 @@ public class ActivityRepository : IActivityRepository
         _db = provider.Database;
         _activitiesCollection = _db.Collection("activities");
     }
-    
+
+    async Task IActivityRepository.CreateAsync(Activity activity)
+    {
+        DocumentReference docRef = _activitiesCollection.Document(activity.Id);
+        var activityData = MapThemeToDictionary(activity);
+        await docRef.SetAsync(activityData);
+    }
+
+    async Task IActivityRepository.DeleteAsync(string activityId)
+    {
+        await _activitiesCollection.Document(activityId).DeleteAsync();
+
+    }
+
+    async Task IActivityRepository.UpdateAsync(Activity activity)
+    {
+        DocumentReference docRef = _activitiesCollection.Document(activity.Id);
+        var activityData = MapThemeToDictionary(activity);
+        await docRef.SetAsync(activityData, SetOptions.MergeAll);
+
+    }
+
     async Task<IEnumerable<Activity>> IActivityRepository.GetAllAsync()
     {
         Query query = _activitiesCollection.OrderBy("Name");
@@ -48,9 +69,20 @@ public class ActivityRepository : IActivityRepository
         return new Activity
         {
             Id = snapshot.Id,
-            Name = snapshot.GetValue<string>("Name"),
-            IconUrl = snapshot.GetValue<string>("IconUrl"),
+            Name = snapshot.GetValue<string>("Name") ?? "Activities name",
+            IconUrl = snapshot.GetValue<string>("IconUrl") ?? "",
             Category = snapshot.ContainsField("Category") ? snapshot.GetValue<string>("Category") : "Other"
         };
     }
+
+    private Dictionary<string, object> MapThemeToDictionary(Activity activity)
+    {
+        return new Dictionary<string, object>
+        {
+            { "Name", activity.Name ?? "" },
+            { "IconUrl", activity.IconUrl },
+            { "Category", activity.Category ?? "other"}
+        };
+    }
+
 }

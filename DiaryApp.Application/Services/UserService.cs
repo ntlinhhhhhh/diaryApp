@@ -5,7 +5,10 @@ using DiaryApp.Domain.Entities;
 
 namespace DiaryApp.Application.Services;
 
-public class UserService(IUserRepository userRepository, IThemeRepository themeRepository) : IUserService
+public class UserService(
+    IUserRepository userRepository,
+    IThemeRepository themeRepository
+    ) : IUserService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IThemeRepository _themeRepository = themeRepository;
