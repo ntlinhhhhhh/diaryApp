@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using DiaryApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using DiaryApp.Application.Interfaces.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,10 +43,12 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddSingleton<FirestoreProvider>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
 
 // Application
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IThemeService, ThemeService>();
 
 // Controllers
 builder.Services.AddControllers();
