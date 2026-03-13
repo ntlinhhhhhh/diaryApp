@@ -1,5 +1,4 @@
-using System;
-using System.Collections.Generic;
+using DiaryApp.Domain.Enums;
 
 namespace DiaryApp.Domain.Entities;
 
@@ -9,6 +8,7 @@ public class User
     public required string Name { get; set; }
     public string NameLower { get; set; } = "";
     public required string Email { get; set; }
+    public UserRole Role { get; set; } = 0;
     public required string HashPassword {get; set; }
     public string? Gender { get; set; }
     public string? Birthday { get; set; }

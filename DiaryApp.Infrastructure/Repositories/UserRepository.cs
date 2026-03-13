@@ -3,6 +3,7 @@ using DiaryApp.Domain.Entities;
 using DiaryApp.Infrastructure.Data;
 using Google.Cloud.Firestore;
 using BCrypt.Net;
+using DiaryApp.Domain.Enums;
 
 namespace DiaryApp.Infrastructure.Repositories;
 
@@ -32,6 +33,7 @@ public class UserRepository : IUserRepository
             { "Email", user.Email },
             { "Name", user.Name ?? "" },
             { "NameLower", (user.Name  ?? "").ToLower() },
+            { "Role", user.Role.ToString() },
             { "HashPassword", user.HashPassword },
             { "AvatarUrl", user.AvatarUrl ?? "" },
             { "Gender", user.Gender ?? "" },
@@ -179,24 +181,45 @@ public class UserRepository : IUserRepository
 
     private User MapSnapshotToUser(DocumentSnapshot snapshot)
     {
-        return new User
+        var user = new User
         {
             Id = snapshot.Id,
-            Email = snapshot.GetValue<string>("Email"),
-            Name = snapshot.GetValue<string>("Name"),
-            HashPassword = snapshot.GetValue<string>("HashPassword"),
-            AvatarUrl = snapshot.GetValue<string>("AvatarUrl"),
+            Email = snapshot.GetValue<string>("Email") ?? string.Empty,
+            Name = snapshot.GetValue<string>("Name") ?? "username",
+            HashPassword = snapshot.GetValue<string>("HashPassword") ?? string.Empty,
+            AvatarUrl = snapshot.ContainsField("AvatarUrl") ? snapshot.GetValue<string>("AvatarUrl") : "",
             Gender = snapshot.ContainsField("Gender") ? snapshot.GetValue<string>("Gender") : null,
             Birthday = snapshot.ContainsField("Birthday") ? snapshot.GetValue<string>("Birthday") : null,
-            CoinBalance = snapshot.ContainsField("CoinBalance") ? snapshot.GetValue<int>("CoinBalance") : 0,
+            AuthProvider = snapshot.ContainsField("AuthProvider") ? snapshot.GetValue<string>("AuthProvider") : "Email",
+            
+            CoinBalance = snapshot.ContainsField("CoinBalance") ? Convert.ToInt32(snapshot.GetValue<long>("CoinBalance")) : 0,
+            
             ActiveThemeId = snapshot.ContainsField("ActiveThemeId") 
-                        ? snapshot.GetValue<string>("ActiveThemeId") 
-                        : "default_theme_id",
-            CreatedAt = snapshot.GetValue<DateTime>("CreatedAt"),
-            AuthProvider = snapshot.GetValue<string>("AuthProvider"),
-            UpdatedAt = snapshot.ContainsField("UpdatedAt") ? snapshot.GetValue<DateTime>("UpdatedAt") : null,
+                            ? snapshot.GetValue<string>("ActiveThemeId") 
+                            : "default_theme_id",
+
+            CreatedAt = snapshot.ContainsField("CreatedAt") ? snapshot.GetValue<DateTime>("CreatedAt") : DateTime.UtcNow,
+            UpdatedAt = snapshot.ContainsField("UpdatedAt") ? snapshot.GetValue<DateTime>("UpdatedAt") : (DateTime?)null,
+            
             ResetOtp = snapshot.ContainsField("ResetOtp") ? snapshot.GetValue<string>("ResetOtp") : null,
-            OtpExpiry = snapshot.ContainsField("OtpExpiry") ? snapshot.GetValue<DateTime>("OtpExpiry") : null
+            OtpExpiry = snapshot.ContainsField("OtpExpiry") ? snapshot.GetValue<DateTime>("OtpExpiry") : (DateTime?)null
         };
+
+        user.Role = UserRole.User;
+        if (snapshot.ContainsField("Role"))
+        {
+            var roleData = snapshot.GetValue<object>("Role");
+            if (roleData is string roleStr)
+            {
+                if (Enum.TryParse<UserRole>(roleStr, true, out var roleEnum))
+                    user.Role = roleEnum;
+            }
+            else if (roleData is long roleLong)
+            {
+                user.Role = (UserRole)roleLong;
+            }
+        }
+
+        return user;
     }
 }

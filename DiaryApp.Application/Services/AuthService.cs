@@ -181,24 +181,23 @@ public class AuthService(
 
     private string GenerateJwtToken(User user)
     {
-        var claims = new []
+        var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Name, user.Name ?? ""),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
         };
 
-        // Get the secret key
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
-
-        // hashing algorithm
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        
+        var claimsIdentity = new ClaimsIdentity(claims, "Jwt", JwtRegisteredClaimNames.Name, "role");
 
-        // Create the token descriptor
         var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(claims),
+            Subject = claimsIdentity,
             Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes),
             Issuer = _jwtSettings.Issuer,
             Audience = _jwtSettings.Audience,

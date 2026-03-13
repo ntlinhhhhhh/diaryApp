@@ -22,6 +22,7 @@ public class UserService(IUserRepository userRepository, IThemeRepository themeR
             Id = user.Id,
             Email = user.Email,
             Name = user.Name,
+            Role = user.Role.ToString(),
             AvatarUrl = user.AvatarUrl,
             Gender = user.Gender,
             Birthday = user.Birthday,

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DiaryApp.Application.DTOs.Theme;
 using DiaryApp.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -73,7 +74,7 @@ public class ThemeController : ControllerBase
     }
     // POST: /api/themes
     [HttpPost]
-    // [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateTheme([FromBody] CreateThemeRequestDto request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState); 
@@ -92,7 +93,7 @@ public class ThemeController : ControllerBase
 
     // PUT: /api/themes/{id}
     [HttpPut("{id}")]
-    // [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateTheme(string id, [FromBody] CreateThemeRequestDto request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
