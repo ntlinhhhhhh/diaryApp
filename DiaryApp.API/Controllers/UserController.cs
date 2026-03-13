@@ -14,6 +14,7 @@ public class UserController(IUserService userService) : ControllerBase
     private readonly IUserService _userService = userService;
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("")]
     public async Task<IActionResult> GetAllUsers()
     {
