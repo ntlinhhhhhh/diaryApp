@@ -15,4 +15,5 @@ public interface IThemeRepository
     // Admin/CMS 
     Task CreateThemeAsync(Theme theme);
     Task UpdateThemeAsync(Theme theme);
+    Task DeleteThemeAsync(string themeId);
 }

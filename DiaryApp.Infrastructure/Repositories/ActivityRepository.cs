@@ -26,7 +26,6 @@ public class ActivityRepository : IActivityRepository
     async Task IActivityRepository.DeleteAsync(string activityId)
     {
         await _activitiesCollection.Document(activityId).DeleteAsync();
-
     }
 
     async Task IActivityRepository.UpdateAsync(Activity activity)

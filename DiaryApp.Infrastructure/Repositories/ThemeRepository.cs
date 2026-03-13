@@ -59,6 +59,11 @@ public class ThemeRepository : IThemeRepository
         await docRef.SetAsync(themeData, SetOptions.MergeAll);
     }
 
+    async Task IThemeRepository.DeleteThemeAsync(string themeId)
+    {
+        await _themeCollection.Document(themeId).DeleteAsync();
+    }
+
     private Dictionary<string, object> MapThemeToDictionary(Theme theme)
     {
         return new Dictionary<string, object>

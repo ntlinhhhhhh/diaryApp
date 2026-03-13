@@ -13,4 +13,6 @@ public interface IThemeService
     Task<ThemeMoodResponseDto?> GetMoodIconAsync(string themeId, BaseMood baseMoodId);
     Task CreateThemeAsync(CreateThemeRequestDto request);
     Task UpdateThemeAsync(string themeId, CreateThemeRequestDto request);
+    Task DeleteThemeAsync(string themeId);
+
 }

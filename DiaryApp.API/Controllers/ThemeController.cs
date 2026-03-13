@@ -108,4 +108,20 @@ public class ThemeController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    // DELETE: /api/themes/{id}
+    [HttpPost("id")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteTheme(string id)
+    {
+        try
+        {
+            await _themeService.DeleteThemeAsync(id);
+            return Ok(new {message = "Đã xóa giao diện thành công"});
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

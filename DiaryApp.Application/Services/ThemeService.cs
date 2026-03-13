@@ -122,4 +122,16 @@ public class ThemeService(IThemeRepository themeRepository) : IThemeService
 
         await _themeRepository.UpdateThemeAsync(updatedTheme);
     }
+
+    public async Task DeleteThemeAsync(string themeId)
+    {
+        var theme = await _themeRepository.GetByIdAsync(themeId);
+
+        if (theme == null)
+        {
+            throw new Exception("Không tìm thấy giao diện cần xóa.");
+        }
+
+        await _themeRepository.DeleteThemeAsync(themeId);
+    }
 }
