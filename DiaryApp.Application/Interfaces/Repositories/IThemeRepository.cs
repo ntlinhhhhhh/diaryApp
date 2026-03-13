@@ -1,6 +1,5 @@
 using DiaryApp.Domain.Entities;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using DiaryApp.Domain.Enums;
 
 namespace DiaryApp.Application.Interfaces;
 
@@ -11,7 +10,7 @@ public interface IThemeRepository
 
     // get detail a theme
     Task<Theme?> GetByIdAsync(string themeId);
-    Task<ThemeMoodIcon?> GetMoodIconAsync(string themeId, int baseMoodId);
+    Task<ThemeMoodIcon?> GetMoodIconAsync(string themeId, BaseMood baseMoodId);
     
     // Admin/CMS 
     Task CreateThemeAsync(Theme theme);

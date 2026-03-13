@@ -1,5 +1,6 @@
 using DiaryApp.Application.Interfaces;
 using DiaryApp.Domain.Entities;
+using DiaryApp.Domain.Enums;
 using DiaryApp.Infrastructure.Data;
 using Google.Cloud.Firestore;
 
@@ -42,7 +43,7 @@ public class ThemeRepository : IThemeRepository
         return MapSnapshotToTheme(snapshot);
     }
 
-    async Task<ThemeMoodIcon?> IThemeRepository.GetMoodIconAsync(string themeId, int baseMoodId)
+    async Task<ThemeMoodIcon?> IThemeRepository.GetMoodIconAsync(string themeId, BaseMood baseMoodId)
     {
         var theme = await ((IThemeRepository)this).GetByIdAsync(themeId);
         if (theme == null || theme.Moods == null) return null;
@@ -96,11 +97,17 @@ public class ThemeRepository : IThemeRepository
             foreach (var item in moodsData)
             {
                 var dict = (Dictionary<string, object>)item;
+                int baseMoodId = 0;
+                if (dict.TryGetValue("BaseMoodId", out var moodIdObj))
+                {
+                    baseMoodId = Convert.ToInt32(moodIdObj);
+                }
+
                 theme.Moods.Add(new ThemeMoodIcon
                 {
-                    BaseMoodId = Convert.ToInt32(dict["BaseMoodId"]),
-                    IconUrl = dict["IconUrl"].ToString() ?? "",
-                    CustomName = dict.ContainsKey("CustomName") ? dict["CustomName"].ToString() : ""
+                    BaseMoodId = (BaseMood)baseMoodId,
+                    IconUrl = dict.TryGetValue("IconUrl", out var iconObj) ? iconObj.ToString() ?? "" : "",
+                    CustomName = dict.TryGetValue("CustomName", out var nameObj) ? nameObj.ToString() ?? "" : ""
                 });
             }
         }
