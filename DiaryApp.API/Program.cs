@@ -56,11 +56,13 @@ builder.Services.AddSingleton<FirestoreProvider>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
+builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 
 // Application
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
+builder.Services.AddScoped<IActivityService, ActivityService>();
 
 // CONTROLLERS & SWAGGER 
 builder.Services.AddControllers();
