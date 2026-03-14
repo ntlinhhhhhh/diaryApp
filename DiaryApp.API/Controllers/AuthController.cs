@@ -6,16 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace DiaryApp.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+[Route("api/auth")]
+public class AuthController(IAuthService authService) : ControllerBase
 {
-    private readonly IAuthService _authService;
+    private readonly IAuthService _authService = authService;
 
-    public AuthController(IAuthService authService)
-    {
-        _authService = authService;
-    }
-
+    // POST: api/auth/register
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
     {
@@ -29,6 +25,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    // POST: api/auth/login
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
@@ -43,6 +40,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    // POST: api/auth/google-login
     [HttpPost("google-login")]
     public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequestDto request)
     {
@@ -57,6 +55,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    // POST: api/auth/forgot-password
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
     {
@@ -71,6 +70,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    // POST: api/auth/reset-password
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
     {

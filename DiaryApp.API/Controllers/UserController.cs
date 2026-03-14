@@ -8,12 +8,13 @@ namespace DiaryApp.API.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/users")]
 public class UserController(IUserService userService) : ControllerBase
 {
     private readonly IUserService _userService = userService;
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+    // GET: api/users
     [Authorize(Roles = "Admin")]
     [HttpGet("")]
     public async Task<IActionResult> GetAllUsers()
@@ -29,6 +30,23 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
+    // DELETE: api/users/{id}
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        try
+        {
+            await _userService.DeleteUserAsync(id);
+            return Ok(new { message = "Đã xóa người dùng thành công" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // GET: api/users/me
     [HttpGet("me")]
     public async Task<IActionResult> GetMyProfile()
     {
@@ -43,6 +61,7 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
+    // PUT: api/users/me
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateProfileRequestDto request)
     {
@@ -57,22 +76,8 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Admin")]
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(string id)
-    {
-        try
-        {
-            await _userService.DeleteUserAsync(id);
-            return Ok( new {message = "Đã xóa người dùng thành công"});
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    [HttpGet("Search")]
+    // GET: api/users/search?name=abc&limit=10
+    [HttpGet("search")]
     public async Task<IActionResult> SearchUsers([FromQuery] string name, [FromQuery] int limit)
     {
         try
@@ -86,6 +91,7 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
+    // GET: api/users/me/themes
     [HttpGet("me/themes")]
     public async Task<IActionResult> GetMyThemes()
     {
@@ -100,7 +106,8 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
-    [HttpPost("me/theme/buy")]
+    // POST: api/users/me/themes/buy
+    [HttpPost("me/themes/buy")]
     public async Task<IActionResult> BuyTheme([FromBody] BuyThemeRequestDto request)
     {
         try
@@ -114,6 +121,7 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
+    // PUT: api/users/me/themes/active
     [HttpPut("me/themes/active")]
     public async Task<IActionResult> ChangeTheme([FromBody] UpdateThemeRequestDto request)
     {

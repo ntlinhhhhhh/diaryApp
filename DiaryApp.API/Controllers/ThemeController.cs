@@ -10,14 +10,9 @@ namespace DiaryApp.API.Controllers;
 [Authorize]
 [Route("api/themes")]
 [ApiController]
-public class ThemeController : ControllerBase
+public class ThemeController(IThemeService themeService) : ControllerBase
 {
-    private readonly IThemeService _themeService;
-
-    public ThemeController(IThemeService themeService)
-    {
-        _themeService = themeService;
-    }
+    private readonly IThemeService _themeService = themeService;
 
     // GET: /api/themes
     [HttpGet]
