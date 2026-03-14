@@ -52,13 +52,15 @@ public class DailyLogRepository : IDailyLogRepository
     }
 
     // get log by activity
-    async Task<IEnumerable<DailyLog>> IDailyLogRepository.GetLogsByActivityAsync(string userId, string activityId)
+    async Task<IEnumerable<DailyLog>> IDailyLogRepository.GetLogsByActivityAsync(string userId, string activityId, string yearMonth)
     {
-        Query query = _logCollection.WhereEqualTo("UserId", userId);
+        Query query = _logCollection
+            .WhereEqualTo("UserId", userId)
+            .WhereEqualTo("YearMonth", yearMonth);
         QuerySnapshot snapshot = await query.GetSnapshotAsync();
 
         var logs = snapshot.Documents.Select(MapSnapshotToLog);
-        return logs.Where(l => l.Activities.Any(a => a.ActivityId == activityId));
+        return logs.Where(l => l.ActivityIds != null && l.ActivityIds.Contains(activityId));
     }
 
     // get logs by mood
@@ -112,13 +114,7 @@ public class DailyLogRepository : IDailyLogRepository
             { "IsMenstruation", log.IsMenstruation },
             { "MenstruationPhase", log.MenstruationPhase ?? "" },
             { "DailyPhotos", log.DailyPhotos },
-            { "Activities", log.Activities.Select(a => new Dictionary<string, object>
-                {
-                    { "ActivityId", a.ActivityId },
-                    { "ImageUrl", a.ImageUrl ?? "" },
-                    { "AddedAt", Timestamp.FromDateTime(a.AddedAt.ToUniversalTime()) }
-                }).ToList() 
-            },
+            { "ActivityIds", log.ActivityIds },
             { "CreatedAt", Timestamp.FromDateTime(log.CreatedAt.ToUniversalTime()) },
             { "UpdatedAt", Timestamp.FromDateTime(DateTime.UtcNow) }
         };
@@ -141,25 +137,10 @@ public class DailyLogRepository : IDailyLogRepository
             DailyPhotos = snapshot.ContainsField("DailyPhotos") 
                 ? snapshot.GetValue<List<string>>("DailyPhotos") 
                 : new List<string>(),
-            Activities = new List<LoggedActivity>()
+            ActivityIds = snapshot.ContainsField("ActivityIds")
+                ? snapshot.GetValue<List<string>>("ActivityIds")
+                : new List<string>()
         };
-
-        if (snapshot.ContainsField("Activities"))
-        {
-            var actsData = snapshot.GetValue<List<object>>("Activities");
-            foreach (var item in actsData)
-            {
-                var dict = (Dictionary<string, object>)item;
-                log.Activities.Add(new LoggedActivity
-                {
-                    ActivityId = dict["ActivityId"].ToString() ?? "",
-                    ImageUrl = dict.ContainsKey("ImageUrl") ? dict["ImageUrl"].ToString() : null,
-                    AddedAt = dict.ContainsKey("AddedAt") 
-                        ? ((Timestamp)dict["AddedAt"]).ToDateTime() 
-                        : DateTime.UtcNow
-                });
-            }
-        }
         return log;
     }
 }
