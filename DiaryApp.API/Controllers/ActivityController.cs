@@ -87,6 +87,10 @@ public class ActivityController(IActivityService activityService) : ControllerBa
             await _activityService.UpdateActivityAsync(id, request);
             return Ok(new { message = "Cập nhật hoạt động thành công!" });
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -102,6 +106,14 @@ public class ActivityController(IActivityService activityService) : ControllerBa
         {
             await _activityService.DeleteActivityAsync(id);
             return Ok(new { message = "Đã xóa hoạt động thành công!" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
         catch (Exception ex)
         {

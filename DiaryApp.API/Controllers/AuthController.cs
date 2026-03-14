@@ -19,7 +19,16 @@ public class AuthController(IAuthService authService) : ControllerBase
         {
             var result = await _authService.RegisterAsync(request);
             return Ok(result);
-        } catch (Exception ex)
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message }); 
+        }
+        catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -33,6 +42,10 @@ public class AuthController(IAuthService authService) : ControllerBase
         {
             var result = await _authService.LoginAsync(request);
             return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -49,6 +62,10 @@ public class AuthController(IAuthService authService) : ControllerBase
             var result = await _authService.LoginWithGoogleAsync(request);
             return Ok(result);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -64,6 +81,10 @@ public class AuthController(IAuthService authService) : ControllerBase
             await _authService.ForgotPasswordAsync(request);
             return Ok(new { message = "Mã OTP đã được gửi đến email của bạn." });
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -78,6 +99,14 @@ public class AuthController(IAuthService authService) : ControllerBase
         {
             await _authService.ResetPasswordAsync(request);
             return Ok(new { message = "Mật khẩu đã được đặt lại thành công!" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
         }
         catch (Exception ex)
         {

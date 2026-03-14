@@ -40,6 +40,10 @@ public class UserController(IUserService userService) : ControllerBase
             await _userService.DeleteUserAsync(id);
             return Ok(new { message = "Đã xóa người dùng thành công" });
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -55,6 +59,10 @@ public class UserController(IUserService userService) : ControllerBase
             var profile = await _userService.GetProfileAsync(CurrentUserId);
             return Ok(profile);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -69,6 +77,10 @@ public class UserController(IUserService userService) : ControllerBase
         {
             await _userService.UpdateProfileAsync(CurrentUserId, request);
             return Ok(new { message = "Cập nhật hồ sơ thành công!" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
         }
         catch (Exception ex)
         {
@@ -115,6 +127,14 @@ public class UserController(IUserService userService) : ControllerBase
             await _userService.BuyThemeAsync(CurrentUserId, request);
             return Ok(new { message = "Mua giao diện thành công" });
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -129,6 +149,10 @@ public class UserController(IUserService userService) : ControllerBase
         {
             await _userService.ChangeActiveThemeAsync(CurrentUserId, request);
             return Ok(new { message = "Thay đổi giao diện thành công!" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
         }
         catch (Exception ex)
         {

@@ -25,7 +25,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
         }
     }
 
@@ -46,7 +46,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
         }
     }
 
@@ -64,25 +64,30 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
         }
     }
+
     // POST: /api/themes
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateTheme([FromBody] CreateThemeRequestDto request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState); 
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
         try
         {
             await _themeService.CreateThemeAsync(request);
             
-            return CreatedAtAction(nameof(GetThemeById), new { id = request.Id }, new { message = "Tạo giao diện thành công!" });
+            return CreatedAtAction(nameof(GetThemeById), new { id = request.Id }, new { message = "Tạo giao diện thành công!" }); // 201 Created
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message }); 
         }
     }
 
@@ -98,25 +103,33 @@ public class ThemeController(IThemeService themeService) : ControllerBase
             await _themeService.UpdateThemeAsync(id, request);
             return Ok(new { message = "Cập nhật giao diện thành công!" });
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message }); // 500
         }
     }
 
     // DELETE: /api/themes/{id}
-    [HttpDelete("id")]
+    [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteTheme(string id)
     {
         try
         {
             await _themeService.DeleteThemeAsync(id);
-            return Ok(new {message = "Đã xóa giao diện thành công"});
+            return Ok(new { message = "Đã xóa giao diện thành công" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
         }
     }
 }

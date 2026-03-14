@@ -24,6 +24,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
             await _logService.UpsertLogAsync(CurrentUserId, request);
             return Ok(new { message = "Lưu nhật ký thành công!" });
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -41,6 +45,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
             if (log == null) return NotFound(new { message = "Chưa có nhật ký cho ngày này." });
             return Ok(log);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -55,6 +63,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
         {
             var logs = await _logService.GetLogsByMonthAsync(CurrentUserId, yearMonth);
             return Ok(logs);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
         }
         catch (Exception ex)
         {
@@ -71,6 +83,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
             var logs = await _logService.GetLogsByActivityAsync(CurrentUserId, activityId, yearMonth);
             return Ok(logs);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -86,6 +102,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
             var logs = await _logService.GetLogsByMoodAsync(CurrentUserId, moodId);
             return Ok(logs);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -100,6 +120,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
         {
             var logs = await _logService.GetLogsByMenstruationAsync(CurrentUserId, isMenstruation);
             return Ok(logs);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
         }
         catch (Exception ex)
         {
@@ -119,6 +143,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
             var logs = await _logService.SearchByNoteAsync(CurrentUserId, keyword);
             return Ok(logs);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
+        }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -133,6 +161,10 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
         {
             await _logService.DeleteLogAsync(CurrentUserId, date);
             return Ok(new { message = "Đã xóa nhật ký." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
         }
         catch (Exception ex)
         {
