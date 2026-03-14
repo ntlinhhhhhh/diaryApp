@@ -57,12 +57,14 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
+builder.Services.AddScoped<IDailyLogRepository, DailyLogRepository>();
 
 // Application
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<IDailyLogService, DailyLogService>();
 
 // CONTROLLERS & SWAGGER 
 builder.Services.AddControllers();
