@@ -7,11 +7,13 @@ namespace DiaryApp.Application.Services;
 
 public class UserService(
     IUserRepository userRepository,
-    IThemeRepository themeRepository
+    IThemeRepository themeRepository,
+    IMomentRepository momentRepository
     ) : IUserService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IThemeRepository _themeRepository = themeRepository;
+    private readonly IMomentRepository _momentRepository = momentRepository;
 
     public async Task<UserProfileDto> GetProfileAsync(string userId)
     {
@@ -50,6 +52,18 @@ public class UserService(
             gender: request.Gender,
             birthday: request.Birthday
         );
+
+        _ = Task.Run(async () => 
+        {
+            try
+            {
+                await _momentRepository.SyncUserMediaInMomentsAsync(userId, request.Name, request.AvatarUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi đồng bộ Moment cho user {userId}: {ex.Message}");
+            }
+        });
     }
 
     public async Task<IEnumerable<UserSearchResponseDto>> SearchUsersAsync(string name, int limit)

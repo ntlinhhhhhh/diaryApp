@@ -47,24 +47,33 @@ public class MomentRepository : IMomentRepository
         return snapshot.Documents.Select(MapSnapshotToMoment);
     }
 
-    async Task IMomentRepository.SyncUserMediaInMomentsAsync(string userId, string newName, string newAvatarUrl)
+async Task IMomentRepository.SyncUserMediaInMomentsAsync(string userId, string newName, string newAvatarUrl)
     {
         Query query = _momentCollection.WhereEqualTo("UserId", userId);
         QuerySnapshot snapshot = await query.GetSnapshotAsync();
 
-        WriteBatch batch = _db.StartBatch();
+        var documents = snapshot.Documents.ToList();
+        if (!documents.Any()) return;
 
-        foreach (DocumentSnapshot document in snapshot.Documents)
+        const int batchSize = 400; 
+
+        for (int i = 0; i < documents.Count; i += batchSize)
         {
-            var updates = new Dictionary<string, object>
-            {
-                { "UserName", newName },
-                { "UserAvatarUrl", newAvatarUrl }
-            };
-            batch.Update(document.Reference, updates);
-        }
+            var chunk = documents.Skip(i).Take(batchSize);
+            WriteBatch batch = _db.StartBatch();
 
-        await batch.CommitAsync();
+            foreach (DocumentSnapshot document in chunk)
+            {
+                var updates = new Dictionary<string, object>
+                {
+                    { "UserName", newName },
+                    { "UserAvatarUrl", newAvatarUrl }
+                };
+                batch.Update(document.Reference, updates);
+            }
+
+            await batch.CommitAsync();
+        }
     }
 
     private Dictionary<string, object> MapMomentToDictionary(Moment moment)
@@ -78,7 +87,6 @@ public class MomentRepository : IMomentRepository
             { "ImageUrl", moment.ImageUrl },
             { "Caption", moment.Caption ?? "" },
             { "IsPublic", moment.IsPublic },
-            // Đảm bảo lưu chuẩn UTC
             { "CapturedAt", Timestamp.FromDateTime(moment.CapturedAt.ToUniversalTime()) }
         };
     }
