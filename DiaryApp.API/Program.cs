@@ -58,6 +58,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IDailyLogRepository, DailyLogRepository>();
+builder.Services.AddScoped<IMomentRepository, MomentRepository>();
 
 // Application
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -65,6 +66,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IDailyLogService, DailyLogService>();
+builder.Services.AddScoped<IMomentService, MomentService>();
 
 // CONTROLLERS & SWAGGER 
 builder.Services.AddControllers();
