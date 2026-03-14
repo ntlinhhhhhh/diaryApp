@@ -29,7 +29,7 @@ public class ActivityService(IActivityRepository activityRepository) : IActivity
         var existingActivity = await _activityRepository.GetByIdAsync(id);
         if (existingActivity == null)
         {
-            throw new Exception("Không tìm thấy hoạt động cần cập nhật.");
+            throw new KeyNotFoundException("Không tìm thấy hoạt động cần cập nhật.");
         }
 
         existingActivity.Name = request.Name;
@@ -44,7 +44,7 @@ public class ActivityService(IActivityRepository activityRepository) : IActivity
         var existingActivity = await _activityRepository.GetByIdAsync(activityId);
         if (existingActivity == null)
         {
-            throw new Exception("Không tìm thấy hoạt động cần xóa.");
+            throw new KeyNotFoundException("Không tìm thấy hoạt động cần xóa.");
         }
 
         await _activityRepository.DeleteAsync(activityId);

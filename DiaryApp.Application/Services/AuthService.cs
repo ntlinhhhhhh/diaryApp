@@ -29,11 +29,16 @@ public class AuthService(
         var email = request.Email.Trim().ToLower();
         var name = request.Name.Trim();
 
-        if (string.IsNullOrWhiteSpace(name)) throw new Exception("Tên người dùng không được để trống.");
-
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentNullException("Tên người dùng không được để trống.");
+        } 
 
         bool userExists = await _userRepository.ExistsByEmailAsync(request.Email);
-        if (userExists) throw new Exception("Email này đã được sử dụng. Vui lòng sử dụng email khác!");
+        if (userExists)
+        {
+            throw new InvalidOperationException("Email này đã được sử dụng. Vui lòng sử dụng email khác!");
+        }
 
         string hashPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
         User newUser = new User
@@ -64,7 +69,7 @@ public class AuthService(
         var email = request.Email.Trim().ToLower();
         var user = await _userRepository.GetByEmailAsync(email);
 
-        if (user == null) throw new Exception("Email hoặc mật khẩu không chính xác.");
+        if (user == null) throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
 
         if (user.AuthProvider != "Local") 
         {
@@ -74,7 +79,7 @@ public class AuthService(
         bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.HashPassword);
         if (!isPasswordValid)
         {
-            throw new Exception("Email hoặc mật khẩu không chính xác.");
+            throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
         }
 
         string token = GenerateJwtToken(user);
@@ -101,7 +106,7 @@ public class AuthService(
             return await HandleSocialLogin(payload.Email, payload.Name, payload.Picture);
         } catch (InvalidJwtException)
         {
-            throw new Exception("Lỗi xác thực Google: Token không hợp lệ.");
+            throw new UnauthorizedAccessException("Lỗi xác thực Google: Token không hợp lệ.");
         } catch (Exception ex)
         {
             throw new Exception("Đã xảy ra lỗi khi đăng nhập bằng Google: " + ex.Message);
@@ -143,7 +148,7 @@ public class AuthService(
         var email = request.Email.Trim().ToLower();
         var user = await _userRepository.GetByEmailAsync(email);
 
-        if (user == null || user.AuthProvider != "Local") throw new Exception("Email không tồn tại");
+        if (user == null || user.AuthProvider != "Local") throw new KeyNotFoundException("Email không tồn tại");
 
         string otp = new Random().Next(100000, 999999).ToString();
         user.ResetOtp = otp;
@@ -164,11 +169,11 @@ public class AuthService(
 
         if (user == null || user.AuthProvider != "Local")
         {
-            throw new Exception("Email không tồn tại");
+            throw new KeyNotFoundException("Email không tồn tại");
         }
         if (string.IsNullOrEmpty(user.ResetOtp) || user.ResetOtp != request.Otp)
         {
-            throw new Exception("Mã OTP không chính xác.");
+            throw new UnauthorizedAccessException("Mã OTP không chính xác hoặc đã hết hạn.");
         }
 
         if (user.OtpExpiry < DateTime.UtcNow) throw new Exception("Mã OTP đã hết hạn.");

@@ -18,7 +18,7 @@ public class UserService(
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
         {
-            throw new Exception("Không tìm thấy thông tin người dùng");
+            throw new KeyNotFoundException("Không tìm thấy thông tin người dùng");
         }
         return new UserProfileDto
         {
@@ -40,7 +40,7 @@ public class UserService(
     {
         var user = await _userRepository.GetByIdAsync(userId);
         
-        if (user == null) throw new Exception("Người dùng không tồn tại");
+        if (user == null) throw new KeyNotFoundException("Người dùng không tồn tại");
 
         await _userRepository.UpdateProfileAsync(
             userId: userId,
@@ -55,7 +55,7 @@ public class UserService(
     public async Task<IEnumerable<UserSearchResponseDto>> SearchUsersAsync(string name, int limit)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new Exception("Vui lòng nhập từ khóa để tìm kiếm.");
+            throw new ArgumentNullException("Vui lòng nhập từ khóa để tìm kiếm.");
 
         var users = await _userRepository.SearchByNameAsync(name, limit);
 
@@ -74,21 +74,21 @@ public class UserService(
     
         if (theme == null || !theme.IsActive) 
         {
-            throw new Exception("Giao diện này không tồn tại hoặc đã ngừng bán.");
+            throw new KeyNotFoundException("Giao diện này không tồn tại hoặc đã ngừng bán.");
         }
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null) throw new Exception("Không tìm thấy người dùng.");
+        if (user == null) throw new KeyNotFoundException("Không tìm thấy người dùng.");
 
         var ownedThemes = await _userRepository.GetOwnedThemeIdsAsync(userId);
         if (ownedThemes.Contains(request.ThemeId))
         {
-            throw new Exception("Bạn đã sở hữu giao diện này rồi.");
+            throw new InvalidOperationException("Bạn đã sở hữu giao diện này rồi.");
         }
 
         if (user.CoinBalance < request.Price)
         {
-            throw new Exception($"Bạn không đủ xu. Cần {request.Price} xu để mua giao diện này.");
+            throw new InvalidOperationException($"Bạn không đủ xu. Cần {request.Price} xu để mua giao diện này.");
         }
 
         await _userRepository.UpdateCoinBalanceAsync(userId, -request.Price);
@@ -100,7 +100,7 @@ public class UserService(
         var theme = await _themeRepository.GetByIdAsync(request.ThemeId);
         if (theme == null || !theme.IsActive)
         {
-            throw new Exception("Giao diện không hợp lệ hoặc đã bị gỡ bỏ khỏi hệ thống.");
+            throw new KeyNotFoundException("Giao diện không hợp lệ hoặc đã bị gỡ bỏ khỏi hệ thống.");
         }
         
         var ownedThemes = await _userRepository.GetOwnedThemeIdsAsync(userId);
@@ -122,7 +122,7 @@ public class UserService(
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
         {
-            throw new Exception("Không tìm thấy người dùng cần xóa");
+            throw new KeyNotFoundException("Không tìm thấy người dùng cần xóa");
         }
         await _userRepository.DeleteAsync(userId);
     }
