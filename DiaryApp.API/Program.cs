@@ -62,6 +62,7 @@ builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IDailyLogRepository, DailyLogRepository>();
 builder.Services.AddScoped<IMomentRepository, MomentRepository>();
+builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();
 
 // Application
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -73,6 +74,7 @@ builder.Services.AddScoped<IMomentService, MomentService>();
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<IGoogleAuthProvider, GoogleAuthProvider>();
 builder.Services.AddScoped<IFirebaseNotificationService, FirebaseNotificationService>();
+builder.Services.AddScoped<IAppNotificationService, AppNotificationService>();
 
 // CONTROLLERS & SWAGGER 
 builder.Services.AddControllers();
