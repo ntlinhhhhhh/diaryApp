@@ -7,15 +7,31 @@ namespace DiaryApp.Application.Services;
 
 public class DailyLogService(
     IDailyLogRepository logRepository,
-    IUserRepository userRepository
+    IUserRepository userRepository,
+    IActivityRepository activityRepository
 ) : IDailyLogService
 {
     private readonly IDailyLogRepository _logRepository = logRepository;
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly IActivityRepository _activityRepository = activityRepository;
 
     public async Task UpsertLogAsync(string userId, DailyLogRequestDto request)
     {
         await EnsureUserExistsAsync(userId);
+
+        if (request.BaseMoodId < 1 || request.BaseMoodId > 5)
+        {
+            throw new ArgumentException("Mã cảm xúc (baseMoodId) không hợp lệ. Phải từ 1 đến 5.");
+        }
+
+        if (request.ActivityIds != null && request.ActivityIds.Any())
+        {
+            var exists = await _activityRepository.CheckAllActivitiesExistAsync(request.ActivityIds);
+            if (!exists)
+            {
+                throw new KeyNotFoundException($"Hoạt động không tồn tại.");
+            }
+        }
 
         string extractedYearMonth = request.Date.Length >= 7 
             ? request.Date.Substring(0, 7) 

@@ -63,6 +63,16 @@ public class ActivityRepository : IActivityRepository
         return MapSnapshotToActivity(snapshot);
     }
 
+    public async Task<bool> CheckAllActivitiesExistAsync(List<string> activityIds)
+    {
+        if (activityIds == null || !activityIds.Any()) return true;
+
+        var refs = activityIds.Select(id => _activitiesCollection.Document(id.Trim())).ToList();
+        var snapshots = await _db.GetAllSnapshotsAsync(refs);
+
+        return snapshots.All(s => s.Exists);
+    }
+
     private Activity MapSnapshotToActivity(DocumentSnapshot snapshot)
     {
         return new Activity
@@ -83,5 +93,4 @@ public class ActivityRepository : IActivityRepository
             { "Category", activity.Category ?? "other"}
         };
     }
-
 }

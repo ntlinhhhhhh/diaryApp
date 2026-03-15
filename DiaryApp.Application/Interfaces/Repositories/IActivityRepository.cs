@@ -12,4 +12,6 @@ public interface IActivityRepository
     Task<IEnumerable<Activity>> GetAllAsync();
     Task<IEnumerable<Activity>> GetByCategoryAsync(string category);
     Task<Activity?> GetByIdAsync(string id);
+    public Task<bool> CheckAllActivitiesExistAsync(List<string> activityIds);
+
 }
