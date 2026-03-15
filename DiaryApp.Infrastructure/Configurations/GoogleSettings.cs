@@ -1,4 +1,4 @@
-namespace DiaryApp.Domain.Configurations;
+namespace DiaryApp.Infrastructure.Configurations;
 
 public class GoogleSettings
 {
