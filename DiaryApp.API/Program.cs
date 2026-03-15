@@ -1,6 +1,5 @@
 using DiaryApp.Application.Interfaces;
 using DiaryApp.Application.Services;
-using DiaryApp.Domain.Configurations;
 using DiaryApp.Infrastructure.Repositories;
 using DiaryApp.Infrastructure.Data;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +10,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using DiaryApp.Application.Interfaces.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using DiaryApp.Infrastructure.Configurations;
+using DiaryApp.Api.Extensions;
+using DiaryApp.Infrastructure.Providers;
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
@@ -20,6 +22,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleSettings"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddFirebaseAdminConfig(builder.Configuration);
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
@@ -67,6 +70,9 @@ builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IDailyLogService, DailyLogService>();
 builder.Services.AddScoped<IMomentService, MomentService>();
+builder.Services.AddScoped<IJwtProvider, JwtProvider>();
+builder.Services.AddScoped<IGoogleAuthProvider, GoogleAuthProvider>();
+builder.Services.AddScoped<IFirebaseNotificationService, FirebaseNotificationService>();
 
 // CONTROLLERS & SWAGGER 
 builder.Services.AddControllers();
@@ -106,7 +112,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.UseAuthentication(); 
 app.UseAuthorization();
