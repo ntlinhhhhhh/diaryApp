@@ -1,5 +1,5 @@
 using DiaryApp.Application.Interfaces;
-using DiaryApp.Domain.Configurations;
+using DiaryApp.Infrastructure.Configurations;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
 using MimeKit;

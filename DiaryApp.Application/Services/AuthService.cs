@@ -1,7 +1,6 @@
 using DiaryApp.Application.DTOs.Auth;
 using DiaryApp.Application.Interfaces;
 using DiaryApp.Domain.Entities;
-using DiaryApp.Domain.Configurations;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -15,14 +14,14 @@ namespace DiaryApp.Application.Services;
 public class AuthService(
     IUserRepository userRepository,
     IEmailService emailService,
-    IOptions<JwtSettings> jwtSettings,
-    IOptions<GoogleSettings> googleSettings
+    IJwtProvider jwtProvider,
+    IGoogleAuthProvider googleAuthProvider
 ) : IAuthService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IEmailService _emailService = emailService;
-    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
-    private readonly GoogleSettings _googleSettings = googleSettings.Value;
+    private readonly IJwtProvider _jwtProvider = jwtProvider;
+    private readonly IGoogleAuthProvider _googleAuthProvider = googleAuthProvider;
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
@@ -53,11 +52,9 @@ public class AuthService(
 
         await _userRepository.CreateAsync(newUser);
 
-        string token = GenerateJwtToken(newUser);
-
         return new AuthResponseDto
         {
-            Token = token,
+            Token = _jwtProvider.GenerateToken(newUser),
             UserId = newUser.Id,
             Name = newUser.Name,
             AvatarUrl = newUser.AvatarUrl
@@ -82,10 +79,9 @@ public class AuthService(
             throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
         }
 
-        string token = GenerateJwtToken(user);
         return new AuthResponseDto
         {
-            Token = token,
+            Token = _jwtProvider.GenerateToken(user),
             UserId = user.Id,
             Name = user.Name ?? "username",
             AvatarUrl = user.AvatarUrl
@@ -94,53 +90,36 @@ public class AuthService(
 
     public async Task<AuthResponseDto> LoginWithGoogleAsync(GoogleLoginRequestDto request)
     {
-        try
-        {
-            var validationSettings = new GoogleJsonWebSignature.ValidationSettings
-            {
-                Audience = new List<string> { _googleSettings.ClientId }
-            };
-
-            var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings);
-            
-            return await HandleSocialLogin(payload.Email, payload.Name, payload.Picture);
-        } catch (InvalidJwtException)
-        {
-            throw new UnauthorizedAccessException("Lỗi xác thực Google: Token không hợp lệ.");
-        } catch (Exception ex)
-        {
-            throw new Exception("Đã xảy ra lỗi khi đăng nhập bằng Google: " + ex.Message);
-        }
+        var payload = await _googleAuthProvider.ValidateTokenAsync(request.IdToken);
+        return await HandleSocialLogin(payload.Email, payload.Name, payload.Picture);
     }
 
     private async Task<AuthResponseDto> HandleSocialLogin(string email, string name, string picture)
     {
-            var user = await _userRepository.GetByEmailAsync(email);
+        var user = await _userRepository.GetByEmailAsync(email);
 
-            if (user == null)
+        if (user == null)
+        {
+            user = new User
             {
-                user = new User
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Email = email,
-                    Name = name,
-                    HashPassword = "",
-                    AvatarUrl = picture,
-                    AuthProvider = "Google",
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await _userRepository.CreateAsync(user);
-            }
-
-            string token = GenerateJwtToken(user);
-            return new AuthResponseDto
-            {
-                Token = token,
-                UserId = user.Id,
-                Name = user.Name ?? "username",
-                AvatarUrl = user.AvatarUrl
+                Id = Guid.NewGuid().ToString(),
+                Email = email,
+                Name = name,
+                HashPassword = "",
+                AvatarUrl = picture,
+                AuthProvider = "Google",
+                CreatedAt = DateTime.UtcNow
             };
+            await _userRepository.CreateAsync(user);
+        }
+
+        return new AuthResponseDto
+        {
+            Token = _jwtProvider.GenerateToken(user), // Dùng Interface
+            UserId = user.Id,
+            Name = user.Name ?? "username",
+            AvatarUrl = user.AvatarUrl
+        };
     }
 
     public async Task ForgotPasswordAsync(ForgotPasswordRequestDto request)
@@ -150,7 +129,7 @@ public class AuthService(
 
         if (user == null || user.AuthProvider != "Local") throw new KeyNotFoundException("Email không tồn tại");
 
-        string otp = new Random().Next(100000, 999999).ToString();
+        string otp = Random.Shared.Next(100000, 999999).ToString();
         user.ResetOtp = otp;
         user.OtpExpiry = DateTime.UtcNow.AddMinutes(5); // limit 5 minute
         await _userRepository.UpdateAsync(user);
@@ -159,7 +138,17 @@ public class AuthService(
             <h2>Yêu cầu khôi phục mật khẩu</h2>
             <p>Mã OTP của bạn là: <b style='font-size: 24px; color: #4CAF50;'>{otp}</b></p>
             <p>Mã này sẽ hết hạn sau 5 phút.</p>";
-        await _emailService.SendEmailAsync(user.Email, subject, emailBody);    
+        _ = Task.Run(async () => 
+        {
+            try 
+            {
+                await _emailService.SendEmailAsync(user.Email, subject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi gửi email: {ex.Message}");
+            }
+        }); 
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
@@ -182,36 +171,5 @@ public class AuthService(
         user.ResetOtp = null;
         user.OtpExpiry = null;
         await _userRepository.UpdateAsync(user);
-    }
-
-    private string GenerateJwtToken(User user)
-    {
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.Name, user.Name ?? ""),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
-        };
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        
-        var claimsIdentity = new ClaimsIdentity(claims, "Jwt", JwtRegisteredClaimNames.Name, "role");
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = claimsIdentity,
-            Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes),
-            Issuer = _jwtSettings.Issuer,
-            Audience = _jwtSettings.Audience,
-            SigningCredentials = creds
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        
-        return tokenHandler.WriteToken(token);
     }
 }
