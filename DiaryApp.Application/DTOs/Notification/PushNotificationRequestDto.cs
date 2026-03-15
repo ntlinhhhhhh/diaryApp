@@ -1,5 +1,5 @@
 namespace DiaryApp.Application.DTOs.Notification;    
-public class PushRequestDto
+public class PushNotificationRequestDto
 {
     public string Token { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
