@@ -19,6 +19,8 @@ using Google.Cloud.Firestore;
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 // CONFIGURATIONS
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
@@ -128,6 +130,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+app.UseDeveloperExceptionPage();
 
 // MIDDLEWARE PIPELINE
 app.UseSwagger();
