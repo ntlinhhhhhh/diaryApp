@@ -13,6 +13,8 @@ using System.Security.Claims;
 using DiaryApp.Infrastructure.Configurations;
 using DiaryApp.Api.Extensions;
 using DiaryApp.Infrastructure.Providers;
+// Nhớ thêm using này nếu file chưa có
+using Google.Cloud.Firestore; 
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
@@ -52,6 +54,26 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
+
+// firebase config
+string firebaseBase64 = Environment.GetEnvironmentVariable("FIREBASE_KEY_BASE64");
+
+if (!string.IsNullOrEmpty(firebaseBase64))
+{
+    byte[] decodedBytes = Convert.FromBase64String(firebaseBase64);
+    string decodedJson = System.Text.Encoding.UTF8.GetString(decodedBytes);
+
+    builder.Services.AddSingleton<FirestoreDb>(provider =>
+    {
+        var firestoreBuilder = new FirestoreDbBuilder
+        {
+            // Thay ID này bằng đúng Project ID trong file JSON của bạn
+            ProjectId = "diaryapp-36c8f", 
+            JsonCredentials = decodedJson
+        };
+        return firestoreBuilder.Build();
+    });
+}
 
 // DEPENDENCY INJECTION
 // Infrastructure
@@ -108,11 +130,8 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // MIDDLEWARE PIPELINE
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // app.UseHttpsRedirection();
 
