@@ -8,12 +8,16 @@ namespace DiaryApp.Application.Services;
 public class DailyLogService(
     IDailyLogRepository logRepository,
     IUserRepository userRepository,
-    IActivityRepository activityRepository
+    IActivityRepository activityRepository,
+    IRedisCacheService cacheService
 ) : IDailyLogService
 {
     private readonly IDailyLogRepository _logRepository = logRepository;
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IActivityRepository _activityRepository = activityRepository;
+    private readonly IRedisCacheService _cacheService = cacheService;
+
+    private readonly TimeSpan _cacheTtl = TimeSpan.FromHours(12);
 
     public async Task UpsertLogAsync(string userId, DailyLogRequestDto request)
     {
@@ -53,23 +57,39 @@ public class DailyLogService(
         };
 
         await _logRepository.UpsertAsync(userId, newLog);
+        await ClearLogCachesAsync(userId, request.Date, extractedYearMonth);
     }
 
     public async Task<DailyLogResponseDto?> GetLogByDateAsync(string userId, string date)
     {
+        string cacheKey = $"log:{userId}:{date}";
+        var cachedLog = await _cacheService.GetAsync<DailyLogResponseDto>(cacheKey);
+        if (cachedLog != null) return cachedLog;
+
         await EnsureUserExistsAsync(userId);
 
         var log = await _logRepository.GetByDateAsync(userId, date);
         if (log == null) return null;
-        return MapToResponseDto(log);
+
+        var dto = MapToResponseDto(log);
+        await _cacheService.SetAsync(cacheKey, dto, _cacheTtl);
+        return dto;
     }
 
     public async Task<IEnumerable<DailyLogResponseDto>> GetLogsByMonthAsync(string userId, string yearMonth)
     {
+        string cacheKey = $"logs_month:{userId}:{yearMonth}";
+        var cachedLogs = await _cacheService.GetAsync<IEnumerable<DailyLogResponseDto>>(cacheKey);
+        if (cachedLogs != null) return cachedLogs;
+
         await EnsureUserExistsAsync(userId);
 
         var logs = await _logRepository.GetLogsByMonthAsync(userId, yearMonth);
-        return logs.Select(MapToResponseDto);
+
+        var dtos = logs.Select(MapToResponseDto).ToList();
+        await _cacheService.SetAsync(cacheKey, dtos, _cacheTtl);
+
+        return dtos;
     }
 
     public async Task<IEnumerable<DailyLogResponseDto>> GetLogsByActivityAsync(string userId, string activityId, string yearMonth)
@@ -104,7 +124,14 @@ public class DailyLogService(
     public async Task DeleteLogAsync(string userId, string date)
     {
         await EnsureUserExistsAsync(userId);
-        await _logRepository.DeleteAsync(userId, date);
+
+        var existingLog = await _logRepository.GetByDateAsync(userId, date);
+        if (existingLog != null)
+        {
+            await _logRepository.DeleteAsync(userId, date);
+            await ClearLogCachesAsync(userId, date, existingLog.YearMonth);
+        }
+
     }
 
     private static DailyLogResponseDto MapToResponseDto(DailyLog log)
@@ -131,5 +158,11 @@ public class DailyLogService(
         {
             throw new KeyNotFoundException($"Không tìm thấy người dùng id: {userId}"); 
         }
+    }
+
+    private async Task ClearLogCachesAsync(string userId, string date, string yearMonth)
+    {
+        await _cacheService.RemoveAsync($"log:{userId}:{date}");
+        await _cacheService.RemoveAsync($"logs_month:{userId}:{yearMonth}");
     }
 }

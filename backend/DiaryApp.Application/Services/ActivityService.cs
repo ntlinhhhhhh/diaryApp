@@ -5,9 +5,14 @@ using DiaryApp.Domain.Entities;
 
 namespace DiaryApp.Application.Services;
 
-public class ActivityService(IActivityRepository activityRepository) : IActivityService
+public class ActivityService(
+    IActivityRepository activityRepository,
+    IRedisCacheService cacheService
+    ) : IActivityService
 {
     private readonly IActivityRepository _activityRepository = activityRepository;
+    private readonly IRedisCacheService _cacheService = cacheService;
+    private readonly TimeSpan _cacheTtl = TimeSpan.FromDays(1);
 
     public async Task<ActivityResponseDto> CreateActivityAsync(ActivityRequestDto request)
     {
@@ -20,7 +25,7 @@ public class ActivityService(IActivityRepository activityRepository) : IActivity
         };
 
         await _activityRepository.CreateAsync(newActivity);
-        
+        await ClearActivityCachesAsync(newActivity.Category);
         return MapToDto(newActivity);
     }
 
@@ -32,11 +37,21 @@ public class ActivityService(IActivityRepository activityRepository) : IActivity
             throw new KeyNotFoundException("Không tìm thấy hoạt động cần cập nhật.");
         }
 
+        string oldCategory = existingActivity.Category;
+
         existingActivity.Name = request.Name;
         existingActivity.IconUrl = request.IconUrl;
         existingActivity.Category = request.Category ?? "Other";
 
         await _activityRepository.UpdateAsync(existingActivity);
+
+        await _cacheService.RemoveAsync($"activity:{id}");
+        await ClearActivityCachesAsync(existingActivity.Category);
+        
+        if (oldCategory != existingActivity.Category)
+        {
+            await ClearActivityCachesAsync(oldCategory); 
+        }
     }
 
     public async Task DeleteActivityAsync(string activityId)
@@ -48,27 +63,51 @@ public class ActivityService(IActivityRepository activityRepository) : IActivity
         }
 
         await _activityRepository.DeleteAsync(activityId);
+        await _cacheService.RemoveAsync($"activity:{activityId}");
+        await ClearActivityCachesAsync(existingActivity.Category);
     }
 
     public async Task<IEnumerable<ActivityResponseDto>> GetAllActivitiesAsync()
     {
+        string cacheKey = "activities:all";
+        var cachedActivities = await _cacheService.GetAsync<IEnumerable<ActivityResponseDto>>(cacheKey);
+        if (cachedActivities != null) return cachedActivities;
+        
         var activities = await _activityRepository.GetAllAsync();
-        return activities.Select(MapToDto);
+        var dtos = activities.Select(MapToDto).ToList();
+        await _cacheService.SetAsync(cacheKey, dtos, _cacheTtl);
+        return dtos;
     }
 
     public async Task<IEnumerable<ActivityResponseDto>> GetActivitiesByCategoryAsync(string category)
     {
+        string cacheKey = $"activities:category:{category}";
+
+        var cachedActivities = await _cacheService.GetAsync<IEnumerable<ActivityResponseDto>>(cacheKey);
+        if (cachedActivities != null) return cachedActivities;
+
         var activities = await _activityRepository.GetByCategoryAsync(category);
-        return activities.Select(MapToDto);
+        var dtos = activities.Select(MapToDto).ToList();
+
+        await _cacheService.SetAsync(cacheKey, dtos, _cacheTtl);
+
+        return dtos;
     }
 
     public async Task<ActivityResponseDto?> GetActivityByIdAsync(string activityId)
     {
+        string cacheKey = $"activity:{activityId}";
+
+        var cachedActivity = await _cacheService.GetAsync<ActivityResponseDto>(cacheKey);
+        if (cachedActivity != null) return cachedActivity;
+
         var activity = await _activityRepository.GetByIdAsync(activityId);
-        
         if (activity == null) return null;
+
+        var dto = MapToDto(activity);
+        await _cacheService.SetAsync(cacheKey, dto, _cacheTtl);
         
-        return MapToDto(activity);
+        return dto;
     }
 
     private static ActivityResponseDto MapToDto(Domain.Entities.Activity activity)
@@ -80,6 +119,16 @@ public class ActivityService(IActivityRepository activityRepository) : IActivity
             IconUrl = activity.IconUrl,
             Category = activity.Category ?? "Other"
         };
+    }
+
+    private async Task ClearActivityCachesAsync(string category)
+    {
+        await _cacheService.RemoveAsync("activities:all");
+        
+        if (!string.IsNullOrEmpty(category))
+        {
+            await _cacheService.RemoveAsync($"activities:category:{category}");
+        }
     }
 
 }

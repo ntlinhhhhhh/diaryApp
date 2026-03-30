@@ -1,6 +1,7 @@
 
 using DiaryApp.Application.DTOs.User;
 using DiaryApp.Application.Interfaces;
+using DiaryApp.Application.Interfaces.Services;
 using DiaryApp.Domain.Entities;
 
 namespace DiaryApp.Application.Services;
@@ -8,21 +9,29 @@ namespace DiaryApp.Application.Services;
 public class UserService(
     IUserRepository userRepository,
     IThemeRepository themeRepository,
-    IMomentRepository momentRepository
+    IMomentRepository momentRepository,
+    IRedisCacheService cacheService
     ) : IUserService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IThemeRepository _themeRepository = themeRepository;
     private readonly IMomentRepository _momentRepository = momentRepository;
+    private readonly IRedisCacheService _cacheService = cacheService;
 
     public async Task<UserProfileDto> GetProfileAsync(string userId)
     {
+        string cacheKey = $"user_profile:{userId}";
+        var cachedUser = await _cacheService.GetAsync<UserProfileDto>(cacheKey);
+
+        if (cachedUser != null) return cachedUser;
+
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
         {
             throw new KeyNotFoundException("Không tìm thấy thông tin người dùng");
         }
-        return new UserProfileDto
+        
+        var profile = new UserProfileDto
         {
             Id = user.Id,
             Email = user.Email,
@@ -36,6 +45,9 @@ public class UserService(
             ActiveThemeId = user.ActiveThemeId,
             CreatedAt = user.CreatedAt
         };
+
+        await _cacheService.SetAsync(cacheKey, profile, TimeSpan.FromMinutes(30));
+        return profile;
     }
 
     public async Task UpdateProfileAsync(string userId, UpdateProfileRequestDto request)
@@ -52,6 +64,9 @@ public class UserService(
             gender: request.Gender,
             birthday: request.Birthday
         );
+
+        await _cacheService.RemoveAsync($"user_profile:{userId}");
+        await _cacheService.RemoveAsync($"auth:email:{user.Email}");
 
         _ = Task.Run(async () => 
         {
@@ -107,6 +122,9 @@ public class UserService(
 
         await _userRepository.UpdateCoinBalanceAsync(userId, -request.Price);
         await _userRepository.AddOwnedThemeAsync(userId, request.ThemeId);
+
+        await _cacheService.RemoveAsync($"user_profile:{userId}");
+        await _cacheService.RemoveAsync($"owned_themes:{userId}");
     }
 
     public async Task ChangeActiveThemeAsync(string userId, UpdateThemeRequestDto request)
@@ -124,11 +142,20 @@ public class UserService(
         }
 
         await _userRepository.SetActiveThemeAsync(userId, request.ThemeId);
+        await _cacheService.RemoveAsync($"user_profile:{userId}");
     }
 
     public async Task<List<string>> GetMyThemeIdsAsync(string userId)
     {
-        return await _userRepository.GetOwnedThemeIdsAsync(userId);
+        string cacheKey = $"owned_themes:{userId}";
+
+        var cachedThemeIds = await _cacheService.GetAsync<List<string>>(cacheKey);
+        if (cachedThemeIds != null) return cachedThemeIds;
+
+        var themeIds = await _userRepository.GetOwnedThemeIdsAsync(userId);
+        await _cacheService.SetAsync(cacheKey, themeIds, TimeSpan.FromHours(1));
+
+        return themeIds;
     }
 
     public async Task DeleteUserAsync(string userId)
@@ -139,6 +166,9 @@ public class UserService(
             throw new KeyNotFoundException("Không tìm thấy người dùng cần xóa");
         }
         await _userRepository.DeleteAsync(userId);
+        await _cacheService.RemoveAsync($"user_profile:{userId}");
+        await _cacheService.RemoveAsync($"auth:email:{user.Email}");
+        await _cacheService.RemoveAsync($"owned_themes:{userId}");
     }
 
     public async Task<IEnumerable<UserSearchResponseDto>> GetAllUsersAsync()

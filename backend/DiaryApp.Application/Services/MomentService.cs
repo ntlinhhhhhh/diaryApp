@@ -7,10 +7,15 @@ namespace DiaryApp.Application.Services;
 
 public class MomentService(
     IMomentRepository momentRepository, 
-    IUserRepository userRepository) : IMomentService
+    IUserRepository userRepository,
+    IRedisCacheService cacheService
+    ) : IMomentService
 {
     private readonly IMomentRepository _momentRepository = momentRepository;
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly IRedisCacheService _cacheService = cacheService;
+
+    private readonly TimeSpan _cacheTtl = TimeSpan.FromHours(1);
 
     public async Task<MomentResponseDto> CreateMomentAsync(string userId, MomentRequestDto request)
     {
@@ -33,19 +38,39 @@ public class MomentService(
 
         await _momentRepository.CreateAsync(newMoment);
 
+        await _cacheService.RemoveAsync($"moments_user:{userId}");
+
         return MapToResponseDto(newMoment);
     }
 
     public async Task<MomentResponseDto?> GetByIdAsync(string momentId)
     {
+        string cacheKey = $"moment:{momentId}";
+        var cachedMoment = await _cacheService.GetAsync<MomentResponseDto>(cacheKey);
+        if (cachedMoment != null) return cachedMoment;
+
         var moment = await _momentRepository.GetByIdAsync(momentId);
-        return moment == null ? null : MapToResponseDto(moment);
+        if (moment == null) return null;
+
+        var dto = MapToResponseDto(moment);
+        await _cacheService.SetAsync(cacheKey, dto, _cacheTtl);
+
+        return dto;
     }
 
     public async Task<IEnumerable<MomentResponseDto>> GetMomentsByUserIdAsync(string userId)
     {
+        string cacheKey = $"moments_user:{userId}";
+
+        var cachedMoments = await _cacheService.GetAsync<IEnumerable<MomentResponseDto>>(cacheKey);
+        if (cachedMoments != null) return cachedMoments;
+
         var moments = await _momentRepository.GetMomentsByUserIdAsync(userId);
-        return moments.Select(MapToResponseDto);
+
+        var dtos = moments.Select(MapToResponseDto).ToList();
+        await _cacheService.SetAsync(cacheKey, dtos, _cacheTtl);
+
+        return dtos;
     }
 
     public async Task DeleteAsync(string userId, string momentId)
@@ -58,6 +83,8 @@ public class MomentService(
         }
 
         await _momentRepository.DeleteAsync(momentId);
+        await _cacheService.RemoveAsync($"moment:{momentId}");
+        await _cacheService.RemoveAsync($"moments_user:{userId}");
     }
 
     private static MomentResponseDto MapToResponseDto(Moment moment)

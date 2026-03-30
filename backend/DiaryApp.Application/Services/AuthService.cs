@@ -9,19 +9,22 @@ using System.Text;
 using BCrypt.Net;
 using DiaryApp.Application.DTOs;
 using Google.Apis.Auth;
+using DiaryApp.Application.Interfaces.Services;
 namespace DiaryApp.Application.Services;
 
 public class AuthService(
     IUserRepository userRepository,
     IEmailService emailService,
     IJwtProvider jwtProvider,
-    IGoogleAuthProvider googleAuthProvider
+    IGoogleAuthProvider googleAuthProvider,
+    IRedisCacheService cacheService
 ) : IAuthService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IEmailService _emailService = emailService;
     private readonly IJwtProvider _jwtProvider = jwtProvider;
     private readonly IGoogleAuthProvider _googleAuthProvider = googleAuthProvider;
+    private readonly IRedisCacheService _cacheService = cacheService;
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
@@ -64,7 +67,19 @@ public class AuthService(
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
     {
         var email = request.Email.Trim().ToLower();
-        var user = await _userRepository.GetByEmailAsync(email);
+
+        string cacheKey = $"auth:email:{email}";
+        var user = await _cacheService.GetAsync<User>(cacheKey);
+
+        if (user == null)
+        {
+            user = await _userRepository.GetByEmailAsync(email);
+            
+            if (user != null)
+            {
+                await _cacheService.SetAsync(cacheKey, user, TimeSpan.FromMinutes(15));
+            }
+        }
 
         if (user == null) throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
 
@@ -115,7 +130,7 @@ public class AuthService(
 
         return new AuthResponseDto
         {
-            Token = _jwtProvider.GenerateToken(user), // Dùng Interface
+            Token = _jwtProvider.GenerateToken(user),
             UserId = user.Id,
             Name = user.Name ?? "username",
             AvatarUrl = user.AvatarUrl
@@ -131,8 +146,12 @@ public class AuthService(
 
         string otp = Random.Shared.Next(100000, 999999).ToString();
         user.ResetOtp = otp;
-        user.OtpExpiry = DateTime.UtcNow.AddMinutes(5); // limit 5 minute
-        await _userRepository.UpdateAsync(user);
+        string otpCacheKey = $"otp:{email}";
+        await _cacheService.SetAsync(otpCacheKey, otp, TimeSpan.FromMinutes(5));
+
+        // user.OtpExpiry = DateTime.UtcNow.AddMinutes(5); // limit 5 minute
+        // await _userRepository.UpdateAsync(user);
+
         string subject = $"[{otp}] Mã xác nhận khôi phục mật khẩu";
         string emailBody = $@"
             <h2>Yêu cầu khôi phục mật khẩu</h2>
@@ -154,22 +173,24 @@ public class AuthService(
     public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
     {
         var email = request.Email.ToLower();
+        string otpCacheKey = $"otp:{email}";
+        var savedOtp = await _cacheService.GetAsync<string>(otpCacheKey);
+
+        if (savedOtp == null || savedOtp != request.Otp)
+        {
+            throw new UnauthorizedAccessException("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
         var user = await _userRepository.GetByEmailAsync(email);
 
         if (user == null || user.AuthProvider != "Local")
         {
             throw new KeyNotFoundException("Email không tồn tại");
         }
-        if (string.IsNullOrEmpty(user.ResetOtp) || user.ResetOtp != request.Otp)
-        {
-            throw new UnauthorizedAccessException("Mã OTP không chính xác hoặc đã hết hạn.");
-        }
-
-        if (user.OtpExpiry < DateTime.UtcNow) throw new Exception("Mã OTP đã hết hạn.");
 
         user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-        user.ResetOtp = null;
-        user.OtpExpiry = null;
         await _userRepository.UpdateAsync(user);
+        await _cacheService.RemoveAsync(otpCacheKey);
+        await _cacheService.RemoveAsync($"auth:email:{email}");
     }
 }

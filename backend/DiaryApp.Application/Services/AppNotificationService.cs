@@ -1,13 +1,20 @@
 using DiaryApp.Application.DTOs;
 using DiaryApp.Application.DTOs.Notification; // Giả định namespace chứa DTO
 using DiaryApp.Application.Interfaces;
+using DiaryApp.Application.Interfaces.Services;
 using DiaryApp.Domain.Entities;
 
 namespace DiaryApp.Application.Services;
 
-public class AppNotificationService(IAppNotificationRepository notificationRepository) : IAppNotificationService
+public class AppNotificationService(
+    IAppNotificationRepository notificationRepository,
+    IRedisCacheService cacheService
+    ) : IAppNotificationService
 {
     private readonly IAppNotificationRepository _notificationRepository = notificationRepository;
+    private readonly IRedisCacheService _cacheService = cacheService;
+
+    private readonly TimeSpan _cacheTtl = TimeSpan.FromMinutes(30);
 
     public async Task<AppNotificationResponseDto> CreateNotificationAsync(AppNotificationRequestDto request)
     {
@@ -23,14 +30,23 @@ public class AppNotificationService(IAppNotificationRepository notificationRepos
         };
 
         await _notificationRepository.CreateAsync(newNotification);
+        await _cacheService.RemoveAsync($"notifications:{request.UserId}");
 
         return MapToDto(newNotification);
     }
 
     public async Task<IEnumerable<AppNotificationResponseDto>> GetMyNotificationsAsync(string userId)
     {
+        string cacheKey = $"notifications:{userId}";
+        var cachedNotifications = await _cacheService.GetAsync<IEnumerable<AppNotificationResponseDto>>(cacheKey);
+        if (cachedNotifications != null) return cachedNotifications;
+
         var notifications = await _notificationRepository.GetByUserIdAsync(userId);
-        return notifications.Select(MapToDto);
+        var dtos = notifications.Select(MapToDto).ToList();
+
+        await _cacheService.SetAsync(cacheKey, dtos, _cacheTtl);
+
+        return dtos;
     }
 
     public async Task MarkAsReadAsync(string notificationId, string currentUserId)
@@ -51,6 +67,7 @@ public class AppNotificationService(IAppNotificationRepository notificationRepos
         {
             await _notificationRepository.MarkAsReadAsync(notificationId);
         }
+        await _cacheService.RemoveAsync($"notifications:{currentUserId}");
     }
 
     public async Task DeleteNotificationAsync(string notificationId, string currentUserId)
@@ -68,11 +85,13 @@ public class AppNotificationService(IAppNotificationRepository notificationRepos
         }
 
         await _notificationRepository.DeleteByIdAsync(notificationId);
+        await _cacheService.RemoveAsync($"notifications:{currentUserId}");
     }
 
     public async Task DeleteAllMyNotificationsAsync(string userId)
     {
         await _notificationRepository.DeleteAllByUserIdAsync(userId);
+        await _cacheService.RemoveAsync($"notifications:{userId}");
     }
 
     private static AppNotificationResponseDto MapToDto(AppNotification notification)

@@ -13,7 +13,6 @@ using System.Security.Claims;
 using DiaryApp.Infrastructure.Configurations;
 using DiaryApp.Api.Extensions;
 using DiaryApp.Infrastructure.Providers;
-// Nhớ thêm using này nếu file chưa có
 using Google.Cloud.Firestore; 
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
@@ -30,6 +29,7 @@ builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Emai
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
 
 // AUTHENTICATION & AUTHORIZATION
 builder.Services.AddAuthentication(options =>
@@ -57,25 +57,53 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
 
-// firebase config
 string firebaseBase64 = Environment.GetEnvironmentVariable("FIREBASE_KEY_BASE64");
+string projectId = builder.Configuration["Firebase:ProjectId"] ?? "diaryapp-36c8f";
 
 if (!string.IsNullOrEmpty(firebaseBase64))
 {
     byte[] decodedBytes = Convert.FromBase64String(firebaseBase64);
     string decodedJson = System.Text.Encoding.UTF8.GetString(decodedBytes);
 
+    FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
+    {
+        Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(decodedJson)
+    });
+
     builder.Services.AddSingleton<FirestoreDb>(provider =>
     {
-        var firestoreBuilder = new FirestoreDbBuilder
-        {
-            // Thay ID này bằng đúng Project ID trong file JSON của bạn
-            ProjectId = "diaryapp-36c8f", 
-            JsonCredentials = decodedJson
-        };
-        return firestoreBuilder.Build();
+        return new FirestoreDbBuilder { ProjectId = projectId, JsonCredentials = decodedJson }.Build();
     });
 }
+else
+{
+    string serviceAccountPath = builder.Configuration["Firebase:ServiceAccountPath"];
+    
+    if (!string.IsNullOrEmpty(serviceAccountPath))
+    {
+        Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", serviceAccountPath);
+        
+        FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
+        {
+            Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromFile(serviceAccountPath)
+        });
+
+        builder.Services.AddSingleton<FirestoreDb>(provider =>
+        {
+            return FirestoreDb.Create(projectId);
+        });
+    }
+    else
+    {
+        throw new Exception("Lỗi: Không tìm thấy chìa khóa Firebase! Hãy kiểm tra lại Base64 hoặc ServiceAccountPath.");
+    }
+}
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "DiaryApp_";
+});
 
 // DEPENDENCY INJECTION
 // Infrastructure
@@ -87,7 +115,7 @@ builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IDailyLogRepository, DailyLogRepository>();
 builder.Services.AddScoped<IMomentRepository, MomentRepository>();
 builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();
-
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 // Application
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -142,5 +170,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<FirestoreDb>();
+    Console.WriteLine("Đang khởi tạo kết nối Firestore...");
+    await db.Collection("themes").Limit(1).GetSnapshotAsync(); 
+    Console.WriteLine("Firestore đã sẵn sàng!");
+}
 
+app.MapGet("/", () => Results.Ok("I am alive!"));
 app.Run();
