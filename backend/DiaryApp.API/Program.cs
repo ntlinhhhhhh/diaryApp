@@ -25,6 +25,7 @@ builder.Logging.AddConsole();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleSettings"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 // builder.Services.AddFirebaseAdminConfig(builder.Configuration);
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -108,6 +109,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // DEPENDENCY INJECTION
 // Infrastructure
 builder.Services.AddSingleton<FirestoreProvider>();
+builder.Services.AddScoped<ActivitySeeder>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
@@ -127,6 +129,7 @@ builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<IGoogleAuthProvider, GoogleAuthProvider>();
 builder.Services.AddScoped<IFirebaseNotificationService, FirebaseNotificationService>();
 builder.Services.AddScoped<IAppNotificationService, AppNotificationService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 // CONTROLLERS & SWAGGER 
 builder.Services.AddControllers();
@@ -159,6 +162,14 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 app.UseDeveloperExceptionPage();
+
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<ActivitySeeder>();
+
+    await seeder.SeedActivitiesAsync(); 
+}
+
 
 // MIDDLEWARE PIPELINE
 app.UseSwagger();
