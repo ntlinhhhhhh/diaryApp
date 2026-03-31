@@ -113,7 +113,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // DEPENDENCY INJECTION
 // Infrastructure
 builder.Services.AddSingleton<FirestoreProvider>();
-builder.Services.AddScoped<ActivitySeeder>();
+// builder.Services.AddScoped<ActivitySeeder>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
