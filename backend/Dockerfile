@@ -6,6 +6,7 @@ COPY ["DiaryApp.API/DiaryApp.API.csproj", "DiaryApp.API/"]
 COPY ["DiaryApp.Application/DiaryApp.Application.csproj", "DiaryApp.Application/"]
 COPY ["DiaryApp.Domain/DiaryApp.Domain.csproj", "DiaryApp.Domain/"]
 COPY ["DiaryApp.Infrastructure/DiaryApp.Infrastructure.csproj", "DiaryApp.Infrastructure/"]
+COPY ["DiaryApp.Tests/DiaryApp.Tests.csproj", "DiaryApp.Tests/"]
 
 RUN dotnet restore "DiaryApp.sln"
 
