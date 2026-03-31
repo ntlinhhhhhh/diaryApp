@@ -17,7 +17,7 @@ public class MomentService(
 
     private readonly TimeSpan _cacheTtl = TimeSpan.FromHours(1);
 
-    public async Task<MomentResponseDto> CreateMomentAsync(string userId, MomentRequestDto request)
+    public async Task<MomentResponseDto> CreateMomentAsync(string userId, MomentRequestDto request, string imageUrl)
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
@@ -30,7 +30,7 @@ public class MomentService(
             UserName = user.Name ?? "username",
             UserAvatarUrl = user.AvatarUrl ?? "",
             DailyLogId = request.DailyLogId,
-            ImageUrl = request.ImageUrl,
+            ImageUrl = imageUrl,
             Caption = request.Caption,
             IsPublic = request.IsPublic,
             CapturedAt = request.CapturedAt.ToUniversalTime()

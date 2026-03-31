@@ -13,7 +13,9 @@ using System.Security.Claims;
 using DiaryApp.Infrastructure.Configurations;
 using DiaryApp.Api.Extensions;
 using DiaryApp.Infrastructure.Providers;
-using Google.Cloud.Firestore; 
+using Google.Cloud.Firestore;
+using DiaryApp.Infrastructure.Messaging;
+using DiaryApp.Infrastructure.Workers;
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
@@ -26,6 +28,8 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSet
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleSettings"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
+
 // builder.Services.AddFirebaseAdminConfig(builder.Configuration);
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -118,6 +122,8 @@ builder.Services.AddScoped<IDailyLogRepository, DailyLogRepository>();
 builder.Services.AddScoped<IMomentRepository, MomentRepository>();
 builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+builder.Services.AddScoped<IMessageProducer, RabbitMQProducer>();
+builder.Services.AddHostedService<ImageUploadWorker>();
 // Application
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -132,7 +138,11 @@ builder.Services.AddScoped<IAppNotificationService, AppNotificationService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 // CONTROLLERS & SWAGGER 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+        {
+            options.SuppressMapClientErrors = false; 
+        });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -163,13 +173,6 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 app.UseDeveloperExceptionPage();
 
-using (var scope = app.Services.CreateScope())
-{
-    var seeder = scope.ServiceProvider.GetRequiredService<ActivitySeeder>();
-
-    await seeder.SeedActivitiesAsync(); 
-}
-
 
 // MIDDLEWARE PIPELINE
 app.UseSwagger();
@@ -181,13 +184,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<FirestoreDb>();
-    Console.WriteLine("Đang khởi tạo kết nối Firestore...");
-    await db.Collection("themes").Limit(1).GetSnapshotAsync(); 
-    Console.WriteLine("Firestore đã sẵn sàng!");
-}
+// using (var scope = app.Services.CreateScope())
+// {
+//     var db = scope.ServiceProvider.GetRequiredService<FirestoreDb>();
+//     Console.WriteLine("Đang khởi tạo kết nối Firestore...");
+//     await db.Collection("themes").Limit(1).GetSnapshotAsync(); 
+//     Console.WriteLine("Firestore đã sẵn sàng!");
+// }
 
 app.MapGet("/", () => Results.Ok("I am alive!"));
 app.Run();

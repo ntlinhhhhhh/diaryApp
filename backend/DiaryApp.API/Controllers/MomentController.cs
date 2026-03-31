@@ -1,6 +1,10 @@
+using System.Diagnostics;
 using System.Security.Claims;
 using DiaryApp.Application.DTOs.Moment;
+using DiaryApp.Application.Interfaces;
 using DiaryApp.Application.Interfaces.Services;
+using FirebaseAdmin.Messaging;
+using Google.Protobuf;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,21 +13,49 @@ namespace DiaryApp.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/moments")]
-public class MomentController(IMomentService momentService) : ControllerBase
+public class MomentController(
+    IMomentService momentService,
+    IMessageProducer messageProducer
+) : ControllerBase
 {
     private readonly IMomentService _momentService = momentService;
+    private readonly IMessageProducer _messageProducer = messageProducer;
 
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
     // POST: api/moments
     [HttpPost]
-    public async Task<IActionResult> CreateMoment([FromBody] MomentRequestDto request)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> CreateMoment([FromForm] MomentRequestDto request)
     {
+        if (request.ImageFile == null || request.ImageFile.Length == 0)
+        {
+            return BadRequest(new { message = "Vui lòng đính kèm ảnh "});
+        } 
         try
         {
-            var response = await _momentService.CreateMomentAsync(CurrentUserId, request);
-            
-            return CreatedAtAction(nameof(GetMomentById), new { id = response.Id }, response);
+            var tempFilePath = Path.GetTempFileName();
+            using (var stream = new FileStream(tempFilePath, FileMode.Create))
+            {
+                await request.ImageFile.CopyToAsync(stream);
+            }
+
+            var payload = new
+            {
+                UserId = CurrentUserId,
+                DailyLogId = request.DailyLogId,
+                Caption = request.Caption,
+                IsPublic = request.IsPublic,
+                CapturedAt = request.CapturedAt,
+                TempImagePath = tempFilePath
+            };
+
+            await _messageProducer.SendMessageAsync(payload, "image_upload_queue");
+
+            return Accepted(new { 
+                success = true, 
+                message = "Khoảnh khắc đang được tải lên và xử lý." 
+            });
         }
         catch (KeyNotFoundException ex)
         {
@@ -31,7 +63,7 @@ public class MomentController(IMomentService momentService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return StatusCode(500, new { message = $"Lỗi hệ thống: {ex.Message}" });
         }
     }
 
