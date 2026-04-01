@@ -10,7 +10,7 @@ namespace DiaryApp.Infrastructure.Messaging;
 
 public class RabbitMQProducer(IConfiguration configuration) : IMessageProducer
 {
-    private readonly string _rabbitMqUrl = configuration.GetSection("RabbitMQ").Get<RabbitMQSettings>()?.Url ?? string.Empty;
+    private readonly string _rabbitMqUrl = configuration["RabbitMQSettings:Url"] ?? string.Empty;
 
     public async Task SendMessageAsync<T>(T message, string queueName)
     {

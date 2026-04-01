@@ -16,8 +16,7 @@ public class ImageUploadWorker(
     IConfiguration configuration) : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
-    
-    private readonly string _rabbitMqUrl = configuration.GetSection("RabbitMQ").Get<RabbitMQSettings>()?.Url ?? string.Empty;
+    private readonly string _rabbitMqUrl = configuration["RabbitMQSettings:Url"] ?? string.Empty;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
