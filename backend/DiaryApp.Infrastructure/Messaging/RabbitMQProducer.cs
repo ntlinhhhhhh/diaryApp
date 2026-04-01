@@ -2,14 +2,15 @@ using System.Text;
 using System.Text.Json;
 using DiaryApp.Application.Interfaces;
 using DiaryApp.Infrastructure.Configurations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
 namespace DiaryApp.Infrastructure.Messaging;
 
-public class RabbitMQProducer(IOptions<RabbitMQSettings> config) : IMessageProducer
+public class RabbitMQProducer(IConfiguration configuration) : IMessageProducer
 {
-    private readonly string _rabbitMqUrl = config.Value.Url;
+    private readonly string _rabbitMqUrl = configuration.GetSection("RabbitMQ").Get<RabbitMQSettings>()?.Url ?? string.Empty;
 
     public async Task SendMessageAsync<T>(T message, string queueName)
     {

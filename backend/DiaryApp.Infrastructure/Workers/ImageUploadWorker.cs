@@ -5,7 +5,7 @@ using DiaryApp.Application.Interfaces.Services;
 using DiaryApp.Infrastructure.Configurations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -13,72 +13,87 @@ namespace DiaryApp.Infrastructure.Workers;
 
 public class ImageUploadWorker(
     IServiceProvider serviceProvider,
-    IOptions<RabbitMQSettings> config) : BackgroundService
+    IConfiguration configuration) : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
-    private readonly string _rabbitMqUrl = config.Value.Url;
+    
+    private readonly string _rabbitMqUrl = configuration.GetSection("RabbitMQ").Get<RabbitMQSettings>()?.Url ?? string.Empty;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var factory = new ConnectionFactory { Uri = new Uri(_rabbitMqUrl) };
-        var connection = await factory.CreateConnectionAsync(stoppingToken);
-        var channel = await connection.CreateChannelAsync(null, stoppingToken);
-
-        await channel.QueueDeclareAsync(queue: "image_upload_queue", durable: true, exclusive: false, autoDelete: false);
-
-        var consumer = new AsyncEventingBasicConsumer(channel);
-        
-        consumer.ReceivedAsync += async (model, ea) =>
+        if (string.IsNullOrWhiteSpace(_rabbitMqUrl))
         {
-            try
+            Console.WriteLine("WARNING: RabbitMQ URL not found in configuration! ImageUploadWorker is stopping.");
+            return; 
+        }
+
+        try
+        {
+            var factory = new ConnectionFactory { Uri = new Uri(_rabbitMqUrl) };
+            var connection = await factory.CreateConnectionAsync(stoppingToken);
+            var channel = await connection.CreateChannelAsync(null, stoppingToken);
+
+            await channel.QueueDeclareAsync(queue: "image_upload_queue", durable: true, exclusive: false, autoDelete: false);
+
+            var consumer = new AsyncEventingBasicConsumer(channel);
+            
+            consumer.ReceivedAsync += async (model, ea) =>
             {
-                 var body = ea.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-                var data = JsonSerializer.Deserialize<MomentMessagePayload>(message);
-
-                if (data == null)
+                try
                 {
-                    await channel.BasicAckAsync(ea.DeliveryTag, false);
-                    return;
-                }
+                    var body = ea.Body.ToArray();
+                    var message = Encoding.UTF8.GetString(body);
+                    var data = JsonSerializer.Deserialize<MomentMessagePayload>(message);
 
-                using var scope = _serviceProvider.CreateScope();
-                var cloudinaryService = scope.ServiceProvider.GetRequiredService<ICloudinaryService>(); // call cloudinary
-                var momentService = scope.ServiceProvider.GetRequiredService<IMomentService>();
-
-                using var stream = File.OpenRead(data.TempImagePath);
-                string? imageUrl = await cloudinaryService.UploadImageAsync(stream, $"moment_{Guid.NewGuid()}.png", "moments");
-
-                if (!string.IsNullOrEmpty(imageUrl))
-                {
-                    var requestDto = new MomentRequestDto
+                    if (data == null)
                     {
-                        DailyLogId = data.DailyLogId,
-                        Caption = data.Caption,
-                        IsPublic = data.IsPublic,
-                        CapturedAt = data.CapturedAt
-                    };
+                        await channel.BasicAckAsync(ea.DeliveryTag, false);
+                        return;
+                    }
 
-                    await momentService.CreateMomentAsync(data.UserId, requestDto, imageUrl);
-                    Console.WriteLine($"Đã tạo Moment thành công cho user {data.UserId}");
+                    using var scope = _serviceProvider.CreateScope();
+                    var cloudinaryService = scope.ServiceProvider.GetRequiredService<ICloudinaryService>();
+                    var momentService = scope.ServiceProvider.GetRequiredService<IMomentService>();
+
+                    using var stream = File.OpenRead(data.TempImagePath);
+                    string? imageUrl = await cloudinaryService.UploadImageAsync(stream, $"moment_{Guid.NewGuid()}.png", "moments");
+
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        var requestDto = new MomentRequestDto
+                        {
+                            DailyLogId = data.DailyLogId,
+                            Caption = data.Caption,
+                            IsPublic = data.IsPublic,
+                            CapturedAt = data.CapturedAt
+                        };
+
+                        await momentService.CreateMomentAsync(data.UserId, requestDto, imageUrl);
+                        Console.WriteLine($"Created moment successfully for user {data.UserId}");
+                    }
+
+                    if (File.Exists(data.TempImagePath))
+                    {
+                        File.Delete(data.TempImagePath);
+                    }
+
+                    await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
                 }
-
-                if (File.Exists(data.TempImagePath))
+                catch (Exception ex)
                 {
-                    File.Delete(data.TempImagePath);
+                    Console.WriteLine($"Background processing error in ReceivedAsync: {ex.Message}");
+                    await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
                 }
+            };
 
-                await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Lỗi xử lý ngầm: {ex.Message}");
-                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
-            }
-        };
-
-        await channel.BasicConsumeAsync(queue: "image_upload_queue", autoAck: false, consumer: consumer);
-        await Task.Delay(Timeout.Infinite, stoppingToken);
+            await channel.BasicConsumeAsync(queue: "image_upload_queue", autoAck: false, consumer: consumer);
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            // Catch connection errors (UriFormatException, BrokerUnreachableException...)
+            Console.WriteLine($"Error initializing RabbitMQ connection: {ex.Message}");
+        }
     }
 
     private class MomentMessagePayload
