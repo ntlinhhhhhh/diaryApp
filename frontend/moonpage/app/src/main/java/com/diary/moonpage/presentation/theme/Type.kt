@@ -60,6 +60,14 @@ val Typography = Typography(
         letterSpacing = 0.sp
     ),
 
+    titleSmall = TextStyle(
+        fontFamily = nunitoFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp
+    ),
+
     // bodyLarge
     bodyLarge = TextStyle(
         fontFamily = nunitoFontFamily,

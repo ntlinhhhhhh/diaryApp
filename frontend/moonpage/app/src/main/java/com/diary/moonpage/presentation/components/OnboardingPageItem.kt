@@ -75,7 +75,6 @@ fun OnboardingPageItem(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                // Hình ảnh minh họa
                 Image(
                     painter = painterResource(id = pageData.imageRes),
                     contentDescription = "Onboarding Image",
@@ -88,7 +87,6 @@ fun OnboardingPageItem(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Tiêu đề trong thẻ Card
                 Text(
                     text = pageData.cardTitle,
                     style = MaterialTheme.typography.titleLarge,
@@ -98,7 +96,6 @@ fun OnboardingPageItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Mô tả trong thẻ Card
                 Text(
                     text = pageData.cardDescription,
                     style = MaterialTheme.typography.bodyMedium,

@@ -78,7 +78,7 @@ fun LandingScreen(
         Text(
             text = "My special day",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f) // Làm mờ chữ phụ một chút
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
 
         Spacer(modifier = Modifier.height(32.dp))
