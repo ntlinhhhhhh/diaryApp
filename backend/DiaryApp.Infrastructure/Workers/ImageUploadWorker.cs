@@ -90,7 +90,6 @@ public class ImageUploadWorker(
         }
         catch (Exception ex)
         {
-            // Catch connection errors (UriFormatException, BrokerUnreachableException...)
             Console.WriteLine($"Error initializing RabbitMQ connection: {ex.Message}");
         }
     }

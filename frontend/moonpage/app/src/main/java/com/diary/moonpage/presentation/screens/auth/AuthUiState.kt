@@ -15,5 +15,4 @@ data class AuthUiState (
 
     val isLoading: Boolean = false,
     val generalError: String? = null
-
 )

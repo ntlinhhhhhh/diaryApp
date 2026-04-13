@@ -16,10 +16,10 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.R
-import com.diary.moonpage.presentation.components.MoonPageIndicator
-import com.diary.moonpage.presentation.components.MoonPrimaryButton
-import com.diary.moonpage.presentation.components.OnboardingPage
-import com.diary.moonpage.presentation.components.OnboardingPageItem
+import com.diary.moonpage.presentation.components.landing.MoonPageIndicator
+import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.landing.OnboardingPage
+import com.diary.moonpage.presentation.components.landing.OnboardingPageItem
 import com.diary.moonpage.presentation.theme.MoonPageTheme
 
 val onboardingPages = listOf(
@@ -78,7 +78,7 @@ fun LandingScreen(
         Text(
             text = "My special day",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f) // Làm mờ chữ phụ một chút
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
 
         Spacer(modifier = Modifier.height(32.dp))

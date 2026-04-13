@@ -1,5 +1,6 @@
-package com.diary.moonpage.presentation.components
+package com.diary.moonpage.presentation.components.landing
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -75,7 +76,6 @@ fun OnboardingPageItem(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                // Hình ảnh minh họa
                 Image(
                     painter = painterResource(id = pageData.imageRes),
                     contentDescription = "Onboarding Image",
@@ -88,7 +88,6 @@ fun OnboardingPageItem(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Tiêu đề trong thẻ Card
                 Text(
                     text = pageData.cardTitle,
                     style = MaterialTheme.typography.titleLarge,
@@ -98,7 +97,6 @@ fun OnboardingPageItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Mô tả trong thẻ Card
                 Text(
                     text = pageData.cardDescription,
                     style = MaterialTheme.typography.bodyMedium,
@@ -128,7 +126,7 @@ fun OnboardingPageItemPreview() {
 
 @Preview(
     showBackground = true,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+    uiMode = Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
 fun OnboardingPageIteDarkModePreview() {

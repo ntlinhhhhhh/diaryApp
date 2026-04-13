@@ -1,4 +1,4 @@
-package com.diary.moonpage.presentation.components
+package com.diary.moonpage.presentation.components.landing
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
