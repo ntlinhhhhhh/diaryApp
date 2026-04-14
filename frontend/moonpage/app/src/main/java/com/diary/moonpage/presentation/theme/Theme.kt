@@ -12,25 +12,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = MoonPrimaryDark,
-    secondary = MoonSecondary,
-    tertiary = MoonDotActive,
-    background = MoonDarkBackground,
-    surface = MoonDarkSurface,
-    onPrimary = Color.Black,
-    onBackground = MoonLightText,
-    onSurface = MoonLightText,
+    primary = MoonActionDark,
+    onPrimary = MoonTextDark,
+
+    background = MoonBgDark,
+    onBackground = MoonTextLight,
+
+    surface = MoonSurfaceDark,
+    onSurface = MoonTextLight,
+
+    surfaceVariant = MoonInputBgDark,
+    tertiary = MoonLinkDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = MoonBrownButton,
-    secondary = MoonDotActive,
-    tertiary = MoonPrimaryLight,
-    background = MoonCreamBackground,
-    surface = Color.White,
+    primary = MoonActionLight,
     onPrimary = Color.White,
-    onBackground = MoonDarkText,
-    onSurface = MoonDarkText
+
+    background = MoonBgLight,
+    onBackground = MoonTextDark,
+
+    surface = Color.White,
+    onSurface = MoonTextDark,
+
+    surfaceVariant = MoonInputBgLight,
+    tertiary = MoonLinkLight
+
 )
 
 @Composable

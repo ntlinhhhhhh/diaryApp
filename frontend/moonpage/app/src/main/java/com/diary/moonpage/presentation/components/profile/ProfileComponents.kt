@@ -24,7 +24,7 @@ import com.diary.moonpage.presentation.theme.*
 @Composable
 fun ProfileHeader(title: String, onNotificationClick: () -> Unit, onSettingsClick: () -> Unit) {
     val isDark = isSystemInDarkTheme()
-    val textColor = if (isDark) MoonLightText else MoonDarkText
+    val textColor = MaterialTheme.colorScheme.onSurface
 
     Row(
         modifier = Modifier
@@ -58,8 +58,10 @@ fun ProfileHeader(title: String, onNotificationClick: () -> Unit, onSettingsClic
 @Composable
 fun UserInfoCard(name: String, userId: String, onClick: () -> Unit) {
     val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) MoonDarkSurface else Color.White
-    val textColor = if (isDark) MoonLightText else MoonDarkText
+    val cardBg = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val inputBg = MaterialTheme.colorScheme.surfaceVariant
+    val iconColor = MaterialTheme.colorScheme.primary
 
     Card(
         modifier = Modifier
@@ -77,7 +79,7 @@ fun UserInfoCard(name: String, userId: String, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(if (isDark) MoonDarkInputBackground else MoonInputBackground),
+                    .background(inputBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Outlined.Face, contentDescription = "Avatar", tint = textColor, modifier = Modifier.size(32.dp))
@@ -92,7 +94,12 @@ fun UserInfoCard(name: String, userId: String, onClick: () -> Unit) {
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = textColor)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.Outlined.Security, contentDescription = "Verified", tint = MoonBrownButton, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Outlined.Security,
+                        contentDescription = "Verified",
+                        tint = iconColor,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
                 Text(
                     text = "ID $userId",
@@ -112,7 +119,7 @@ fun SectionTitle(title: String) {
         text = title,
         style = MaterialTheme.typography.titleMedium.copy(
             fontWeight = FontWeight.Bold,
-            color = if (isDark) MoonLightText else MoonDarkText
+            color = MaterialTheme.colorScheme.onSurface
         ),
         modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
     )
@@ -121,8 +128,8 @@ fun SectionTitle(title: String) {
 @Composable
 fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
     val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) MoonDarkSurface else Color.White
-    val textColor = if (isDark) MoonLightText else MoonDarkText
+    val cardBg = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
 
     Card(
         modifier = modifier.shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.05f)),
@@ -140,8 +147,9 @@ fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
 @Composable
 fun ActionCard(title: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) MoonDarkSurface else Color.White
-    val textColor = if (isDark) MoonLightText else MoonDarkText
+    val cardBg = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val iconColor = MaterialTheme.colorScheme.primary
 
     Card(
         modifier = modifier
@@ -165,10 +173,10 @@ fun ActionCard(title: String, icon: ImageVector, modifier: Modifier = Modifier, 
                         .size(30.dp)
                         .clip(CircleShape)
                         .padding(4.dp)
-                        .background(MoonBrownButton.copy(alpha = 0.2f)),
+                        .background(cardBg.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = MoonBrownButton)
+                    Icon(icon, contentDescription = null, tint = iconColor)
                 }
             }
 

@@ -68,9 +68,9 @@ fun LoginScreenContent(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val isDark = isSystemInDarkTheme()
-    val screenBgColor = if (isDark) MoonDarkBackground else MoonCreamBackground
-    val backIconColor = if (isDark) MoonLightText else MoonDarkText
-    val cardBgColor = if (isDark) MoonDarkSurface else Color.White
+    val screenBgColor = MaterialTheme.colorScheme.background
+    val backIconColor = MaterialTheme.colorScheme.onSurface
+    val cardBgColor = MaterialTheme.colorScheme.surface
 
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->

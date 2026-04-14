@@ -19,6 +19,7 @@ fun MoonPageIndicator(
     currentPage: Int,
     modifier: Modifier = Modifier
 ) {
+    val dotColor = MaterialTheme.colorScheme.primary
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -26,9 +27,9 @@ fun MoonPageIndicator(
     ) {
         repeat(pageCount) { iteration ->
             val color = if (currentPage == iteration) {
-                MaterialTheme.colorScheme.secondary
+                dotColor
             } else {
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                dotColor.copy(alpha = 0.3f)
             }
 
             Box(

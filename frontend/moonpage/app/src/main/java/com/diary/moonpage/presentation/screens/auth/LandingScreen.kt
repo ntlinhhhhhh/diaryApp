@@ -1,5 +1,6 @@
 package com.diary.moonpage.presentation.screens.auth
 
+import android.graphics.Color.alpha
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -113,7 +114,7 @@ fun LandingScreen(
             Text(
                 text = "Login here",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 modifier = Modifier
                     .clickable { onNavigateToLogin() }
                     .padding(8.dp)

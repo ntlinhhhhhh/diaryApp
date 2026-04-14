@@ -28,17 +28,19 @@ import com.diary.moonpage.presentation.theme.*
 fun ProfileScreen() {
     val isDark = isSystemInDarkTheme()
     val outerBgColor = if (isDark) Color(0xFF1E2029) else Color.White
-    val innerBgColor = if (isDark) MoonDarkBackground else MoonCreamBackground
+    val innerBgColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val inputBgColor = MaterialTheme.colorScheme.surfaceVariant
 
     Scaffold(
         containerColor = outerBgColor,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { /* TODO: Xử lý FAB */ },
-                containerColor = MoonPrimaryButtonColor,
-                contentColor = MoonDarkText,
+                containerColor = inputBgColor,
+                contentColor = textColor,
                 shape = CircleShape,
-                modifier = Modifier.shadow(8.dp, CircleShape, spotColor = MoonPrimaryButtonColor)
+                modifier = Modifier.shadow(8.dp, CircleShape, spotColor = inputBgColor)
             ) {
                 Icon(Icons.Outlined.AddReaction, contentDescription = "Add Emotion")
             }

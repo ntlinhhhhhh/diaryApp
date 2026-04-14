@@ -41,7 +41,7 @@ import com.diary.moonpage.presentation.theme.*
 @Composable
 fun AuthHeader(title: String, subtitle: String) {
     val isDark = isSystemInDarkTheme()
-    val textColor = if (isDark) MoonLightText else MoonDarkText
+    val textColor = MaterialTheme.colorScheme.onBackground
 
     Text(
         text = title,
@@ -78,9 +78,9 @@ fun AuthTextField(
     onTrailingClick: (() -> Unit)? = null
 ) {
     val isDark = isSystemInDarkTheme()
-    val textColor = if (isDark) MoonLightText else MoonDarkText
-    val inputBgColor = if (isDark) MoonDarkInputBackground else MoonInputBackground
-    val linkColor = if (isDark) MoonDarkLinkColor else MoonLinkColor
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val inputBgColor = MaterialTheme.colorScheme.surfaceVariant
+    val linkColor = MaterialTheme.colorScheme.tertiary
 
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -172,8 +172,8 @@ fun AuthTextField(
 @Composable
 fun AuthDivider(text: String) {
     val isDark = isSystemInDarkTheme()
-    val textColor = if (isDark) MoonLightText else MoonDarkText
-    val lineColor = if (isDark) MoonLightText.copy(alpha = 0.2f) else MoonDarkText.copy(alpha = 0.1f)
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -193,9 +193,9 @@ fun AuthDivider(text: String) {
 @Composable
 fun SocialLoginButton(text: String, iconResId: Int, onClick: () -> Unit) {
     val isDark = isSystemInDarkTheme()
-    val textColor = if (isDark) MoonLightText else MoonDarkText
-    val cardBg = if (isDark) MoonDarkSurface else Color.White
-    val borderColor = if (isDark) MoonLightText.copy(alpha = 0.2f) else MoonDarkText.copy(alpha = 0.1f)
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val cardBg = MaterialTheme.colorScheme.surface
+    val borderColor = MaterialTheme.colorScheme.onSurface
 
     Card(
         modifier = Modifier
@@ -237,8 +237,8 @@ fun SocialLoginButton(text: String, iconResId: Int, onClick: () -> Unit) {
 @Composable
 fun AuthFooter(questionText: String, actionText: String, onActionClick: () -> Unit) {
     val isDark = isSystemInDarkTheme()
-    val textColor = if (isDark) MoonLightText else MoonDarkText
-    val linkColor = if (isDark) MoonDarkLinkColor else MoonPrimaryButtonColor
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val linkColor =MaterialTheme.colorScheme.tertiary
 
 
     Row(
@@ -266,8 +266,8 @@ fun AuthFooter(questionText: String, actionText: String, onActionClick: () -> Un
 @Composable
 fun TopCircularIcon() {
     val isDark = isSystemInDarkTheme()
-    val bgColor = if (isDark) MoonDarkSurface else Color.White
-    val iconColor = if (isDark) MoonDarkLinkColor else MoonPrimaryButtonColor
+    val bgColor = MaterialTheme.colorScheme.surface
+    val iconColor = MaterialTheme.colorScheme.tertiary
 
 
     Box(
@@ -289,8 +289,8 @@ fun TopCircularIcon() {
 @Composable
 fun OtpInputField(otpText: String, onOtpTextChange: (String) -> Unit, otpCount: Int = 6) {
     val isDark = isSystemInDarkTheme()
-    val bgColor = if (isDark) MoonDarkInputBackground else MoonInputBackground
-    val textColor = if (isDark) MoonLightText else MoonDarkText
+    val bgColor = MaterialTheme.colorScheme.surfaceVariant
+    val textColor = MaterialTheme.colorScheme.surface
 
     BasicTextField(
         value = otpText,

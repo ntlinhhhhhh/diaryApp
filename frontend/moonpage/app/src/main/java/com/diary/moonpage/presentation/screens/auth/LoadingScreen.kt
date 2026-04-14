@@ -23,7 +23,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.theme.MoonPageTheme
-import com.diary.moonpage.presentation.theme.MoonSecondary
 import kotlinx.coroutines.delay
 
 @Composable

@@ -45,10 +45,10 @@ fun ResetPasswordScreen(
     val scrollState = rememberScrollState()
 
     val isDark = isSystemInDarkTheme()
-    val screenBgColor = if (isDark) MoonDarkBackground else MoonCreamBackground
-    val textColor = if (isDark) MoonLightText else MoonDarkText
-    val cardBgColor = if (isDark) MoonDarkSurface else Color.White
-    val inputBgColor = if (isDark) MoonDarkInputBackground else MoonInputBackground
+    val screenBgColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val cardBgColor = MaterialTheme.colorScheme.surface
+    val inputBgColor = MaterialTheme.colorScheme.surfaceVariant
 
     Column(
         modifier = Modifier
