@@ -1,5 +1,6 @@
-package com.diary.moonpage.presentation.components
+package com.diary.moonpage.presentation.components.landing
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -125,7 +126,7 @@ fun OnboardingPageItemPreview() {
 
 @Preview(
     showBackground = true,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+    uiMode = Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
 fun OnboardingPageIteDarkModePreview() {

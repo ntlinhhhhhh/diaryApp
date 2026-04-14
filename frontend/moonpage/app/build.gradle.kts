@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.retrofit.gson)
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.compose.animation.core.lint)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
@@ -63,7 +64,7 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-messaging")
-
+    implementation("androidx.compose.material:material-icons-extended:1.6.3")
     implementation("com.google.firebase:firebase-analytics:22.0.2")
 
     testImplementation(libs.junit)

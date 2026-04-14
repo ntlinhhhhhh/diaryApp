@@ -22,3 +22,4 @@ val MoonInputBackground = Color(0xFFF5E8C7)
 val MoonLinkColor = Color(0xFF8D7167)
 
 val MoonDarkInputBackground = Color(0xFF3C4153)
+val MoonDarkLinkColor = Color(0xFFA4B0D0)

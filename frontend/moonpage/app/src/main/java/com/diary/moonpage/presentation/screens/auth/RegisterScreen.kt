@@ -16,7 +16,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.R
-import com.diary.moonpage.presentation.components.*
+import com.diary.moonpage.presentation.components.auth.AuthDivider
+import com.diary.moonpage.presentation.components.auth.AuthFooter
+import com.diary.moonpage.presentation.components.auth.AuthHeader
+import com.diary.moonpage.presentation.components.auth.AuthTextField
+import com.diary.moonpage.presentation.components.auth.SocialLoginButton
+import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
 import com.diary.moonpage.presentation.theme.*
 
 @Composable
@@ -75,26 +80,30 @@ fun RegisterScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 AuthHeader(
-                    title = "Begin Your\nJourney",
+                    title = "Your Space",
                     subtitle = "Create a sacred space for your\nthoughts and emotions today."
                 )
 
                 AuthTextField(
                     value = username,
                     onValueChange = { username = it },
+                    placeholderText = "Enter your username",
                     label = "Username"
                 )
 
                 AuthTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = "Email address"
+                    label = "Email address",
+                    placeholderText = "Enter your email"
+
                 )
 
                 AuthTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = "Password",
+                    placeholderText = "Enter your password",
                     isPassword = true
                 )
 

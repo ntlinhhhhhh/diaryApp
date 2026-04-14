@@ -12,6 +12,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,6 +27,7 @@ class AuthViewModel @Inject constructor (
     private val _uiEvent = Channel<AuthUiEvent>()
 
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+    val uiEvent = _uiEvent.receiveAsFlow()
 
     fun onEmailChange(email: String) {
         _uiState.update { it.copy(emailInput = email)}
@@ -50,6 +52,7 @@ class AuthViewModel @Inject constructor (
 
     fun login() {
         viewModelScope.launch {
+            println("--- BẤM NÚT LOGIN ---")
             _uiState.update { it.copy(emailError = null, passwordError = null) }
             val email = uiState.value.emailInput
             val password = uiState.value.passwordInput
