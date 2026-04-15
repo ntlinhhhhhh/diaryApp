@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.diary.moonpage.presentation.screens.auth.ForgotPasswordScreen
 import com.diary.moonpage.presentation.screens.auth.LandingScreen
 import com.diary.moonpage.presentation.screens.auth.LoadingScreen
 import com.diary.moonpage.presentation.screens.auth.LoginScreen
@@ -62,8 +63,26 @@ fun AppNavigation() {
                     }
                 },
                 onNavigateToForgotPassword = {
+                    navController.navigate("forgot password") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 },
                 onLoginSuccess = {
+                }
+            )
+        }
+
+        composable("forgot password") {
+            ForgotPasswordScreen (
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("forgot password") { inclusive = true }
+                    }
+                },
+                onNavigateToReset = {
+                    navController.navigate("reset password") {
+                        popUpTo("forgot password") { inclusive = true }
+                    }
                 }
             )
         }

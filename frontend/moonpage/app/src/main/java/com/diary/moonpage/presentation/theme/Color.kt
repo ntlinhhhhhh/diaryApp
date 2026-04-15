@@ -6,7 +6,7 @@ val MoonBgLight = Color(0xFFFFFBF4)
 val MoonBgDark = Color(0xFF333746)
 val MoonSurfaceDark = Color(0xFF494E61)
 
-val MoonTextDark = Color(0xFF3E3631)
+val MoonTextDark = Color(0xFF463C35)
 val MoonTextLight = Color(0xFFF6E8D7)
 
 val MoonActionLight = Color(0xFFA6997E)

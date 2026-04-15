@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -98,7 +100,9 @@ fun LoginScreenContent(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = screenBgColor
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -127,7 +131,11 @@ fun LoginScreenContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 8.dp)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.1f)),
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            spotColor = Color.Black.copy(alpha = 0.1f)
+                        ),
                     colors = CardDefaults.cardColors(containerColor = cardBgColor),
                     shape = RoundedCornerShape(24.dp)
                 ) {
@@ -147,7 +155,7 @@ fun LoginScreenContent(
                             onValueChange = onEmailChange,
                             label = "Email address",
                             placeholderText = "Enter your email",
-                            iconRes = R.drawable.ic_email,
+                            iconVector = Icons.Outlined.Email
                         )
 
                         AuthTextField(
@@ -157,7 +165,7 @@ fun LoginScreenContent(
                             isPassword = true,
                             trailingLabel = "Forgot Password?",
                             placeholderText = "Enter your password",
-                            onTrailingClick = onNavigateToForgotPassword
+                            onTrailingClick = { onNavigateToForgotPassword() }
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))

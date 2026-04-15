@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,15 +90,16 @@ fun RegisterScreen(
                     value = username,
                     onValueChange = { username = it },
                     placeholderText = "Enter your username",
-                    label = "Username"
+                    label = "Username",
+                    iconVector = Icons.Outlined.Person
                 )
 
                 AuthTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = "Email address",
-                    placeholderText = "Enter your email"
-
+                    placeholderText = "Enter your email",
+                    iconVector = Icons.Outlined.Email,
                 )
 
                 AuthTextField(

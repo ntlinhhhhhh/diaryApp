@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LockReset
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
@@ -41,7 +42,7 @@ import com.diary.moonpage.presentation.theme.*
 @Composable
 fun AuthHeader(title: String, subtitle: String) {
     val isDark = isSystemInDarkTheme()
-    val textColor = MaterialTheme.colorScheme.onBackground
+    val textColor = MaterialTheme.colorScheme.onSurface
 
     Text(
         text = title,
@@ -94,7 +95,7 @@ fun AuthTextField(
         Text(
             text = label,
             style = MaterialTheme.typography.titleSmall.copy(
-                color = textColor,
+                color = textColor.copy(alpha = 0.75f),
                 fontWeight = FontWeight.Bold
             )
         )
@@ -102,7 +103,7 @@ fun AuthTextField(
             Text(
                 text = trailingLabel,
                 style = MaterialTheme.typography.labelLarge.copy(
-                    color = linkColor,
+                    color = textColor.copy(alpha = 0.75f),
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier
@@ -165,7 +166,7 @@ fun AuthTextField(
         shape = RoundedCornerShape(25.dp),
         singleLine = true,
         visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor)
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor.copy(alpha = 0.75f))
     )
 }
 
@@ -210,18 +211,18 @@ fun SocialLoginButton(text: String, iconResId: Int, onClick: () -> Unit) {
             ),
         colors = CardDefaults.cardColors(containerColor = cardBg),
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, borderColor)
+        border = BorderStroke(0.3.dp, borderColor)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-             Image(
-                 painter = painterResource(id = iconResId),
-                 contentDescription = "$text Icon",
-                 modifier = Modifier.size(24.dp)
-             )
+            Image(
+                painter = painterResource(id = iconResId),
+                contentDescription = "$text Icon",
+                modifier = Modifier.size(24.dp)
+            )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = text,
@@ -278,7 +279,8 @@ fun TopCircularIcon() {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            painter = painterResource(id = R.drawable.ic_reset_password),
+            imageVector =  Icons.Outlined.LockReset,
+//            painter = painterResource(id = R.drawable.ic_reset_password),
             contentDescription = "Reset Icon",
             tint = iconColor,
             modifier = Modifier.size(32.dp)
@@ -290,7 +292,7 @@ fun TopCircularIcon() {
 fun OtpInputField(otpText: String, onOtpTextChange: (String) -> Unit, otpCount: Int = 6) {
     val isDark = isSystemInDarkTheme()
     val bgColor = MaterialTheme.colorScheme.surfaceVariant
-    val textColor = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
 
     BasicTextField(
         value = otpText,
@@ -307,9 +309,8 @@ fun OtpInputField(otpText: String, onOtpTextChange: (String) -> Unit, otpCount: 
                         modifier = Modifier
                             .width(40.dp)
                             .height(46.dp)
-
                             .background(bgColor, RoundedCornerShape(18.dp))
-                            .border(1.dp, textColor, RoundedCornerShape(18.dp)),
+                            .border(0.5.dp, textColor.copy(alpha = 0.5f), RoundedCornerShape(18.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -323,12 +324,48 @@ fun OtpInputField(otpText: String, onOtpTextChange: (String) -> Unit, otpCount: 
     )
 }
 
+
+@Composable
+fun AuthOtpField(
+    label: String,
+    otpText: String,
+    onOtpTextChange: (String) -> Unit,
+    otpCount: Int = 6
+) {
+    val textColor = MaterialTheme.colorScheme.onSurface
+
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall.copy(
+                color = textColor.copy(alpha = 0.75f),
+                fontWeight = FontWeight.Bold
+            ),
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        OtpInputField(
+            otpText = otpText,
+            onOtpTextChange = onOtpTextChange,
+            otpCount = otpCount
+        )
+    }
+}
+
+
+
 @Preview(showBackground = true)
 @Composable
 fun AuthHeaderPreviewLight() {
     MoonPageTheme {
         AuthHeader("Welcome back", "Continue your journey of self-reflection.")
     }
+
+    AuthOtpField(
+        label = "Verification Code",
+        otpText = "otpCode",
+        onOtpTextChange = {  }
+    )
+
 }
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)

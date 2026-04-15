@@ -32,7 +32,6 @@ fun MoonBottomNavBar(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    // Nền của thanh Nav: Trắng ở ban ngày, Xám nổi ở ban đêm
     val navBgColor = MaterialTheme.colorScheme.surface
 
     // Nền của nút Camera ở giữa: Màu nền ngoài cùng để tạo cảm giác "khoét" xuống
