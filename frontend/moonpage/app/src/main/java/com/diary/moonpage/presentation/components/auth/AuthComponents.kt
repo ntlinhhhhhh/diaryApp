@@ -41,7 +41,6 @@ import com.diary.moonpage.presentation.theme.*
 
 @Composable
 fun AuthHeader(title: String, subtitle: String) {
-    val isDark = isSystemInDarkTheme()
     val textColor = MaterialTheme.colorScheme.onSurface
 
     Text(
@@ -76,9 +75,9 @@ fun AuthTextField(
     placeholderText: String = "",
     iconVector: ImageVector? = null,
     iconRes: Int? = null,
+    errorText: String? = null,
     onTrailingClick: (() -> Unit)? = null
 ) {
-    val isDark = isSystemInDarkTheme()
     val textColor = MaterialTheme.colorScheme.onSurface
     val inputBgColor = MaterialTheme.colorScheme.surfaceVariant
     val linkColor = MaterialTheme.colorScheme.tertiary
@@ -87,92 +86,106 @@ fun AuthTextField(
 
     val hasTrailingIcon = isPassword || iconVector != null || iconRes != null
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall.copy(
-                color = textColor.copy(alpha = 0.75f),
-                fontWeight = FontWeight.Bold
-            )
-        )
-        if (trailingLabel != null && onTrailingClick != null) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = trailingLabel,
-                style = MaterialTheme.typography.labelLarge.copy(
+                text = label,
+                style = MaterialTheme.typography.titleSmall.copy(
                     color = textColor.copy(alpha = 0.75f),
                     fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier
-                    .clickable { onTrailingClick() }
-                    .padding(vertical = 4.dp)
+                )
             )
-        }
-    }
-
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 16.dp),
-        placeholder = {
-            if (placeholderText.isNotEmpty()) {
+            if (trailingLabel != null && onTrailingClick != null) {
                 Text(
-                    text = placeholderText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = textColor.copy(alpha = 0.4f)
+                    text = trailingLabel,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        color = linkColor.copy(alpha = 0.75f),
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier
+                        .clickable { onTrailingClick() }
+                        .padding(vertical = 4.dp)
                 )
             }
-        },
+        }
 
-        trailingIcon = if (hasTrailingIcon) {
-            {
-                if (isPassword) {
-                    val image = if (passwordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = null, tint = textColor.copy(alpha = 0.5f))
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            isError = errorText != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            placeholder = {
+                if (placeholderText.isNotEmpty()) {
+                    Text(
+                        text = placeholderText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = textColor.copy(alpha = 0.4f)
+                    )
+                }
+            },
+            trailingIcon = if (hasTrailingIcon) {
+                {
+                    if (isPassword) {
+                        val image = if (passwordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = null, tint = textColor.copy(alpha = 0.5f))
+                        }
+                    }
+                    else if (iconVector != null) {
+                        Icon(
+                            imageVector = iconVector,
+                            contentDescription = null,
+                            tint = textColor.copy(alpha = 0.5f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    else if (iconRes != null) {
+                        Icon(
+                            painter = painterResource(id = iconRes),
+                            contentDescription = null,
+                            tint = textColor.copy(alpha = 0.5f),
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
-                else if (iconVector != null) {
-                    Icon(
-                        imageVector = iconVector,
-                        contentDescription = null,
-                        tint = textColor.copy(alpha = 0.5f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                else if (iconRes != null) {
-                    Icon(
-                        painter = painterResource(id = iconRes),
-                        contentDescription = null,
-                        tint = textColor.copy(alpha = 0.5f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        } else null,
+            } else null,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = inputBgColor,
+                unfocusedContainerColor = inputBgColor,
+                errorContainerColor = inputBgColor,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent,
+                cursorColor = textColor,
+                errorCursorColor = MaterialTheme.colorScheme.error
+            ),
+            shape = RoundedCornerShape(25.dp),
+            singleLine = true,
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor.copy(alpha = 0.75f))
+        )
 
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = inputBgColor,
-            unfocusedContainerColor = inputBgColor,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            cursorColor = textColor
-        ),
-        shape = RoundedCornerShape(25.dp),
-        singleLine = true,
-        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor.copy(alpha = 0.75f))
-    )
+        if (errorText != null) {
+            Text(
+                text = errorText,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+    }
 }
 
 @Composable
 fun AuthDivider(text: String) {
-    val isDark = isSystemInDarkTheme()
     val textColor = MaterialTheme.colorScheme.onSurface
     val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
     Row(
@@ -180,20 +193,19 @@ fun AuthDivider(text: String) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Divider(modifier = Modifier.weight(1f), color = lineColor)
+        HorizontalDivider(modifier = Modifier.weight(1f), color = lineColor)
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             color = textColor.copy(alpha = 0.5f),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
-        Divider(modifier = Modifier.weight(1f), color = lineColor)
+        HorizontalDivider(modifier = Modifier.weight(1f), color = lineColor)
     }
 }
 
 @Composable
 fun SocialLoginButton(text: String, iconResId: Int, onClick: () -> Unit) {
-    val isDark = isSystemInDarkTheme()
     val textColor = MaterialTheme.colorScheme.onSurface
     val cardBg = MaterialTheme.colorScheme.surface
     val borderColor = MaterialTheme.colorScheme.onSurface
@@ -237,10 +249,8 @@ fun SocialLoginButton(text: String, iconResId: Int, onClick: () -> Unit) {
 
 @Composable
 fun AuthFooter(questionText: String, actionText: String, onActionClick: () -> Unit) {
-    val isDark = isSystemInDarkTheme()
     val textColor = MaterialTheme.colorScheme.onSurface
-    val linkColor =MaterialTheme.colorScheme.tertiary
-
+    val linkColor = MaterialTheme.colorScheme.tertiary
 
     Row(
         horizontalArrangement = Arrangement.Center,
@@ -266,10 +276,8 @@ fun AuthFooter(questionText: String, actionText: String, onActionClick: () -> Un
 
 @Composable
 fun TopCircularIcon() {
-    val isDark = isSystemInDarkTheme()
     val bgColor = MaterialTheme.colorScheme.surface
     val iconColor = MaterialTheme.colorScheme.tertiary
-
 
     Box(
         modifier = Modifier
@@ -280,7 +288,6 @@ fun TopCircularIcon() {
     ) {
         Icon(
             imageVector =  Icons.Outlined.LockReset,
-//            painter = painterResource(id = R.drawable.ic_reset_password),
             contentDescription = "Reset Icon",
             tint = iconColor,
             modifier = Modifier.size(32.dp)
@@ -290,7 +297,6 @@ fun TopCircularIcon() {
 
 @Composable
 fun OtpInputField(otpText: String, onOtpTextChange: (String) -> Unit, otpCount: Int = 6) {
-    val isDark = isSystemInDarkTheme()
     val bgColor = MaterialTheme.colorScheme.surfaceVariant
     val textColor = MaterialTheme.colorScheme.onSurface
 
@@ -324,7 +330,6 @@ fun OtpInputField(otpText: String, onOtpTextChange: (String) -> Unit, otpCount: 
     )
 }
 
-
 @Composable
 fun AuthOtpField(
     label: String,
@@ -351,27 +356,36 @@ fun AuthOtpField(
     }
 }
 
-
-
 @Preview(showBackground = true)
 @Composable
 fun AuthHeaderPreviewLight() {
     MoonPageTheme {
-        AuthHeader("Welcome back", "Continue your journey of self-reflection.")
+        Column(Modifier.padding(16.dp)) {
+            AuthHeader("Welcome back", "Continue your journey of self-reflection.")
+            AuthTextField(
+                value = "",
+                onValueChange = {},
+                label = "Email Address",
+                placeholderText = "example@mail.com",
+                errorText = "Invalid email format"
+            )
+        }
     }
-
-    AuthOtpField(
-        label = "Verification Code",
-        otpText = "otpCode",
-        onOtpTextChange = {  }
-    )
-
 }
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun AuthHeaderPreviewDark() {
     MoonPageTheme {
-        AuthHeader("Welcome back", "Continue your journey of self-reflection.")
+        Column(Modifier.padding(16.dp)) {
+            AuthHeader("Welcome back", "Continue your journey of self-reflection.")
+            AuthTextField(
+                value = "",
+                onValueChange = {},
+                label = "Email Address",
+                placeholderText = "example@mail.com",
+                errorText = "Invalid email format"
+            )
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.diary.moonpage.presentation.screens.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -37,6 +37,7 @@ fun LoginScreen(
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
+    onNavigateToLoginGoogle: () -> Unit,
     onLoginSuccess: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,6 +51,7 @@ fun LoginScreen(
         onNavigateBack = onNavigateBack,
         onNavigateToRegister = onNavigateToRegister,
         onNavigateToForgotPassword = onNavigateToForgotPassword,
+        onNavigateToLoginGoogle = onNavigateToLoginGoogle,
         onLoginSuccess = onLoginSuccess
     )
 }
@@ -64,12 +66,13 @@ fun LoginScreenContent(
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
+    onNavigateToLoginGoogle:() -> Unit,
     onLoginSuccess: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackBarHostState = remember { SnackbarHostState() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    val isDark = isSystemInDarkTheme()
     val screenBgColor = MaterialTheme.colorScheme.background
     val backIconColor = MaterialTheme.colorScheme.onSurface
     val cardBgColor = MaterialTheme.colorScheme.surface
@@ -81,11 +84,10 @@ fun LoginScreenContent(
                     onLoginSuccess(event.token)
                 }
                 is AuthUiEvent.ShowSnackBar -> {
-                    // SỬA CHỖ NÀY: Bọc nó vào launch
                     launch {
-                        snackbarHostState.currentSnackbarData?.dismiss()
+                        snackBarHostState.currentSnackbarData?.dismiss()
 
-                        snackbarHostState.showSnackbar(
+                        snackBarHostState.showSnackbar(
                             message = event.message,
                             duration = SnackbarDuration.Short
                         )
@@ -97,7 +99,7 @@ fun LoginScreenContent(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
         containerColor = screenBgColor
     ) { paddingValues ->
         Box(modifier = Modifier
@@ -155,7 +157,8 @@ fun LoginScreenContent(
                             onValueChange = onEmailChange,
                             label = "Email address",
                             placeholderText = "Enter your email",
-                            iconVector = Icons.Outlined.Email
+                            iconVector = Icons.Outlined.Email,
+                            errorText = uiState.emailError
                         )
 
                         AuthTextField(
@@ -165,6 +168,7 @@ fun LoginScreenContent(
                             isPassword = true,
                             trailingLabel = "Forgot Password?",
                             placeholderText = "Enter your password",
+                            errorText = uiState.passwordError,
                             onTrailingClick = { onNavigateToForgotPassword() }
                         )
 
@@ -172,8 +176,11 @@ fun LoginScreenContent(
 
                         MoonPrimaryButton(
                             text = "Login",
-                            onClick = onLoginClick,
-                            enabled = !uiState.isLoading
+                            enabled = !uiState.isLoading,
+                            onClick = {
+                                keyboardController?.hide()
+                                onLoginClick()
+                            }
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
@@ -185,7 +192,7 @@ fun LoginScreenContent(
                         SocialLoginButton(
                             text = "Login with Google",
                             iconResId = R.drawable.ic_google,
-                            onClick = {}
+                            onClick = { onNavigateToLoginGoogle() }
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
@@ -226,6 +233,7 @@ fun LoginScreenPreviewLight() {
             onNavigateBack = {},
             onNavigateToRegister = {},
             onNavigateToForgotPassword = {},
+            onNavigateToLoginGoogle = {},
             onLoginSuccess = {}
         )
     }
@@ -244,6 +252,7 @@ fun LoginScreenPreviewDark() {
             onNavigateBack = {},
             onNavigateToRegister = {},
             onNavigateToForgotPassword = {},
+            onNavigateToLoginGoogle = {},
             onLoginSuccess = {}
         )
     }

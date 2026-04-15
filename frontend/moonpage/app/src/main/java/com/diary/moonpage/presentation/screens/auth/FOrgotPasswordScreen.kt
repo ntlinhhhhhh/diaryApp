@@ -15,10 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
 import com.diary.moonpage.presentation.components.auth.TopCircularIcon
@@ -29,6 +31,7 @@ import com.diary.moonpage.presentation.theme.*
 
 @Composable
 fun ForgotPasswordScreen(
+    onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToReset: () -> Unit
 ) {
@@ -39,7 +42,8 @@ fun ForgotPasswordScreen(
     val screenBgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
     val cardBgColor = MaterialTheme.colorScheme.surface
-    val inputBgColor = MaterialTheme.colorScheme.onSurface
+    val inputBgColor = MaterialTheme.colorScheme.surfaceVariant
+    val iconColor = MaterialTheme.colorScheme.onBackground
 
     Column(
         modifier = Modifier
@@ -49,7 +53,24 @@ fun ForgotPasswordScreen(
             .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            IconButton(
+                onClick = { onNavigateBack() },
+                modifier = Modifier.offset(x = (-12).dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_back),
+                    contentDescription = "Back",
+                    tint = iconColor
+                )
+            }
+        }
+
 
         TopCircularIcon()
 
@@ -57,13 +78,17 @@ fun ForgotPasswordScreen(
 
         AuthHeader(
             title = "Forgot Password",
-            subtitle = "Please enter your registered email\naddress to receive a secure 6-digit OTP\ncode."
+            subtitle = "Please enter your registered email\naddress to receive a secure 6-digit OTP code."
         )
 
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(elevation = 16.dp, shape = RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.08f)),
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(24.dp),
+                    spotColor = Color.Black.copy(alpha = 0.08f)
+                ),
             colors = CardDefaults.cardColors(containerColor = cardBgColor),
             shape = RoundedCornerShape(24.dp)
         ) {
@@ -74,7 +99,9 @@ fun ForgotPasswordScreen(
                 Text(
                     text = "Email Address",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = textColor),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 )
 
                 TextField(
@@ -98,7 +125,7 @@ fun ForgotPasswordScreen(
 
                 MoonPrimaryButton(
                     text = "Send OTP",
-                    onClick = onNavigateToReset,
+                    onClick = { onNavigateToReset },
                 )
             }
         }
@@ -133,11 +160,11 @@ fun ForgotPasswordScreen(
 @Preview(showBackground = true)
 @Composable
 fun ForgotPasswordPreview() {
-    MoonPageTheme { ForgotPasswordScreen({}, {}) }
+    MoonPageTheme { ForgotPasswordScreen({}, {}, {}) }
 }
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun ForgotPasswordDarkModePreview() {
-    MoonPageTheme { ForgotPasswordScreen({}, {}) }
+    MoonPageTheme { ForgotPasswordScreen({}, {}, {}) }
 }

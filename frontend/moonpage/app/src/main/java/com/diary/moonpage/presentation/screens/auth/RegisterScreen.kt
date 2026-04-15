@@ -1,7 +1,7 @@
 package com.diary.moonpage.presentation.screens.auth
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthDivider
 import com.diary.moonpage.presentation.components.auth.AuthFooter
@@ -26,141 +28,237 @@ import com.diary.moonpage.presentation.components.auth.AuthTextField
 import com.diary.moonpage.presentation.components.auth.SocialLoginButton
 import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
 import com.diary.moonpage.presentation.theme.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
+    viewModel: AuthViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToLoginGoogle: () -> Unit,
     onRegisterSuccess: () -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    val scrollState = rememberScrollState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    val isDark = isSystemInDarkTheme()
+    RegisterScreenContent(
+        uiState = uiState,
+        uiEvent = viewModel.uiEvent,
+        onUsernameChange = viewModel::onUsernameChange,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPasswordChange,
+        onSignUpClick = viewModel::register,
+        onNavigateBack = onNavigateBack,
+        onNavigateToLogin = onNavigateToLogin,
+        onNavigateToLoginGoogle = onNavigateToLoginGoogle,
+        onRegisterSuccess = onRegisterSuccess
+    )
+}
+
+@Composable
+fun RegisterScreenContent(
+    uiState: AuthUiState,
+    uiEvent: Flow<AuthUiEvent>,
+    onUsernameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onSignUpClick: () -> Unit,
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onNavigateToLoginGoogle: () -> Unit,
+    onRegisterSuccess: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val screenBgColor = MaterialTheme.colorScheme.background
     val backIconColor = MaterialTheme.colorScheme.onSurface
     val cardBgColor = MaterialTheme.colorScheme.surface
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(screenBgColor)
-            .padding(vertical = 20.dp)
-            .verticalScroll(scrollState),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_back),
-                    contentDescription = "Back",
-                    tint = backIconColor
-                )
+
+    LaunchedEffect(Unit) {
+        uiEvent.collect { event ->
+            when (event) {
+                is AuthUiEvent.RegisterSuccess -> {
+                    onRegisterSuccess()
+                }
+                is AuthUiEvent.ShowSnackBar -> {
+                    launch {
+                        snackBarHostState.currentSnackbarData?.dismiss()
+                        snackBarHostState.showSnackbar(
+                            message = event.message,
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+                else -> Unit
             }
         }
+    }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
+        containerColor = screenBgColor
+    ) { paddingValues ->
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-                .shadow(elevation = 8.dp, shape = RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.1f)),
-            colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(24.dp)
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 28.dp, vertical = 36.dp),
+                    .verticalScroll(scrollState)
+                    .padding(vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AuthHeader(
-                    title = "Your Space",
-                    subtitle = "Create a sacred space for your\nthoughts and emotions today."
-                )
-
-                AuthTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    placeholderText = "Enter your username",
-                    label = "Username",
-                    iconVector = Icons.Outlined.Person
-                )
-
-                AuthTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = "Email address",
-                    placeholderText = "Enter your email",
-                    iconVector = Icons.Outlined.Email,
-                )
-
-                AuthTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = "Password",
-                    placeholderText = "Enter your password",
-                    isPassword = true
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_back),
+                            contentDescription = "Back",
+                            tint = backIconColor
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                MoonPrimaryButton(
-                    text = "Sign Up",
-                    onClick = onRegisterSuccess,
-                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            spotColor = Color.Black.copy(alpha = 0.1f)
+                        ),
+                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 28.dp, vertical = 36.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AuthHeader(
+                            title = "Your Space",
+                            subtitle = "Create a sacred space for your\nthoughts and emotions today."
+                        )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                        AuthTextField(
+                            value = uiState.usernameInput ?: "",
+                            onValueChange = onUsernameChange,
+                            placeholderText = "Enter your username",
+                            label = "Username",
+                            iconVector = Icons.Outlined.Person
+                        )
 
-                AuthDivider(text = "OR SIGN UP WITH")
+                        AuthTextField(
+                            value = uiState.emailInput,
+                            onValueChange = onEmailChange,
+                            label = "Email address",
+                            placeholderText = "Enter your email",
+                            iconVector = Icons.Outlined.Email,
+                        )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                        AuthTextField(
+                            value = uiState.passwordInput,
+                            onValueChange = onPasswordChange,
+                            label = "Password",
+                            placeholderText = "Enter your password",
+                            isPassword = true
+                        )
 
-                SocialLoginButton(
-                    text = "Sign up with Google",
-                    iconResId = R.drawable.ic_google,
-                    onClick = { }
-                )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(32.dp))
+                        MoonPrimaryButton(
+                            text = "Sign Up",
+                            enabled = !uiState.isLoading,
+                            onClick = {
+                                keyboardController?.hide()
+                                onSignUpClick()
+                            },
+                        )
 
-                AuthFooter(
-                    questionText = "Already have an account? ",
-                    actionText = "Login here",
-                    onActionClick = onNavigateToLogin
-                )
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        AuthDivider(text = "OR SIGN UP WITH")
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        SocialLoginButton(
+                            text = "Sign up with Google",
+                            iconResId = R.drawable.ic_google,
+                            onClick = { onNavigateToLoginGoogle() }
+                        )
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        AuthFooter(
+                            questionText = "Already have an account? ",
+                            actionText = "Login here",
+                            onActionClick = onNavigateToLogin
+                        )
+                    }
+                }
+            }
+
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
+                }
             }
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable
 fun RegisterScreenPreviewLight() {
     MoonPageTheme {
-        RegisterScreen(
+        RegisterScreenContent(
+            uiState = AuthUiState(),
+            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
+            onUsernameChange = {},
+            onEmailChange = {},
+            onPasswordChange = {},
+            onSignUpClick = {},
             onNavigateBack = {},
             onNavigateToLogin = {},
+            onNavigateToLoginGoogle = {},
             onRegisterSuccess = {}
         )
     }
 }
 
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun RegisterScreenPreviewDark() {
     MoonPageTheme {
-        RegisterScreen(
+        RegisterScreenContent(
+            uiState = AuthUiState(),
+            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
+            onUsernameChange = {},
+            onEmailChange = {},
+            onPasswordChange = {},
+            onSignUpClick = {},
             onNavigateBack = {},
             onNavigateToLogin = {},
+            onNavigateToLoginGoogle = {},
             onRegisterSuccess = {}
         )
     }

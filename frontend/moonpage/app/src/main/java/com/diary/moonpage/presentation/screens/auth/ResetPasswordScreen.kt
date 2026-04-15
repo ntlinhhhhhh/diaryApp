@@ -51,7 +51,7 @@ fun ResetPasswordScreen(
 
         AuthHeader(
             title = "Reset Your Sanctuary",
-            subtitle = "Enter the 6-digit code and choose\na new password."
+            subtitle = "Create a new password for your journal."
         )
 
         Card(
@@ -65,13 +65,6 @@ fun ResetPasswordScreen(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                AuthOtpField(
-                    label = "Verification Code",
-                    otpText = otpCode,
-                    onOtpTextChange = { otpCode = it }
-                )
-
                 AuthTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
