@@ -22,7 +22,9 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = MoonTextLight,
 
     surfaceVariant = MoonInputBgDark,
-    tertiary = MoonLinkDark
+    tertiary = MoonLinkDark,
+    
+    error = MoonErrorDark
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -36,8 +38,9 @@ private val LightColorScheme = lightColorScheme(
     onSurface = MoonTextDark,
 
     surfaceVariant = MoonInputBgLight,
-    tertiary = MoonLinkLight
+    tertiary = MoonLinkLight,
 
+    error = MoonErrorLight
 )
 
 @Composable

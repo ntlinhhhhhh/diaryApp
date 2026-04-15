@@ -25,3 +25,7 @@ val MoonLinkDark = Color(0xFFA4B0D0)
 
 val MoonDotActive = Color(0xFF5D7048)
 val MoonDotInactive = Color(0xFFE8E1DA)
+
+// Error colors
+val MoonErrorLight = Color(0xFFD32F2F)
+val MoonErrorDark = Color(0xFFFFB4AB)
