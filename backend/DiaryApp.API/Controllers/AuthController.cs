@@ -2,6 +2,7 @@ using DiaryApp.Application.DTOs;
 using DiaryApp.Application.DTOs.Auth;
 using DiaryApp.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Ocsp;
 
 namespace DiaryApp.API.Controllers;
 
@@ -65,6 +66,26 @@ public class AuthController(IAuthService authService) : ControllerBase
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // POST: api/auth/verify-otp
+    [HttpPost("verify-otp")]
+
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto request)
+    {
+       try 
+        {
+            var result = await _authService.VerifyOtpAndGenerateTokenAsync(request);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message }); 
         }
         catch (Exception ex)
         {

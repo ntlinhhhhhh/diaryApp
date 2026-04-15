@@ -26,6 +26,12 @@ public class AuthService(
     private readonly IGoogleAuthProvider _googleAuthProvider = googleAuthProvider;
     private readonly IRedisCacheService _cacheService = cacheService;
 
+    private string GetOtpKey(string email) 
+        => $"auth:otp:{email.ToLower().Trim()}";
+
+    private string GetResetTokenKey(string email) 
+        => $"auth:reset_token:{email.ToLower().Trim()}";
+
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
         var email = request.Email.Trim().ToLower();
@@ -146,17 +152,15 @@ public class AuthService(
 
         string otp = Random.Shared.Next(100000, 999999).ToString();
         user.ResetOtp = otp;
-        string otpCacheKey = $"otp:{email}";
-        await _cacheService.SetAsync(otpCacheKey, otp, TimeSpan.FromMinutes(5));
-
-        // user.OtpExpiry = DateTime.UtcNow.AddMinutes(5); // limit 5 minute
-        // await _userRepository.UpdateAsync(user);
+        string otpCacheKey = $"auth:otp:{email}";
+        await _cacheService.SetAsync(otpCacheKey, otp, TimeSpan.FromMinutes(10));
 
         string subject = $"[{otp}] Mã xác nhận khôi phục mật khẩu";
         string emailBody = $@"
             <h2>Yêu cầu khôi phục mật khẩu</h2>
             <p>Mã OTP của bạn là: <b style='font-size: 24px; color: #4CAF50;'>{otp}</b></p>
-            <p>Mã này sẽ hết hạn sau 5 phút.</p>";
+            <p>Mã này sẽ hết hạn sau 10 phút.</p>";
+
         _ = Task.Run(async () => 
         {
             try 
@@ -170,27 +174,48 @@ public class AuthService(
         }); 
     }
 
-    public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
+    public async Task<string> VerifyOtpAndGenerateTokenAsync(VerifyOtpDto request)
     {
-        var email = request.Email.ToLower();
-        string otpCacheKey = $"otp:{email}";
+        var otpCacheKey = GetOtpKey(request.Email);
         var savedOtp = await _cacheService.GetAsync<string>(otpCacheKey);
 
-        if (savedOtp == null || savedOtp != request.Otp)
+        if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
         {
             throw new UnauthorizedAccessException("Mã OTP không chính xác hoặc đã hết hạn.");
         }
 
+        await _cacheService.RemoveAsync(otpCacheKey);
+
+        var resetToken = Guid.NewGuid().ToString("N");
+        var tokenCacheKey = GetResetTokenKey(request.Email);
+        
+        await _cacheService.SetAsync(tokenCacheKey, resetToken, TimeSpan.FromMinutes(10));
+
+        return resetToken;
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
+    {
+        var tokenCacheKey = GetResetTokenKey(request.Email);
+        var savedToken = await _cacheService.GetAsync<string>(tokenCacheKey);
+
+        if (string.IsNullOrEmpty(savedToken) || savedToken != request.ResetToken)
+        {
+            throw new UnauthorizedAccessException("Phiên làm việc không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.");
+        }
+
+        var email = request.Email.Trim().ToLower();
         var user = await _userRepository.GetByEmailAsync(email);
 
         if (user == null || user.AuthProvider != "Local")
         {
-            throw new KeyNotFoundException("Email không tồn tại");
+            throw new KeyNotFoundException("Email không tồn tại trong hệ thống.");
         }
 
         user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         await _userRepository.UpdateAsync(user);
-        await _cacheService.RemoveAsync(otpCacheKey);
+
+        await _cacheService.RemoveAsync(tokenCacheKey);
         await _cacheService.RemoveAsync($"auth:email:{email}");
     }
 }

@@ -9,7 +9,7 @@ public class ResetPasswordRequestDto
     public required string Email { get; set; }
 
     [Required(ErrorMessage = "OTP không được để trống.")]
-    public required string Otp { get; set; }
+    public required string ResetToken { get; set; }
     
     [Required(ErrorMessage = "Mật khẩu không được để trống.")]
     [MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự.")]
