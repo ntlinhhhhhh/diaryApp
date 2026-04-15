@@ -66,6 +66,7 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging")
     implementation("androidx.compose.material:material-icons-extended:1.6.3")
     implementation("com.google.firebase:firebase-analytics:22.0.2")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
