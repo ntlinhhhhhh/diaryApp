@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.presentation.components.profile.ActionCard
+import com.diary.moonpage.presentation.components.profile.Card
 import com.diary.moonpage.presentation.components.profile.ProfileHeader
 import com.diary.moonpage.presentation.components.profile.SectionTitle
 import com.diary.moonpage.presentation.components.profile.StatCard
@@ -27,7 +28,7 @@ import com.diary.moonpage.presentation.theme.*
 @Composable
 fun ProfileScreen() {
     val isDark = isSystemInDarkTheme()
-    val outerBgColor = if (isDark) Color(0xFF1E2029) else Color.White
+    val outerBgColor = MaterialTheme.colorScheme.background
     val innerBgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onSurface
     val inputBgColor = MaterialTheme.colorScheme.surfaceVariant
@@ -55,10 +56,9 @@ fun ProfileScreen() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp) // Hở ra một chút viền ngoài
-                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) // Bo tròn mạnh 2 góc trên
+                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
                     .background(innerBgColor)
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 14.dp)
                     .verticalScroll(rememberScrollState())
             ) {
 
@@ -93,7 +93,7 @@ fun ProfileScreen() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                ActionCard(
+                Card(
                     title = "Theme Calendar",
                     icon = Icons.Outlined.CalendarMonth,
                     onClick = { /* TODO */ }
@@ -101,7 +101,7 @@ fun ProfileScreen() {
 
                 SectionTitle("More")
 
-                ActionCard(
+                Card(
                     title = "Widgets",
                     icon = Icons.Outlined.Widgets,
                     onClick = { /* TODO */ }
@@ -109,7 +109,7 @@ fun ProfileScreen() {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                ActionCard(
+                Card(
                     title = "Invite a Friend",
                     icon = Icons.Outlined.PersonAdd,
                     onClick = { /* TODO */ }

@@ -185,3 +185,44 @@ fun ActionCard(title: String, icon: ImageVector, modifier: Modifier = Modifier, 
         }
     }
 }
+
+@Composable
+fun Card(title: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val iconColor = MaterialTheme.colorScheme.primary
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.05f)),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row (
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .padding(4.dp)
+                    .background(cardBg.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = iconColor)
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = textColor))
+
+            }
+
+            Icon(Icons.Outlined.ChevronRight, contentDescription = "Go", tint = textColor.copy(alpha = 0.4f))
+        }
+    }
+}
