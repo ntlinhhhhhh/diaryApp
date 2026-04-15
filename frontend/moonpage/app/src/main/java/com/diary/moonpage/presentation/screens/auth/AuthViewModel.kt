@@ -91,6 +91,7 @@ class AuthViewModel @Inject constructor (
                     _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Login failed. Please check your credentials."))
                 }
             } catch (e: Exception) {
+                e.printStackTrace()
                 _uiState.update { it.copy(isLoading = false) }
                 _uiEvent.send(AuthUiEvent.ShowSnackBar(e.message ?: "Connection error. Please check your internet connection."))
             }
