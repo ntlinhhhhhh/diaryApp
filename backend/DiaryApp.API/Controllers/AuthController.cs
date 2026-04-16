@@ -100,7 +100,7 @@ public class AuthController(IAuthService authService) : ControllerBase
         try 
         {
             await _authService.ForgotPasswordAsync(request);
-            return Ok(new { message = "Mã OTP đã được gửi đến email của bạn." });
+            return Ok(new { message = "We've sent an OTP to your email. Please check your email!" });
         }
         catch (KeyNotFoundException ex)
         {
@@ -119,7 +119,7 @@ public class AuthController(IAuthService authService) : ControllerBase
         try 
         {
             await _authService.ResetPasswordAsync(request);
-            return Ok(new { message = "Mật khẩu đã được đặt lại thành công!" });
+            return Ok(new { message = "Password reset successful!" });
         }
         catch (KeyNotFoundException ex)
         {

@@ -112,7 +112,7 @@ public class ThemeService(
         var existingTheme = await _themeRepository.GetByIdAsync(request.Id);
         if (existingTheme != null)
         {
-            throw new InvalidOperationException($"Giao diện với mã '{request.Id}' đã tồn tại.");
+            throw new InvalidOperationException($"A theme with the ID '{request.Id}' already exists.");
         }
 
         var newTheme = new Theme
@@ -140,7 +140,7 @@ public class ThemeService(
         var existingTheme = await _themeRepository.GetByIdAsync(themeId);
         if (existingTheme == null)
         {
-            throw new KeyNotFoundException($"Không tìm thấy giao diện với mã '{themeId}'.");
+            throw new KeyNotFoundException($"We couldn't find a theme with the ID '{themeId}'.");
         }
 
         var updatedTheme = new Theme
@@ -169,7 +169,7 @@ public class ThemeService(
 
         if (theme == null)
         {
-            throw new KeyNotFoundException("Không tìm thấy giao diện cần xóa.");
+            throw new KeyNotFoundException("The theme you are trying to delete doesn't exist.");
         }
 
         await _themeRepository.DeleteThemeAsync(themeId);

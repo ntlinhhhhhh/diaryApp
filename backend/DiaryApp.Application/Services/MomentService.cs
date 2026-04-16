@@ -6,7 +6,7 @@ using DiaryApp.Domain.Entities;
 namespace DiaryApp.Application.Services;
 
 public class MomentService(
-    IMomentRepository momentRepository, 
+    IMomentRepository momentRepository,
     IUserRepository userRepository,
     IRedisCacheService cacheService
     ) : IMomentService
@@ -21,7 +21,7 @@ public class MomentService(
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
-            throw new KeyNotFoundException("Không tìm thấy người dùng.");
+            throw new KeyNotFoundException("We couldn't find your account information.");
 
         var newMoment = new Moment
         {
@@ -76,10 +76,11 @@ public class MomentService(
     public async Task DeleteAsync(string userId, string momentId)
     {
         var moment = await _momentRepository.GetByIdAsync(momentId);
-        if (moment == null) throw new KeyNotFoundException("Không tìm thấy khoảnh khắc này.");
-        if (moment.UserId != userId) 
+        if (moment == null) throw new KeyNotFoundException("We couldn't find this moment.");
+
+        if (moment.UserId != userId)
         {
-            throw new UnauthorizedAccessException("Bạn không có quyền xóa khoảnh khắc của người khác.");
+            throw new UnauthorizedAccessException("You don't have permission to delete someone else's moment.");
         }
 
         await _momentRepository.DeleteAsync(momentId);

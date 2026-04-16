@@ -25,7 +25,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error: " + ex.Message });
         }
     }
 
@@ -39,14 +39,14 @@ public class ThemeController(IThemeService themeService) : ControllerBase
             
             if (theme == null) 
             {
-                return NotFound(new { message = "Giao diện không tồn tại hoặc đã ngừng bán." });
+                return NotFound(new { message = "This theme doesn't exist or is no longer available." });
             }
 
             return Ok(theme);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error: " + ex.Message });
         }
     }
 
@@ -58,13 +58,13 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         {
             var moods = await _themeService.GetThemeMoodsAsync(id);
             
-            if (!moods.Any()) return NotFound(new { message = "Không tìm thấy icon cho giao diện này." });
+            if (!moods.Any()) return NotFound(new { message = "We couldn't find any icons for this theme." });
 
             return Ok(moods);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error: " + ex.Message });
         }
     }
 
@@ -79,7 +79,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         {
             await _themeService.CreateThemeAsync(request);
             
-            return CreatedAtAction(nameof(GetThemeById), new { id = request.Id }, new { message = "Tạo giao diện thành công!" }); // 201 Created
+            return CreatedAtAction(nameof(GetThemeById), new { id = request.Id }, new { message = "Theme created successfully!!" }); // 201 Created
         }
         catch (InvalidOperationException ex)
         {
@@ -87,7 +87,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message }); 
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error: " + ex.Message }); 
         }
     }
 
@@ -101,7 +101,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         try
         {
             await _themeService.UpdateThemeAsync(id, request);
-            return Ok(new { message = "Cập nhật giao diện thành công!" });
+            return Ok(new { message = "Theme updated successfully!" });
         }
         catch (KeyNotFoundException ex)
         {
@@ -109,7 +109,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message }); // 500
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error: " + ex.Message }); // 500
         }
     }
 
@@ -121,7 +121,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         try
         {
             await _themeService.DeleteThemeAsync(id);
-            return Ok(new { message = "Đã xóa giao diện thành công" });
+            return Ok(new { message = "Theme deleted successfully!" });
         }
         catch (KeyNotFoundException ex)
         {
@@ -129,7 +129,7 @@ public class ThemeController(IThemeService themeService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error: " + ex.Message });
         }
     }
 }

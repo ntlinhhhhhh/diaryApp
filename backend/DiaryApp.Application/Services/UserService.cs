@@ -1,4 +1,3 @@
-
 using DiaryApp.Application.DTOs.User;
 using DiaryApp.Application.Interfaces;
 using DiaryApp.Application.Interfaces.Services;
@@ -28,7 +27,7 @@ public class UserService(
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
         {
-            throw new KeyNotFoundException("Không tìm thấy thông tin người dùng");
+            throw new KeyNotFoundException("We couldn't find your profile information.");
         }
         
         var profile = new UserProfileDto
@@ -54,7 +53,7 @@ public class UserService(
     {
         var user = await _userRepository.GetByIdAsync(userId);
         
-        if (user == null) throw new KeyNotFoundException("Người dùng không tồn tại");
+        if (user == null) throw new KeyNotFoundException("This user account does not exist.");
 
         await _userRepository.UpdateProfileAsync(
             userId: userId,
@@ -76,7 +75,7 @@ public class UserService(
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi đồng bộ Moment cho user {userId}: {ex.Message}");
+                Console.WriteLine($"Error syncing moments for user {userId}: {ex.Message}");
             }
         });
     }
@@ -84,7 +83,7 @@ public class UserService(
     public async Task<IEnumerable<UserSearchResponseDto>> SearchUsersAsync(string name, int limit)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentNullException("Vui lòng nhập từ khóa để tìm kiếm.");
+            throw new ArgumentNullException("Please enter a keyword to search.");
 
         var users = await _userRepository.SearchByNameAsync(name, limit);
 
@@ -103,21 +102,21 @@ public class UserService(
     
         if (theme == null || !theme.IsActive) 
         {
-            throw new KeyNotFoundException("Giao diện này không tồn tại hoặc đã ngừng bán.");
+            throw new KeyNotFoundException("This theme isn't available or has been discontinued.");
         }
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null) throw new KeyNotFoundException("Không tìm thấy người dùng.");
+        if (user == null) throw new KeyNotFoundException("We couldn't find your account info.");
 
         var ownedThemes = await _userRepository.GetOwnedThemeIdsAsync(userId);
         if (ownedThemes.Contains(request.ThemeId))
         {
-            throw new InvalidOperationException("Bạn đã sở hữu giao diện này rồi.");
+            throw new InvalidOperationException("You already own this theme!");
         }
 
         if (user.CoinBalance < request.Price)
         {
-            throw new InvalidOperationException($"Bạn không đủ xu. Cần {request.Price} xu để mua giao diện này.");
+            throw new InvalidOperationException($"You don't have enough coins. You need {request.Price} coins to purchase this theme.");
         }
 
         await _userRepository.UpdateCoinBalanceAsync(userId, -request.Price);
@@ -132,13 +131,13 @@ public class UserService(
         var theme = await _themeRepository.GetByIdAsync(request.ThemeId);
         if (theme == null || !theme.IsActive)
         {
-            throw new KeyNotFoundException("Giao diện không hợp lệ hoặc đã bị gỡ bỏ khỏi hệ thống.");
+            throw new KeyNotFoundException("This theme is invalid or has been removed from the store.");
         }
         
         var ownedThemes = await _userRepository.GetOwnedThemeIdsAsync(userId);
         if (!ownedThemes.Contains(request.ThemeId)) 
         {
-            throw new Exception("Bạn chưa sở hữu giao diện này");
+            throw new Exception("You need to purchase this theme before you can use it.");
         }
 
         await _userRepository.SetActiveThemeAsync(userId, request.ThemeId);
@@ -163,7 +162,7 @@ public class UserService(
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
         {
-            throw new KeyNotFoundException("Không tìm thấy người dùng cần xóa");
+            throw new KeyNotFoundException("The user you are trying to delete could not be found.");
         }
         await _userRepository.DeleteAsync(userId);
         await _cacheService.RemoveAsync($"user_profile:{userId}");

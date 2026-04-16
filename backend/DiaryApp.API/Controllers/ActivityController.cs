@@ -23,7 +23,7 @@ public class ActivityController(IActivityService activityService) : ControllerBa
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(500, new { message = "Server error: " + ex.Message });
         }
     }
 
@@ -38,7 +38,7 @@ public class ActivityController(IActivityService activityService) : ControllerBa
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(500, new { message = "Server error: " + ex.Message });
         }
     }
 
@@ -53,7 +53,7 @@ public class ActivityController(IActivityService activityService) : ControllerBa
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi máy chủ: " + ex.Message });
+            return StatusCode(500, new { message = "Server error: " + ex.Message });
         }
     }
 
@@ -85,7 +85,7 @@ public class ActivityController(IActivityService activityService) : ControllerBa
         try
         {
             await _activityService.UpdateActivityAsync(id, request);
-            return Ok(new { message = "Cập nhật hoạt động thành công!" });
+            return Ok(new { message = "Your activity has been updated successfully!" });
         }
         catch (KeyNotFoundException ex)
         {
@@ -105,7 +105,7 @@ public class ActivityController(IActivityService activityService) : ControllerBa
         try
         {
             await _activityService.DeleteActivityAsync(id);
-            return Ok(new { message = "Đã xóa hoạt động thành công!" });
+            return Ok(new { message = "Your activity has been deleted successfully!" });
         }
         catch (UnauthorizedAccessException ex)
         {

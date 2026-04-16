@@ -4,7 +4,7 @@ namespace DiaryApp.Application.DTOs.User;
 
 public class UpdateProfileRequestDto
 {
-    [Required(ErrorMessage = "Tên không được để trống")]
+    [Required(ErrorMessage = "Name is required.")]
     public required string Name { get; set; }
     public string? AvatarUrl { get; set; }
     public string? Gender { get; set; }

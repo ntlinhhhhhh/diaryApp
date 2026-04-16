@@ -34,7 +34,7 @@ public class ActivityService(
         var existingActivity = await _activityRepository.GetByIdAsync(id);
         if (existingActivity == null)
         {
-            throw new KeyNotFoundException("Không tìm thấy hoạt động cần cập nhật.");
+            throw new KeyNotFoundException("We couldn't find the activity you're trying to update.");
         }
 
         string oldCategory = existingActivity.Category;
@@ -59,7 +59,7 @@ public class ActivityService(
         var existingActivity = await _activityRepository.GetByIdAsync(activityId);
         if (existingActivity == null)
         {
-            throw new KeyNotFoundException("Không tìm thấy hoạt động cần xóa.");
+            throw new KeyNotFoundException("The activity you're trying to delete doesn't exist.");
         }
 
         await _activityRepository.DeleteAsync(activityId);
@@ -130,5 +130,4 @@ public class ActivityService(
             await _cacheService.RemoveAsync($"activities:category:{category}");
         }
     }
-
 }

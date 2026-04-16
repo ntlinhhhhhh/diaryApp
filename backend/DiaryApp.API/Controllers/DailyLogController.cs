@@ -22,7 +22,7 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
         try
         {
             await _logService.UpsertLogAsync(CurrentUserId, request);
-            return Ok(new { message = "Lưu nhật ký thành công!" });
+            return Ok(new { message = "Your log was saved successfully!" });
         }
         catch (KeyNotFoundException ex)
         {
@@ -42,7 +42,7 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
         {
             var log = await _logService.GetLogByDateAsync(CurrentUserId, date);
             
-            if (log == null) return NotFound(new { message = "Chưa có nhật ký cho ngày này." });
+            if (log == null) return NotFound(new { message = "You don't have a log for this date yet." });
             return Ok(log);
         }
         catch (KeyNotFoundException ex)
@@ -160,7 +160,7 @@ public class DailyLogController(IDailyLogService logService) : ControllerBase
         try
         {
             await _logService.DeleteLogAsync(CurrentUserId, date);
-            return Ok(new { message = "Đã xóa nhật ký." });
+            return Ok(new { message = "Your log has been deleted successfully." });
         }
         catch (KeyNotFoundException ex)
         {

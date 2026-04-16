@@ -1,5 +1,5 @@
 using DiaryApp.Application.DTOs;
-using DiaryApp.Application.DTOs.Notification; // Giả định namespace chứa DTO
+using DiaryApp.Application.DTOs.Notification; 
 using DiaryApp.Application.Interfaces;
 using DiaryApp.Application.Interfaces.Services;
 using DiaryApp.Domain.Entities;
@@ -55,12 +55,12 @@ public class AppNotificationService(
         
         if (notification == null)
         {
-            throw new KeyNotFoundException("Không tìm thấy thông báo.");
+            throw new KeyNotFoundException("We couldn't find that notification.");
         }
 
         if (notification.UserId != currentUserId)
         {
-            throw new UnauthorizedAccessException("Bạn không có quyền thao tác trên thông báo này.");
+            throw new UnauthorizedAccessException("You don't have permission to modify this notification.");
         }
 
         if (!notification.IsRead)
@@ -76,12 +76,12 @@ public class AppNotificationService(
         
         if (notification == null)
         {
-            throw new KeyNotFoundException("Không tìm thấy thông báo cần xóa.");
+            throw new KeyNotFoundException("The notification you're trying to delete doesn't exist.");
         }
 
         if (notification.UserId != currentUserId)
         {
-            throw new UnauthorizedAccessException("Bạn không có quyền xóa thông báo này.");
+            throw new UnauthorizedAccessException("You don't have permission to delete this notification.");
         }
 
         await _notificationRepository.DeleteByIdAsync(notificationId);

@@ -55,7 +55,7 @@ public class NotificationController(
     public async Task<IActionResult> GetMyNotifications()
     {
         var userId = CurrentUserId;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized(new { Success = false, Message = "Vui lòng đăng nhập." });
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(new { Success = false, Message = "Please log in to continue!" });
 
         try
         {
@@ -127,7 +127,7 @@ public class NotificationController(
         try
         {
             await _appNotificationService.DeleteAllMyNotificationsAsync(userId);
-            return Ok(new { Success = true, Message = "Đã xóa toàn bộ thông báo." });
+            return Ok(new { Success = true, Message = "All your notifications have been cleared!" });
         }
         catch (Exception ex)
         {

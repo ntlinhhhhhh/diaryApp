@@ -4,10 +4,10 @@ namespace DiaryApp.Application.DTOs.Auth;
 
 public class VerifyOtpDto
 {
-    [Required(ErrorMessage = "Email không được để trống.")]
-    [EmailAddress(ErrorMessage = "Định dạng Email không hợp lệ.")]
+    [Required(ErrorMessage = "Email is required.")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
     public required string Email { get; set; }
 
-    [Required(ErrorMessage = "Otp không được để trống.")]
+    [Required(ErrorMessage = "OTP code is required.")]
     public required string OtpCode { get; set; }
 }

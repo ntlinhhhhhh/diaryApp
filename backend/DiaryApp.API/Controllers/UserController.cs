@@ -38,7 +38,7 @@ public class UserController(IUserService userService) : ControllerBase
         try
         {
             await _userService.DeleteUserAsync(id);
-            return Ok(new { message = "Đã xóa người dùng thành công" });
+            return Ok(new { message = "User deleted successfully." });
         }
         catch (KeyNotFoundException ex)
         {
@@ -76,7 +76,7 @@ public class UserController(IUserService userService) : ControllerBase
         try
         {
             await _userService.UpdateProfileAsync(CurrentUserId, request);
-            return Ok(new { message = "Cập nhật hồ sơ thành công!" });
+            return Ok(new { message = "Your profile has been updated successfully!" });
         }
         catch (KeyNotFoundException ex)
         {
@@ -125,7 +125,7 @@ public class UserController(IUserService userService) : ControllerBase
         try
         {
             await _userService.BuyThemeAsync(CurrentUserId, request);
-            return Ok(new { message = "Mua giao diện thành công" });
+            return Ok(new { message = "Theme purchased successfully!" });
         }
         catch (KeyNotFoundException ex)
         {
@@ -148,7 +148,7 @@ public class UserController(IUserService userService) : ControllerBase
         try
         {
             await _userService.ChangeActiveThemeAsync(CurrentUserId, request);
-            return Ok(new { message = "Thay đổi giao diện thành công!" });
+            return Ok(new { message = "Your new theme has been applied successfully!" });
         }
         catch (KeyNotFoundException ex)
         {

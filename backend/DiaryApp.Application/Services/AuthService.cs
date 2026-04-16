@@ -10,6 +10,7 @@ using BCrypt.Net;
 using DiaryApp.Application.DTOs;
 using Google.Apis.Auth;
 using DiaryApp.Application.Interfaces.Services;
+
 namespace DiaryApp.Application.Services;
 
 public class AuthService(
@@ -26,11 +27,15 @@ public class AuthService(
     private readonly IGoogleAuthProvider _googleAuthProvider = googleAuthProvider;
     private readonly IRedisCacheService _cacheService = cacheService;
 
-    private string GetOtpKey(string email) 
-        => $"auth:otp:{email.ToLower().Trim()}";
+    private string GetOtpKey(string email)
+    {
+        return $"auth:otp:{email.ToLower().Trim()}";
+    } 
 
-    private string GetResetTokenKey(string email) 
-        => $"auth:reset_token:{email.ToLower().Trim()}";
+    private string GetResetTokenKey(string email)
+    {
+        return $"auth:reset_token:{email.ToLower().Trim()}";
+    }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
@@ -39,13 +44,13 @@ public class AuthService(
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentNullException("Tên người dùng không được để trống.");
+            throw new ArgumentNullException("User name cannot be empty.");
         } 
 
         bool userExists = await _userRepository.ExistsByEmailAsync(request.Email);
         if (userExists)
         {
-            throw new InvalidOperationException("Email này đã được sử dụng. Vui lòng sử dụng email khác!");
+            throw new InvalidOperationException("This email is already in use. Please try another one!");
         }
 
         string hashPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -87,17 +92,17 @@ public class AuthService(
             }
         }
 
-        if (user == null) throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
+        if (user == null) throw new UnauthorizedAccessException("Incorrect email or password.");
 
         if (user.AuthProvider != "Local") 
         {
-            throw new Exception("Tài khoản này được đăng ký qua Google. Vui lòng đăng nhập bằng Google.");
+            throw new Exception("This account was registered via Google. Please log in with Google instead.");
         }
 
         bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.HashPassword);
         if (!isPasswordValid)
         {
-            throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
+            throw new UnauthorizedAccessException("Incorrect email or password.");
         }
 
         return new AuthResponseDto
@@ -148,18 +153,18 @@ public class AuthService(
         var email = request.Email.Trim().ToLower();
         var user = await _userRepository.GetByEmailAsync(email);
 
-        if (user == null || user.AuthProvider != "Local") throw new KeyNotFoundException("Email không tồn tại");
+        if (user == null || user.AuthProvider != "Local") throw new KeyNotFoundException("We couldn't find an account with that email.");
 
         string otp = Random.Shared.Next(100000, 999999).ToString();
         user.ResetOtp = otp;
         string otpCacheKey = $"auth:otp:{email}";
         await _cacheService.SetAsync(otpCacheKey, otp, TimeSpan.FromMinutes(10));
 
-        string subject = $"[{otp}] Mã xác nhận khôi phục mật khẩu";
+        string subject = $"[{otp}] Password Recovery Code";
         string emailBody = $@"
-            <h2>Yêu cầu khôi phục mật khẩu</h2>
-            <p>Mã OTP của bạn là: <b style='font-size: 24px; color: #4CAF50;'>{otp}</b></p>
-            <p>Mã này sẽ hết hạn sau 10 phút.</p>";
+            <h2>Password Reset Request</h2>
+            <p>Your OTP code is: <b style='font-size: 24px; color: #4CAF50;'>{otp}</b></p>
+            <p>This code will expire in 10 minutes. If you didn't request this, you can safely ignore this email.</p>";
 
         _ = Task.Run(async () => 
         {
@@ -169,7 +174,7 @@ public class AuthService(
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi gửi email: {ex.Message}");
+                Console.WriteLine($"Email delivery failed: {ex.Message}");
             }
         }); 
     }
@@ -181,7 +186,7 @@ public class AuthService(
 
         if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
         {
-            throw new UnauthorizedAccessException("Mã OTP không chính xác hoặc đã hết hạn.");
+            throw new UnauthorizedAccessException("The OTP code is incorrect or has expired.");
         }
 
         await _cacheService.RemoveAsync(otpCacheKey);
@@ -201,7 +206,7 @@ public class AuthService(
 
         if (string.IsNullOrEmpty(savedToken) || savedToken != request.ResetToken)
         {
-            throw new UnauthorizedAccessException("Phiên làm việc không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.");
+            throw new UnauthorizedAccessException("Invalid or expired session. Please try again.");
         }
 
         var email = request.Email.Trim().ToLower();
@@ -209,7 +214,7 @@ public class AuthService(
 
         if (user == null || user.AuthProvider != "Local")
         {
-            throw new KeyNotFoundException("Email không tồn tại trong hệ thống.");
+            throw new KeyNotFoundException("Email not found in our system.");
         }
 
         user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);

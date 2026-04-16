@@ -30,7 +30,7 @@ public class MomentController(
     {
         if (request.ImageFile == null || request.ImageFile.Length == 0)
         {
-            return BadRequest(new { message = "Vui lòng đính kèm ảnh "});
+            return BadRequest(new { message = "Please attach a photo to share your moment!"});
         } 
         try
         {
@@ -54,7 +54,7 @@ public class MomentController(
 
             return Accepted(new { 
                 success = true, 
-                message = "Khoảnh khắc đang được tải lên và xử lý." 
+                message = "Your moment is uploading in the background. It'll be ready soon!" 
             });
         }
         catch (KeyNotFoundException ex)
@@ -63,7 +63,7 @@ public class MomentController(
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = $"Lỗi hệ thống: {ex.Message}" });
+            return StatusCode(500, new { message = $"Server error: {ex.Message}" });
         }
     }
 
@@ -74,7 +74,7 @@ public class MomentController(
         try
         {
             var moment = await _momentService.GetByIdAsync(id);
-            if (moment == null) return NotFound(new { message = "Không tìm thấy khoảnh khắc này." });
+            if (moment == null) return NotFound(new { message = "We couldn't find this moment." });
             
             return Ok(moment);
         }
@@ -121,7 +121,7 @@ public class MomentController(
         try
         {
             await _momentService.DeleteAsync(CurrentUserId, id);
-            return Ok(new { message = "Đã xóa khoảnh khắc thành công." });
+            return Ok(new { message = "Your moment has been deleted successfully." });
         }
         catch (UnauthorizedAccessException ex)
         {

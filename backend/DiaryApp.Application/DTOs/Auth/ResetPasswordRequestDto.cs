@@ -4,14 +4,14 @@ namespace DiaryApp.Application.DTOs.Auth;
 
 public class ResetPasswordRequestDto
 {
-    [Required(ErrorMessage = "Email không được để trống.")]
-    [EmailAddress(ErrorMessage = "Định dạng Email không hợp lệ.")]
+    [Required(ErrorMessage = "Email is required.")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
     public required string Email { get; set; }
 
-    [Required(ErrorMessage = "OTP không được để trống.")]
+    [Required(ErrorMessage = "OTP is required.")]
     public required string ResetToken { get; set; }
-    
-    [Required(ErrorMessage = "Mật khẩu không được để trống.")]
-    [MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự.")]
+
+    [Required(ErrorMessage = "New password is required.")]
+    [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
     public required string NewPassword { get; set; }
 }

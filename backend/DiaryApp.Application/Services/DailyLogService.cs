@@ -25,7 +25,7 @@ public class DailyLogService(
 
         if (request.BaseMoodId < 1 || request.BaseMoodId > 5)
         {
-            throw new ArgumentException("Mã cảm xúc (baseMoodId) không hợp lệ. Phải từ 1 đến 5.");
+            throw new ArgumentException("Invalid mood ID. Please select a value between 1 and 5.");
         }
 
         if (request.ActivityIds != null && request.ActivityIds.Any())
@@ -33,7 +33,7 @@ public class DailyLogService(
             var exists = await _activityRepository.CheckAllActivitiesExistAsync(request.ActivityIds);
             if (!exists)
             {
-                throw new KeyNotFoundException($"Hoạt động không tồn tại.");
+                throw new KeyNotFoundException("One or more selected activities could not be found.");
             }
         }
 
@@ -131,7 +131,6 @@ public class DailyLogService(
             await _logRepository.DeleteAsync(userId, date);
             await ClearLogCachesAsync(userId, date, existingLog.YearMonth);
         }
-
     }
 
     private static DailyLogResponseDto MapToResponseDto(DailyLog log)
@@ -156,7 +155,7 @@ public class DailyLogService(
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
         {
-            throw new KeyNotFoundException($"Không tìm thấy người dùng id: {userId}"); 
+            throw new KeyNotFoundException($"We couldn't find a user with ID: {userId}"); 
         }
     }
 
