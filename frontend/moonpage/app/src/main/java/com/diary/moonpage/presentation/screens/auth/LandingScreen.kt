@@ -1,6 +1,5 @@
 package com.diary.moonpage.presentation.screens.auth
 
-import android.graphics.Color.alpha
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,10 +16,10 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.R
-import com.diary.moonpage.presentation.components.landing.MoonPageIndicator
-import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
-import com.diary.moonpage.presentation.components.landing.OnboardingPage
-import com.diary.moonpage.presentation.components.landing.OnboardingPageItem
+import com.diary.moonpage.presentation.components.core.layout.MoonPageIndicator
+import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.navigation.OnboardingPage
+import com.diary.moonpage.presentation.components.core.navigation.OnboardingPageItem
 import com.diary.moonpage.presentation.theme.MoonPageTheme
 
 val onboardingPages = listOf(
@@ -129,7 +128,7 @@ fun LandingScreenPreview() {
     MoonPageTheme {
         LandingScreen(
             onNavigateToLogin = {},
-            onNavigateToRegister = {}
+             onNavigateToRegister = {}
         )
     }
 }

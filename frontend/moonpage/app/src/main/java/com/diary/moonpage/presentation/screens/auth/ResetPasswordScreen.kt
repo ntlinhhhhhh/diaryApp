@@ -16,10 +16,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
-import com.diary.moonpage.presentation.components.auth.AuthOtpField
-import com.diary.moonpage.presentation.components.auth.AuthTextField
-import com.diary.moonpage.presentation.components.auth.TopCircularIcon
-import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
+import com.diary.moonpage.presentation.components.core.navigation.TopCircularIcon
 import com.diary.moonpage.presentation.theme.*
 
 @Composable
@@ -65,7 +64,7 @@ fun ResetPasswordScreen(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AuthTextField(
+                MoonTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
                     label = "New Password",
@@ -73,7 +72,7 @@ fun ResetPasswordScreen(
                     isPassword = true
                 )
 
-                AuthTextField(
+                MoonTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
                     label = "Confirm Password",

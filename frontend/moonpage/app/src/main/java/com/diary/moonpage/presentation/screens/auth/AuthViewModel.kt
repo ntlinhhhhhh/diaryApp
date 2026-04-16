@@ -200,6 +200,8 @@ class AuthViewModel @Inject constructor (
     // handle error
     private fun handleAuthError(message: String?) {
         val error = message ?: "An unknown error occurred"
+
+        _uiState.update { it.copy(emailError = null, passwordError = null, usernameError = null, confirmPasswordError = null) }
         when {
             error.contains("email", ignoreCase = true) || error.contains("user", ignoreCase = true) -> {
                 _uiState.update { it.copy(emailError = error) }

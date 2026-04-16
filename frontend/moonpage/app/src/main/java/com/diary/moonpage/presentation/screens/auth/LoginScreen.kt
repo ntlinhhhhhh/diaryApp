@@ -20,12 +20,12 @@ import androidx.compose.ui.unit.dp
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.diary.moonpage.presentation.components.auth.AuthDivider
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
-import com.diary.moonpage.presentation.components.auth.AuthTextField
 import com.diary.moonpage.presentation.components.auth.SocialLoginButton
-import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
+import com.diary.moonpage.presentation.components.core.layout.MoonDivider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -152,7 +152,7 @@ fun LoginScreenContent(
                             subtitle = "Continue your journey of self-\nreflection and mindful awareness."
                         )
 
-                        AuthTextField(
+                        MoonTextField(
                             value = uiState.emailInput,
                             onValueChange = onEmailChange,
                             label = "Email address",
@@ -161,7 +161,7 @@ fun LoginScreenContent(
                             errorText = uiState.emailError
                         )
 
-                        AuthTextField(
+                        MoonTextField(
                             value = uiState.passwordInput,
                             onValueChange = onPasswordChange,
                             label = "Password",
@@ -185,7 +185,7 @@ fun LoginScreenContent(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        AuthDivider(text = "OR CONTINUE WITH")
+                        MoonDivider(text = "OR CONTINUE WITH")
 
                         Spacer(modifier = Modifier.height(32.dp))
 

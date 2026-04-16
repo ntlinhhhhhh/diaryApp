@@ -21,12 +21,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
-import com.diary.moonpage.presentation.components.auth.AuthDivider
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
-import com.diary.moonpage.presentation.components.auth.AuthTextField
 import com.diary.moonpage.presentation.components.auth.SocialLoginButton
-import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.auth.SocialLoginButton
+import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
+import com.diary.moonpage.presentation.components.core.layout.MoonDivider
 import com.diary.moonpage.presentation.theme.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -156,7 +157,7 @@ fun RegisterScreenContent(
                             subtitle = "Create a sacred space for your\nthoughts and emotions today."
                         )
 
-                        AuthTextField(
+                        MoonTextField(
                             value = uiState.usernameInput ?: "",
                             onValueChange = onUsernameChange,
                             placeholderText = "Enter your username",
@@ -165,7 +166,7 @@ fun RegisterScreenContent(
                             errorText = uiState.usernameError
                         )
 
-                        AuthTextField(
+                        MoonTextField(
                             value = uiState.emailInput,
                             onValueChange = onEmailChange,
                             label = "Email address",
@@ -174,7 +175,7 @@ fun RegisterScreenContent(
                             errorText = uiState.emailError
                         )
 
-                        AuthTextField(
+                        MoonTextField(
                             value = uiState.passwordInput,
                             onValueChange = onPasswordChange,
                             label = "Password",
@@ -183,7 +184,7 @@ fun RegisterScreenContent(
                             errorText = uiState.passwordError
                         )
 
-                        AuthTextField(
+                        MoonTextField(
                             value = uiState.confirmPasswordInput,
                             onValueChange = onConfirmPasswordChange,
                             label = "Confirm Password",
@@ -205,7 +206,7 @@ fun RegisterScreenContent(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        AuthDivider(text = "OR SIGN UP WITH")
+                        MoonDivider(text = "OR SIGN UP WITH")
 
                         Spacer(modifier = Modifier.height(32.dp))
 

@@ -1,4 +1,4 @@
-package com.diary.moonpage.presentation.components.landing
+package com.diary.moonpage.presentation.components.core.buttons
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -56,11 +57,13 @@ fun MoonPrimaryButton(
 @Composable
 fun MoonPrimaryButtonLightPreview() {
     MoonPageTheme {
-        MoonPrimaryButton(
-            text = "Register",
-            onClick = {},
-            modifier = Modifier.padding(16.dp)
-        )
+        Surface {
+            MoonPrimaryButton(
+                text = "Register",
+                onClick = {},
+                modifier = Modifier.padding(16.dp)
+            )
+        }
     }
 }
 
@@ -72,10 +75,12 @@ fun MoonPrimaryButtonLightPreview() {
 @Composable
 fun MoonPrimaryButtonDarkPreview() {
     MoonPageTheme {
-        MoonPrimaryButton(
-            text = "Register",
-            onClick = {},
-            modifier = Modifier.padding(16.dp)
-        )
+        Surface {
+            MoonPrimaryButton(
+                text = "Register",
+                onClick = {},
+                modifier = Modifier.padding(16.dp)
+            )
+        }
     }
 }

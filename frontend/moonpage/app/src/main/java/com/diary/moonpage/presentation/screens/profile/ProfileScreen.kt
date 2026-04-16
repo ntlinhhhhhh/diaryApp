@@ -14,15 +14,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.presentation.components.profile.ActionCard
-import com.diary.moonpage.presentation.components.profile.Card
 import com.diary.moonpage.presentation.components.profile.ProfileHeader
-import com.diary.moonpage.presentation.components.profile.SectionTitle
+import com.diary.moonpage.presentation.components.profile.ProfileMenuItem
 import com.diary.moonpage.presentation.components.profile.StatCard
 import com.diary.moonpage.presentation.components.profile.UserInfoCard
+import com.diary.moonpage.presentation.components.core.layout.SectionTitle
 import com.diary.moonpage.presentation.theme.*
 
 @Composable
@@ -93,7 +92,7 @@ fun ProfileScreen() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Card(
+                ProfileMenuItem(
                     title = "Theme Calendar",
                     icon = Icons.Outlined.CalendarMonth,
                     onClick = { /* TODO */ }
@@ -101,7 +100,7 @@ fun ProfileScreen() {
 
                 SectionTitle("More")
 
-                Card(
+                ProfileMenuItem(
                     title = "Widgets",
                     icon = Icons.Outlined.Widgets,
                     onClick = { /* TODO */ }
@@ -109,7 +108,7 @@ fun ProfileScreen() {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Card(
+                ProfileMenuItem(
                     title = "Invite a Friend",
                     icon = Icons.Outlined.PersonAdd,
                     onClick = { /* TODO */ }

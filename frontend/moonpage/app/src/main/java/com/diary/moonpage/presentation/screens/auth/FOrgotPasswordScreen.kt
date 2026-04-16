@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.sp
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
-import com.diary.moonpage.presentation.components.auth.TopCircularIcon
-import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.navigation.TopCircularIcon
 import com.diary.moonpage.presentation.theme.*
 
 

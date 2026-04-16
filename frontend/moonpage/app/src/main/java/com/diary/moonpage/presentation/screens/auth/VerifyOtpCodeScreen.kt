@@ -18,15 +18,14 @@ import androidx.compose.ui.unit.dp
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
-import com.diary.moonpage.presentation.components.auth.AuthOtpField
-import com.diary.moonpage.presentation.components.auth.TopCircularIcon
-import com.diary.moonpage.presentation.components.landing.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
+import com.diary.moonpage.presentation.components.core.inputs.MoonOtpField
+import com.diary.moonpage.presentation.components.core.navigation.TopCircularIcon
 import com.diary.moonpage.presentation.theme.*
 
 @Composable
 fun VerifyOtpScreen(
     onNavigateBack: () -> Unit,
-    // THAY ĐỔI: Chuyển thành sự kiện submit OTP để parent (ViewModel/NavHost) xử lý logic gọi API
     onVerifySubmit: (String) -> Unit,
     onResendClick: () -> Unit
 ) {
@@ -91,7 +90,7 @@ fun VerifyOtpScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                AuthOtpField(
+                MoonOtpField(
                     label = "Verification Code",
                     otpText = otpCode,
                     onOtpTextChange = { otpCode = it }
