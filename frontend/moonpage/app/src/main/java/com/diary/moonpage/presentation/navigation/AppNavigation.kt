@@ -1,15 +1,22 @@
 package com.diary.moonpage.presentation.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.diary.moonpage.presentation.screens.auth.AuthViewModel
 import com.diary.moonpage.presentation.screens.auth.ForgotPasswordScreen
 import com.diary.moonpage.presentation.screens.auth.LandingScreen
 import com.diary.moonpage.presentation.screens.auth.LoadingScreen
@@ -24,6 +31,8 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val authViewModel: AuthViewModel = hiltViewModel()
+
 
     val showBottomBar = currentRoute in listOf(
         Screen.Calendar.route,
@@ -54,7 +63,32 @@ fun AppNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screen.Loading.route,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+            // HIỆU ỨNG CHUYỂN TRANG: Slide + Fade giúp mượt và nhanh hơn
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(300)
+                ) + fadeIn(animationSpec = tween(300))
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(300)
+                ) + fadeOut(animationSpec = tween(300))
+            },
+            popEnterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(300)
+                ) + fadeIn(animationSpec = tween(300))
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(300)
+                ) + fadeOut(animationSpec = tween(300))
+            }
         ) {
             composable(Screen.Loading.route) {
                 LoadingScreen(
@@ -79,6 +113,7 @@ fun AppNavigation() {
 
             composable(Screen.Register.route) {
                 RegisterScreen(
+                    viewModel = authViewModel,
                     onNavigateBack = {
                         navController.popBackStack()
                     },
@@ -88,7 +123,7 @@ fun AppNavigation() {
                         }
                     },
                     onNavigateToLoginGoogle = {
-                        // todo: login with google
+                        // Gọi logic login google ở đây
                     },
                     onRegisterSuccess = {
                         navController.navigate(Screen.Login.route) {
@@ -100,6 +135,7 @@ fun AppNavigation() {
 
             composable(Screen.Login.route) {
                 LoginScreen(
+                    viewModel = authViewModel,
                     onNavigateBack = {
                         navController.popBackStack()
                     },
@@ -109,20 +145,15 @@ fun AppNavigation() {
                         }
                     },
                     onNavigateToForgotPassword = {
-                        navController.navigate(Screen.ForgotPassword.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
+                        navController.navigate(Screen.ForgotPassword.route)
                     },
                     onNavigateToLoginGoogle = {
-                        // todo: login with google
+                        // login google
                     },
                     onLoginSuccess = { token ->
-                        // todo: saved token to SharedPreferences
-
+                        // Chuyển sang màn hình chính sau khi login
                         navController.navigate(Screen.Calendar.route) {
-                            popUpTo(navController.graph.id) {
-                                inclusive = true
-                            }
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )
@@ -132,20 +163,35 @@ fun AppNavigation() {
                 ProfileScreen()
             }
 
+            composable(Screen.Stats.route) {
+                ProfileScreen()
+            }
+
+            composable(Screen.Store.route) {
+                ProfileScreen()
+            }
+
+            composable(Screen.Profile.route) {
+                ProfileScreen()
+            }
+
             composable(Screen.ForgotPassword.route) {
                 ForgotPasswordScreen(
-                    onNavigateToReset = {
-                        navController.navigate(Screen.ResetPassword.route) {
-                            popUpTo(Screen.ForgotPassword.route) { inclusive = true }
-                        }
-                    },
-                    onNavigateToLogin = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.ForgotPassword.route) { inclusive = true }
-                        }
-                    },
-                    onNavigateBack = {
-                        navController.popBackStack()
+                    viewModel = authViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToVerifyOtp = { email ->
+                        navController.navigate(Screen.VerifyOtp.route)
+                    }
+                )
+            }
+
+
+            composable(Screen.VerifyOtp.route) {
+                VerifyOtpScreen(
+                    viewModel = authViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToResetPassword = { email, token ->
+                        navController.navigate(Screen.ResetPassword.route)
                     }
                 )
             }
@@ -153,22 +199,10 @@ fun AppNavigation() {
             composable(Screen.ResetPassword.route) {
                 ResetPasswordScreen(
                     onNavigateToLogin = {
+//                        viewModel = authViewModel,
                         navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.ResetPassword.route) { inclusive = true }
+                            popUpTo(Screen.Login.route) { inclusive = true }
                         }
-                    }
-                )
-            }
-
-            composable(Screen.VerifyOtp.route) {
-                VerifyOtpScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onResendClick = {
-                        // viewModel.resendOtp()
-                    },
-                    onVerifySubmit = { code ->
-                        // todo: viewModel.verifyOtp(code)
-                        // todo: handle response
                     }
                 )
             }

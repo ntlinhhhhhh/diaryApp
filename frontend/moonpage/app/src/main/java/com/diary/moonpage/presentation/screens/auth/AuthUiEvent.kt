@@ -7,7 +7,7 @@ sealed class AuthUiEvent {
     data class ResetPasswordSuccess(val message: String): AuthUiEvent()
     data class ShowSnackBar(val message: String): AuthUiEvent()
     data class NavigateToVerifyOtp(val email: String): AuthUiEvent()
-    data class NavigateToResetPassword(val email: String, val otpCode: String): AuthUiEvent()
+    data class NavigateToResetPassword(val email: String, val token: String): AuthUiEvent()
     object NavigateToLogin: AuthUiEvent()
     object NavigateToRegister: AuthUiEvent()
 }

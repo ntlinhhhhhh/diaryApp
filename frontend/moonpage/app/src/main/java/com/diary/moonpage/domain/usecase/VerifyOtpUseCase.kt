@@ -7,7 +7,7 @@ import javax.inject.Inject
 class VerifyOtpUseCase @Inject constructor(
     val repository: AuthRepository
 ) {
-    suspend operator fun invoke(email: String, otpCode: String): Result<Unit> {
+    suspend operator fun invoke(email: String, otpCode: String): Result<String> {
         if (otpCode.isBlank()) {
             return Result.failure(Exception("OTP code cannot be empty."))
         }

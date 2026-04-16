@@ -47,19 +47,60 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun googleLogin(request: GoogleLoginRequestDTO): Result<User> {
-        TODO("Not yet implemented")
+        return try {
+            val response = api.googleLogin(request)
+            if (response.isSuccessful && response.body() != null) {
+                val user = response.body()!!.toUser()
+                Result.success(user)
+            } else {
+                val errorMsg = parseErrorResponse(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun forgotPassword(request: ForgotPasswordRequestDTO): Result<Unit> {
-        TODO("Not yet implemented")
+        return try {
+            val response = api.forgotPassword(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorMsg = parseErrorResponse(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    override suspend fun verifyOtp(request: VerifyOtpDTO): Result<Unit> {
-        TODO("Not yet implemented")
+    override suspend fun verifyOtp(request: VerifyOtpDTO): Result<String> {
+        return try {
+            val response = api.verifyOtp(request)
+            if (response.isSuccessful) {
+                Result.success(request.otpCode)
+            } else {
+                val errorMsg = parseErrorResponse(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun resetPassword(request: ResetPasswordRequestDTO): Result<Unit> {
-        TODO("Not yet implemented")
+        return try {
+            val response = api.resetPassword(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorMsg = parseErrorResponse(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     private fun parseErrorResponse(errorBody: String?): String {

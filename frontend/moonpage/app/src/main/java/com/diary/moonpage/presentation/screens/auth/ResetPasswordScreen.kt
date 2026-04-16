@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
 import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
@@ -23,6 +24,7 @@ import com.diary.moonpage.presentation.theme.*
 
 @Composable
 fun ResetPasswordScreen(
+//    viewModel: AuthViewModel = hiltViewModel(),
     onNavigateToLogin: () -> Unit
 ) {
     var otpCode by remember { mutableStateOf("") }

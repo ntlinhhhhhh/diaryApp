@@ -13,6 +13,6 @@ interface AuthRepository {
     suspend fun register(request: RegisterRequestDTO): Result<User>;
     suspend fun googleLogin(request: GoogleLoginRequestDTO): Result<User>;
     suspend fun forgotPassword(request: ForgotPasswordRequestDTO): Result<Unit>;
-    suspend fun verifyOtp(request: VerifyOtpDTO): Result<Unit>;
+    suspend fun verifyOtp(request: VerifyOtpDTO): Result<String>;
     suspend fun resetPassword(request: ResetPasswordRequestDTO): Result<Unit>;
 }

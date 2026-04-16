@@ -3,8 +3,7 @@ package com.diary.moonpage.domain.usecase
 import android.util.Patterns
 import com.diary.moonpage.data.remote.dto.auth.ForgotPasswordRequestDTO
 import com.diary.moonpage.domain.repository.AuthRepository
-import jakarta.inject.Inject
-
+import javax.inject.Inject
 
 class ForgotPasswordUseCase @Inject constructor(
     private val repository: AuthRepository
@@ -16,5 +15,4 @@ class ForgotPasswordUseCase @Inject constructor(
         val request = ForgotPasswordRequestDTO(email)
         return repository.forgotPassword(request)
     }
-
 }

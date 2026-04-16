@@ -201,14 +201,13 @@ class AuthViewModel @Inject constructor (
     }
 
     fun forgotPassword() {
-        val email = _uiState.value.emailInput.trim()
+        val email = uiState.value.emailInput.trim()
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val result = forgotPasswordUseCase(email)
 
             result.onSuccess {
-                // Lưu lại email để dùng cho màn hình OTP
                 _uiState.update { it.copy(isLoading = false, savedEmailForOtp = email) }
                 _uiEvent.send(AuthUiEvent.NavigateToVerifyOtp(email))
             }.onFailure { exception ->
@@ -218,29 +217,34 @@ class AuthViewModel @Inject constructor (
         }
     }
 
-//    fun verifyOtp() {
-//        val email = _uiState.value.savedEmailForOtp // Lấy từ state
-//        val otpCode = _uiState.value.otpCodeInput.trim()
-//
-//        viewModelScope.launch {
-//            _uiState.update { it.copy(isLoading = true) }
-//            val result = verifyOtpUseCase(email, otpCode)
-//
-//            result.onSuccess { resetToken ->
-//                _uiState.update { it.copy(isLoading = false, resetToken = resetToken) }
-//                _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, resetToken))
-//            }.onFailure { exception ->
-//                _uiState.update { it.copy(isLoading = false) }
-//                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Invalid OTP Code."))
-//            }
-//        }
-//    }
-//
+    fun verifyOtp() {
+        val email = uiState.value.savedEmailForOtp
+        val otpCode = uiState.value.otpCodeInput.trim()
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = verifyOtpUseCase(email, otpCode)
+
+            result.onSuccess { resetToken ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        resetToken = resetToken
+                    )
+                }
+                _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, resetToken))
+
+            }.onFailure { exception ->
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Invalid OTP Code."))
+            }
+        }
+    }
 
     fun resetPassword() {
-        val email = _uiState.value.savedEmailForOtp
-        val token = _uiState.value.resetToken
-        val newPassword = _uiState.value.passwordInput
+        val email = uiState.value.savedEmailForOtp
+        val token = uiState.value.resetToken
+        val newPassword = uiState.value.passwordInput
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
