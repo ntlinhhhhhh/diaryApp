@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -17,10 +21,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.diary.moonpage.presentation.navigation.Screen
 import com.diary.moonpage.presentation.theme.*
 
 @Composable
@@ -31,54 +34,47 @@ fun MoonBottomNavBar(
 ) {
 
     val navBgColor = MaterialTheme.colorScheme.surface
-
-    // Nền của nút Camera ở giữa: Màu nền ngoài cùng để tạo cảm giác "khoét" xuống
     val cameraBgColor = MaterialTheme.colorScheme.background
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
 
-    // Màu cho Tab đang chọn (Ví dụ: Màu xanh dương đậm)
-    val activeColor = MoonAccentBlue
-
-    // Màu cho Tab không chọn (Mờ đi 40%)
-    val inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    val calendar = Screen.Calendar.route
+    val stats = Screen.Stats.route
+    val store = Screen.Store.route
+    val profile = Screen.Profile.route
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            // Có thể thêm padding ngang nếu bạn muốn nó "lơ lửng" (Floating Nav Bar)
-            // .padding(horizontal = 16.dp, vertical = 8.dp)
-            .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), spotColor = Color.Black.copy(alpha = 0.1f)),
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            .shadow(elevation = 16.dp, spotColor = Color.Black.copy(alpha = 0.1f)),
         color = navBgColor
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp, horizontal = 24.dp),
+                .padding(vertical = 6.dp, horizontal = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // 1. Nút Home
             NavBarItem(
-                icon = Icons.Outlined.Home,
-                label = "Home",
-                isSelected = selectedRoute == "home",
+                icon = Icons.Rounded.CalendarMonth,
+                label = calendar,
+                isSelected = selectedRoute == calendar,
                 activeColor = activeColor,
                 inactiveColor = inactiveColor,
-                onClick = { onItemSelected("home") }
+                onClick = { onItemSelected(calendar) }
             )
 
-            // 2. Nút Thống kê (Stats)
             NavBarItem(
-                icon = Icons.Outlined.BarChart,
-                label = "Stats",
-                isSelected = selectedRoute == "stats",
+                icon = Icons.Rounded.BarChart,
+                label = stats,
+                isSelected = selectedRoute == stats,
                 activeColor = activeColor,
                 inactiveColor = inactiveColor,
-                onClick = { onItemSelected("stats") }
+                onClick = { onItemSelected(stats) }
             )
 
-            // 3. Nút Camera (Nút Trung Tâm Đặc Biệt)
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -88,37 +84,34 @@ fun MoonBottomNavBar(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.CameraAlt,
+                    imageVector = Icons.Rounded.CameraAlt,
                     contentDescription = "Camera",
                     tint = if (selectedRoute == "camera") activeColor else inactiveColor,
                     modifier = Modifier.size(28.dp)
                 )
             }
 
-            // 4. Nút Cửa hàng (Store)
             NavBarItem(
-                icon = Icons.Outlined.Storefront,
-                label = "Store",
-                isSelected = selectedRoute == "store",
+                icon = Icons.Rounded.Storefront,
+                label = store,
+                isSelected = selectedRoute == store,
                 activeColor = activeColor,
                 inactiveColor = inactiveColor,
-                onClick = { onItemSelected("store") }
+                onClick = { onItemSelected(store) }
             )
 
-            // 5. Nút Profile
             NavBarItem(
-                icon = Icons.Outlined.Person,
-                label = "Profile",
-                isSelected = selectedRoute == "profile",
+                icon = Icons.Rounded.Person,
+                label = profile,
+                isSelected = selectedRoute == profile,
                 activeColor = activeColor,
                 inactiveColor = inactiveColor,
-                onClick = { onItemSelected("profile") }
+                onClick = { onItemSelected(profile) }
             )
         }
     }
 }
 
-// Component con xử lý việc: Chỉ hiện chữ khi được chọn
 @Composable
 private fun NavBarItem(
     icon: ImageVector,
@@ -135,7 +128,7 @@ private fun NavBarItem(
         modifier = Modifier
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Tắt hiệu ứng sóng gợn (Ripple) để giống thiết kế
+                indication = null,
                 onClick = onClick
             )
             .padding(8.dp),
@@ -148,28 +141,14 @@ private fun NavBarItem(
             tint = color,
             modifier = Modifier.size(28.dp)
         )
-
-        // Nếu đang được chọn thì mới hiển thị chữ bên dưới
-        if (isSelected) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-            )
-        }
     }
 }
 
-// Preview để bạn xem thử ngay trên Android Studio
 @Preview(showBackground = true, backgroundColor = 0xFFFFFBF4)
 @Composable
 fun BottomNavPreviewLight() {
     MoonPageTheme {
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.BottomCenter) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
             MoonBottomNavBar(selectedRoute = "profile", onItemSelected = {})
         }
     }
@@ -179,7 +158,7 @@ fun BottomNavPreviewLight() {
 @Composable
 fun BottomNavPreviewDark() {
     MoonPageTheme(darkTheme = true) {
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.BottomCenter) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
             MoonBottomNavBar(selectedRoute = "profile", onItemSelected = {})
         }
     }

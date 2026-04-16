@@ -22,6 +22,7 @@ import com.diary.moonpage.presentation.components.profile.ProfileMenuItem
 import com.diary.moonpage.presentation.components.profile.StatCard
 import com.diary.moonpage.presentation.components.profile.UserInfoCard
 import com.diary.moonpage.presentation.components.core.layout.SectionTitle
+import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
 import com.diary.moonpage.presentation.theme.*
 
 @Composable
@@ -116,7 +117,9 @@ fun ProfileScreen() {
 
                 Spacer(modifier = Modifier.height(100.dp))
             }
+
         }
+
     }
 }
 
