@@ -49,6 +49,7 @@ fun RegisterScreen(
         onUsernameChange = viewModel::onUsernameChange,
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
+        onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
         onSignUpClick = viewModel::register,
         onNavigateBack = onNavigateBack,
         onNavigateToLogin = onNavigateToLogin,
@@ -64,6 +65,7 @@ fun RegisterScreenContent(
     onUsernameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
+    onConfirmPasswordChange: (String) -> Unit,
     onSignUpClick: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
@@ -159,7 +161,8 @@ fun RegisterScreenContent(
                             onValueChange = onUsernameChange,
                             placeholderText = "Enter your username",
                             label = "Username",
-                            iconVector = Icons.Outlined.Person
+                            iconVector = Icons.Outlined.Person,
+                            errorText = uiState.usernameError
                         )
 
                         AuthTextField(
@@ -168,6 +171,7 @@ fun RegisterScreenContent(
                             label = "Email address",
                             placeholderText = "Enter your email",
                             iconVector = Icons.Outlined.Email,
+                            errorText = uiState.emailError
                         )
 
                         AuthTextField(
@@ -175,7 +179,17 @@ fun RegisterScreenContent(
                             onValueChange = onPasswordChange,
                             label = "Password",
                             placeholderText = "Enter your password",
-                            isPassword = true
+                            isPassword = true,
+                            errorText = uiState.passwordError
+                        )
+
+                        AuthTextField(
+                            value = uiState.confirmPasswordInput,
+                            onValueChange = onConfirmPasswordChange,
+                            label = "Confirm Password",
+                            placeholderText = "Confirm your password",
+                            isPassword = true,
+                            errorText = uiState.confirmPasswordError
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -240,7 +254,8 @@ fun RegisterScreenPreviewLight() {
             onNavigateBack = {},
             onNavigateToLogin = {},
             onNavigateToLoginGoogle = {},
-            onRegisterSuccess = {}
+            onRegisterSuccess = {},
+            onConfirmPasswordChange = {}
         )
     }
 }
@@ -259,7 +274,8 @@ fun RegisterScreenPreviewDark() {
             onNavigateBack = {},
             onNavigateToLogin = {},
             onNavigateToLoginGoogle = {},
-            onRegisterSuccess = {}
+            onRegisterSuccess = {},
+            onConfirmPasswordChange = {}
         )
     }
 }

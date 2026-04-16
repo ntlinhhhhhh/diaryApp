@@ -88,7 +88,8 @@ class AuthViewModel @Inject constructor (
                     _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
                 }.onFailure { exception ->
                     _uiState.update { it.copy(isLoading = false) }
-                    _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Login failed. Please check your credentials."))
+                    handleAuthError(exception.message)
+//                    _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Login failed. Please check your credentials."))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -167,7 +168,8 @@ class AuthViewModel @Inject constructor (
                     _uiEvent.send(AuthUiEvent.RegisterSuccess("Registration successful. Please log in."))
                 }.onFailure { exception ->
                     _uiState.update { it.copy(isLoading = false) }
-                    _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Registration failed. Email already exists."))
+                    handleAuthError(exception.message)
+//                    _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Registration failed. Email already exists."))
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
@@ -194,4 +196,25 @@ class AuthViewModel @Inject constructor (
 //        }
 //
 //    }
+
+    // handle error
+    private fun handleAuthError(message: String?) {
+        val error = message ?: "An unknown error occurred"
+        when {
+            error.contains("email", ignoreCase = true) || error.contains("user", ignoreCase = true) -> {
+                _uiState.update { it.copy(emailError = error) }
+            }
+            error.contains("password", ignoreCase = true) -> {
+                _uiState.update { it.copy(passwordError = error) }
+            }
+            error.contains("username", ignoreCase = true) || error.contains("name", ignoreCase = true) -> {
+                _uiState.update { it.copy(usernameError = error) }
+            }
+            else -> {
+                viewModelScope.launch {
+                    _uiEvent.send(AuthUiEvent.ShowSnackBar(error))
+                }
+            }
+        }
+    }
 }
