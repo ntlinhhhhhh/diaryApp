@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
 import com.diary.moonpage.domain.model.User
+import com.diary.moonpage.domain.usecase.ForgotPasswordUseCase
+import com.diary.moonpage.domain.usecase.GoogleLoginUseCase
 import com.diary.moonpage.domain.usecase.LoginUseCase
 import com.diary.moonpage.domain.usecase.RegisterUserCase
+import com.diary.moonpage.domain.usecase.ResetPasswordUseCase
+import com.diary.moonpage.domain.usecase.VerifyOtpUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +24,11 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor (
     private val loginUseCase: LoginUseCase,
-    private val registerUseCase: RegisterUserCase
+    private val registerUseCase: RegisterUserCase,
+    private val googleLoginUseCase: GoogleLoginUseCase,
+    private val forgotPasswordUseCase: ForgotPasswordUseCase,
+    private val verifyOtpUseCase: VerifyOtpUseCase,
+    private val resetPasswordUseCase: ResetPasswordUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -169,7 +177,6 @@ class AuthViewModel @Inject constructor (
                 }.onFailure { exception ->
                     _uiState.update { it.copy(isLoading = false) }
                     handleAuthError(exception.message)
-//                    _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Registration failed. Email already exists."))
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
@@ -178,24 +185,77 @@ class AuthViewModel @Inject constructor (
         }
     }
 
-//    fun forgotPassword() {
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = googleLoginUseCase(idToken)
+
+            result.onSuccess { user ->
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
+            }.onFailure { exception ->
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Google login failed."))
+            }
+        }
+    }
+
+    fun forgotPassword() {
+        val email = _uiState.value.emailInput.trim()
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = forgotPasswordUseCase(email)
+
+            result.onSuccess {
+                // Lưu lại email để dùng cho màn hình OTP
+                _uiState.update { it.copy(isLoading = false, savedEmailForOtp = email) }
+                _uiEvent.send(AuthUiEvent.NavigateToVerifyOtp(email))
+            }.onFailure { exception ->
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Failed to send OTP."))
+            }
+        }
+    }
+
+//    fun verifyOtp() {
+//        val email = _uiState.value.savedEmailForOtp // Lấy từ state
+//        val otpCode = _uiState.value.otpCodeInput.trim()
+//
 //        viewModelScope.launch {
-//            val email = uiState.value.emailInput
-//            if (email.isBlank()) {
-//                _uiEvent.send(AuthUiEvent.ShowSnackBar("Please enter your email address."))
-//                return@launch
-//            }
-//
-//            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-//                _uiEvent.send(AuthUiEvent.ShowSnackBar("Please enter your email address."))
-//                return@launch
-//            }
 //            _uiState.update { it.copy(isLoading = true) }
+//            val result = verifyOtpUseCase(email, otpCode)
 //
-//
+//            result.onSuccess { resetToken ->
+//                _uiState.update { it.copy(isLoading = false, resetToken = resetToken) }
+//                _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, resetToken))
+//            }.onFailure { exception ->
+//                _uiState.update { it.copy(isLoading = false) }
+//                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Invalid OTP Code."))
+//            }
 //        }
-//
 //    }
+//
+
+    fun resetPassword() {
+        val email = _uiState.value.savedEmailForOtp
+        val token = _uiState.value.resetToken
+        val newPassword = _uiState.value.passwordInput
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = resetPasswordUseCase(email, token, newPassword)
+
+            result.onSuccess {
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AuthUiEvent.ShowSnackBar("Password reset successful! Please login."))
+                _uiEvent.send(AuthUiEvent.NavigateToLogin)
+            }.onFailure { exception ->
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Failed to reset password."))
+            }
+        }
+    }
 
     // handle error
     private fun handleAuthError(message: String?) {

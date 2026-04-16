@@ -1,7 +1,6 @@
 package com.diary.moonpage.domain.usecase
 
 import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.RegisterResponseDto
 import com.diary.moonpage.domain.model.User
 import com.diary.moonpage.domain.repository.AuthRepository
 import jakarta.inject.Inject

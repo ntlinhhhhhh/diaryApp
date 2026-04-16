@@ -7,6 +7,10 @@ data class AuthUiState (
     val confirmPasswordInput: String = "",
     val otpCodeInput: String = "",
 
+    val savedEmailForOtp: String = "",
+    val resetToken: String = "",
+
+
     val emailError: String? = null,
     val usernameError: String? = null,
     val passwordError: String? = null,

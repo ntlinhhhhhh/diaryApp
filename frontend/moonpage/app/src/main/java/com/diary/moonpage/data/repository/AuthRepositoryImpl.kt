@@ -3,7 +3,10 @@ package com.diary.moonpage.data.repository
 import com.diary.moonpage.data.remote.api.AuthApi
 import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.ErrorResponse
+import com.diary.moonpage.data.remote.dto.auth.ForgotPasswordRequestDTO
+import com.diary.moonpage.data.remote.dto.auth.GoogleLoginRequestDTO
+import com.diary.moonpage.data.remote.dto.auth.ResetPasswordRequestDTO
+import com.diary.moonpage.data.remote.dto.auth.VerifyOtpDTO
 import com.diary.moonpage.domain.model.User
 import com.diary.moonpage.domain.repository.AuthRepository
 import com.google.gson.Gson
@@ -41,6 +44,22 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override suspend fun googleLogin(request: GoogleLoginRequestDTO): Result<User> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun forgotPassword(request: ForgotPasswordRequestDTO): Result<Unit> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun verifyOtp(request: VerifyOtpDTO): Result<Unit> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun resetPassword(request: ResetPasswordRequestDTO): Result<Unit> {
+        TODO("Not yet implemented")
     }
 
     private fun parseErrorResponse(errorBody: String?): String {

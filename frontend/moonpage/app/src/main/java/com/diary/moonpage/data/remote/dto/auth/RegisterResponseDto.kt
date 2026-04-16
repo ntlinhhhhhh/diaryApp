@@ -2,7 +2,7 @@ package com.diary.moonpage.data.remote.dto.auth
 
 import com.diary.moonpage.domain.model.User
 
-data class RegisterResponseDto(
+data class RegisterResponseDTO(
     val token: String,
     val userId: String,
     val name: String,

@@ -1,6 +1,6 @@
 package com.diary.moonpage.data.remote.dto.auth
 
-data class LoginRequestDTO (
+data class VerifyOtpDTO (
     val email: String,
-    val password: String
+    val otpCode: String
 )
