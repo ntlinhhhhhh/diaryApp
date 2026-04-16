@@ -482,9 +482,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
-
-*.json
+client_secret.json
 appsettings.json
+client_secret.json
 
 # Firebase & Secret configs
 firebase-config.json
