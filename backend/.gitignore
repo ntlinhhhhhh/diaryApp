@@ -487,8 +487,8 @@ appsettings.json
 client_secret.json
 
 # Firebase & Secret configs
-firebase-config.json
-firebase-adminsdk.json
+*firebase-config*.json
+*firebase-adminsdk*.json
 *firebase*.json
 
 # Nếu bạn lưu config trong thư mục riêng, hãy ignore cả thư mục đó
