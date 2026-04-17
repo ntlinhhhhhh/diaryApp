@@ -76,7 +76,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     // POST: api/auth/verify-otp
     [HttpPost("verify-otp")]
 
-    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto request)
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request)
     {
        try 
         {

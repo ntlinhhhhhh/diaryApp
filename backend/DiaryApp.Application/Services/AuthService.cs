@@ -179,7 +179,7 @@ public class AuthService(
         }); 
     }
 
-    public async Task<string> VerifyOtpAndGenerateTokenAsync(VerifyOtpDto request)
+    public async Task<VerifyOtpResponseDto> VerifyOtpAndGenerateTokenAsync(VerifyOtpRequestDto request)
     {
         var otpCacheKey = GetOtpKey(request.Email);
         var savedOtp = await _cacheService.GetAsync<string>(otpCacheKey);
@@ -191,7 +191,10 @@ public class AuthService(
 
         await _cacheService.RemoveAsync(otpCacheKey);
 
-        var resetToken = Guid.NewGuid().ToString("N");
+        var resetToken = new VerifyOtpResponseDto
+        {
+            ResetToken = Guid.NewGuid().ToString("N")
+        };
         var tokenCacheKey = GetResetTokenKey(request.Email);
         
         await _cacheService.SetAsync(tokenCacheKey, resetToken, TimeSpan.FromMinutes(10));
