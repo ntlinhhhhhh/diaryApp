@@ -10,6 +10,9 @@ using BCrypt.Net;
 using DiaryApp.Application.DTOs;
 using Google.Apis.Auth;
 using DiaryApp.Application.Interfaces.Services;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace DiaryApp.Application.Services;
 
@@ -37,6 +40,11 @@ public class AuthService(
         return $"auth:reset_token:{email.ToLower().Trim()}";
     }
 
+    private string GetUserCacheKey(string email)
+    {
+        return $"auth:email:{email.ToLower().Trim()}";
+    }
+
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
         var email = request.Email.Trim().ToLower();
@@ -44,13 +52,13 @@ public class AuthService(
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentNullException("User name cannot be empty.");
+            throw new ArgumentException("User name cannot be empty.");
         } 
 
-        bool userExists = await _userRepository.ExistsByEmailAsync(request.Email);
+        bool userExists = await _userRepository.ExistsByEmailAsync(email);
         if (userExists)
         {
-            throw new InvalidOperationException("This email is already in use. Please try another one!");
+            throw new InvalidOperationException("This email is already in use. Please try another one.");
         }
 
         string hashPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -78,8 +86,8 @@ public class AuthService(
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
     {
         var email = request.Email.Trim().ToLower();
-
-        string cacheKey = $"auth:email:{email}";
+        string cacheKey = GetUserCacheKey(email);
+        
         var user = await _cacheService.GetAsync<User>(cacheKey);
 
         if (user == null)
@@ -92,11 +100,14 @@ public class AuthService(
             }
         }
 
-        if (user == null) throw new UnauthorizedAccessException("Incorrect email or password.");
+        if (user == null) 
+        {
+            throw new UnauthorizedAccessException("Incorrect email or password.");
+        }
 
         if (user.AuthProvider != "Local") 
         {
-            throw new Exception("This account was registered via Google. Please log in with Google instead.");
+            throw new InvalidOperationException("This account was registered via Google. Please log in with Google instead.");
         }
 
         bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.HashPassword);
@@ -153,11 +164,14 @@ public class AuthService(
         var email = request.Email.Trim().ToLower();
         var user = await _userRepository.GetByEmailAsync(email);
 
-        if (user == null || user.AuthProvider != "Local") throw new KeyNotFoundException("We couldn't find an account with that email.");
+        if (user == null || user.AuthProvider != "Local") 
+        {
+            throw new KeyNotFoundException("We couldn't find an account with that email.");
+        }
 
         string otp = Random.Shared.Next(100000, 999999).ToString();
-        user.ResetOtp = otp;
-        string otpCacheKey = $"auth:otp:{email}";
+        string otpCacheKey = GetOtpKey(email);
+        
         await _cacheService.SetAsync(otpCacheKey, otp, TimeSpan.FromMinutes(10));
 
         string subject = $"[{otp}] Password Recovery Code";
@@ -181,7 +195,8 @@ public class AuthService(
 
     public async Task<VerifyOtpResponseDto> VerifyOtpAndGenerateTokenAsync(VerifyOtpRequestDto request)
     {
-        var otpCacheKey = GetOtpKey(request.Email);
+        var email = request.Email.Trim().ToLower();
+        var otpCacheKey = GetOtpKey(email);
         var savedOtp = await _cacheService.GetAsync<string>(otpCacheKey);
 
         if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
@@ -191,20 +206,21 @@ public class AuthService(
 
         await _cacheService.RemoveAsync(otpCacheKey);
 
-        var resetToken = new VerifyOtpResponseDto
-        {
-            ResetToken = Guid.NewGuid().ToString("N")
-        };
-        var tokenCacheKey = GetResetTokenKey(request.Email);
+        string rawResetToken = Guid.NewGuid().ToString("N");
+        var tokenCacheKey = GetResetTokenKey(email);
         
-        await _cacheService.SetAsync(tokenCacheKey, resetToken, TimeSpan.FromMinutes(10));
+        await _cacheService.SetAsync(tokenCacheKey, rawResetToken, TimeSpan.FromMinutes(10));
 
-        return resetToken;
+        return new VerifyOtpResponseDto
+        {
+            ResetToken = rawResetToken
+        };
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
     {
-        var tokenCacheKey = GetResetTokenKey(request.Email);
+        var email = request.Email.Trim().ToLower();
+        var tokenCacheKey = GetResetTokenKey(email);
         var savedToken = await _cacheService.GetAsync<string>(tokenCacheKey);
 
         if (string.IsNullOrEmpty(savedToken) || savedToken != request.ResetToken)
@@ -212,7 +228,6 @@ public class AuthService(
             throw new UnauthorizedAccessException("Invalid or expired session. Please try again.");
         }
 
-        var email = request.Email.Trim().ToLower();
         var user = await _userRepository.GetByEmailAsync(email);
 
         if (user == null || user.AuthProvider != "Local")
@@ -224,6 +239,6 @@ public class AuthService(
         await _userRepository.UpdateAsync(user);
 
         await _cacheService.RemoveAsync(tokenCacheKey);
-        await _cacheService.RemoveAsync($"auth:email:{email}");
+        await _cacheService.RemoveAsync(GetUserCacheKey(email));
     }
 }

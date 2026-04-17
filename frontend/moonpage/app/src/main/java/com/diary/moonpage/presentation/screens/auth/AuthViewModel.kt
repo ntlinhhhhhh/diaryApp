@@ -226,16 +226,16 @@ class AuthViewModel @Inject constructor (
             val result = verifyOtpUseCase(email, otpCode)
 
 
-            result.onSuccess { resetToken ->
+            result.onSuccess { response ->
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        resetToken = resetToken
+                        resetToken = response.resetToken
                     )
                 }
-                println("--- VERIFY OTP THÀNH CÔNG! TOKEN NHẬN ĐƯỢC LÀ: [$resetToken] ---")
+                println("--- VERIFY OTP THÀNH CÔNG! TOKEN NHẬN ĐƯỢC LÀ: [${response.resetToken}] ---")
 
-                _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, resetToken))
+                _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, response.resetToken))
 
             }.onFailure { exception ->
                 _uiState.update { it.copy(isLoading = false) }
