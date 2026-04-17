@@ -41,9 +41,7 @@ fun VerifyOtpScreen(
         onVerifySubmit = viewModel::verifyOtp,
         onNavigateBack = onNavigateBack,
         onNavigateToResetPassword = onNavigateToResetPassword,
-        onResendClick = {
-            // viewModel.resendOtp()
-        }
+        onResendClick = viewModel::forgotPassword
     )
 }
 
@@ -55,7 +53,7 @@ fun VerifyOtpScreenContent(
     onVerifySubmit: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToResetPassword: (String, String) -> Unit,
-    onResendClick: () -> Unit
+    onResendClick: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -185,7 +183,7 @@ fun VerifyOtpPreview() {
             onVerifySubmit = {},
             onNavigateBack = {},
             onNavigateToResetPassword = { _, _ -> },
-            onResendClick = {}
+            onResendClick = {},
         )
     }
 }

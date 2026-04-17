@@ -7,12 +7,12 @@ import javax.inject.Inject
 class ResetPasswordUseCase @Inject constructor(
     private  val repository: AuthRepository
 ) {
-    suspend operator fun invoke(email: String, otpCode: String, newPassword: String): Result<Unit> {
+    suspend operator fun invoke(email: String, resetToken: String, newPassword: String): Result<Unit> {
         if (newPassword.length < 6) {
             return Result.failure(Exception("Password must be at least 6 characters."))
         }
 
-        val request = ResetPasswordRequestDTO(email, otpCode, newPassword)
+        val request = ResetPasswordRequestDTO(email, resetToken, newPassword)
         return repository.resetPassword(request)
     }
 }

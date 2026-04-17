@@ -6,24 +6,20 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
-import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.diary.moonpage.presentation.screens.auth.AuthViewModel
-import com.diary.moonpage.presentation.screens.auth.ForgotPasswordScreen
-import com.diary.moonpage.presentation.screens.auth.LandingScreen
-import com.diary.moonpage.presentation.screens.auth.LoadingScreen
-import com.diary.moonpage.presentation.screens.auth.LoginScreen
-import com.diary.moonpage.presentation.screens.auth.RegisterScreen
-import com.diary.moonpage.presentation.screens.auth.ResetPasswordScreen
-import com.diary.moonpage.presentation.screens.auth.VerifyOtpScreen
+import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
+import com.diary.moonpage.presentation.screens.auth.*
 import com.diary.moonpage.presentation.screens.profile.ProfileScreen
 
 @Composable
@@ -31,8 +27,6 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val authViewModel: AuthViewModel = hiltViewModel()
-
 
     val showBottomBar = currentRoute in listOf(
         Screen.Calendar.route,
@@ -64,32 +58,20 @@ fun AppNavigation() {
             navController = navController,
             startDestination = Screen.Loading.route,
             modifier = Modifier.padding(paddingValues),
-            // HIỆU ỨNG CHUYỂN TRANG: Slide + Fade giúp mượt và nhanh hơn
             enterTransition = {
-                slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300))
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(300)) + fadeIn(tween(300))
             },
             exitTransition = {
-                slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(300)) + fadeOut(tween(300))
             },
             popEnterTransition = {
-                slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300))
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(300)) + fadeIn(tween(300))
             },
             popExitTransition = {
-                slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(300)) + fadeOut(tween(300))
             }
         ) {
+
             composable(Screen.Loading.route) {
                 LoadingScreen(
                     onFinished = {
@@ -102,110 +84,93 @@ fun AppNavigation() {
 
             composable(Screen.Landing.route) {
                 LandingScreen(
-                    onNavigateToLogin = {
-                        navController.navigate(Screen.Login.route)
-                    },
-                    onNavigateToRegister = {
-                        navController.navigate(Screen.Register.route)
-                    }
+                    onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                    onNavigateToRegister = { navController.navigate(Screen.Register.route) }
                 )
             }
 
-            composable(Screen.Register.route) {
-                RegisterScreen(
-                    viewModel = authViewModel,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    },
-                    onNavigateToLogin = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Register.route) { inclusive = true }
+            navigation(
+                startDestination = Screen.Login.route,
+                route = "auth_graph"
+            ) {
+
+                composable(Screen.Login.route) {
+                    LoginScreen(
+                        viewModel = hiltViewModel(),
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToRegister = { navController.navigate(Screen.Register.route) },
+                        onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
+                        onNavigateToLoginGoogle = { /* ... */ },
+                        onLoginSuccess = { token ->
+                            navController.navigate(Screen.Calendar.route) {
+                                popUpTo(0) { inclusive = true } // Xóa sạch lịch sử để vào Main App
+                            }
                         }
-                    },
-                    onNavigateToLoginGoogle = {
-                        // Gọi logic login google ở đây
-                    },
-                    onRegisterSuccess = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Register.route) { inclusive = true }
+                    )
+                }
+
+                composable(Screen.Register.route) {
+                    RegisterScreen(
+                        viewModel = hiltViewModel(), // Khởi tạo độc lập
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToLogin = { navController.popBackStack() }, // PopBackStack mượt hơn navigate
+                        onNavigateToLoginGoogle = { /* ... */ },
+                        onRegisterSuccess = {
+                            navController.popBackStack() // Quay về màn Login
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            composable(Screen.Login.route) {
-                LoginScreen(
-                    viewModel = authViewModel,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    },
-                    onNavigateToRegister = {
-                        navController.navigate(Screen.Register.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                // Cụm 3 màn hình dùng chung 1 ViewModel
+                composable(Screen.ForgotPassword.route) { entry ->
+                    val sharedViewModel = entry.sharedViewModel<AuthViewModel>(navController)
+                    ForgotPasswordScreen(
+                        viewModel = sharedViewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToVerifyOtp = { navController.navigate(Screen.VerifyOtp.route) }
+                    )
+                }
+
+                composable(Screen.VerifyOtp.route) { entry ->
+                    val sharedViewModel = entry.sharedViewModel<AuthViewModel>(navController)
+                    VerifyOtpScreen(
+                        viewModel = sharedViewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToResetPassword = { _, _ -> navController.navigate(Screen.ResetPassword.route) }
+                    )
+                }
+
+                composable(Screen.ResetPassword.route) { entry ->
+                    val sharedViewModel = entry.sharedViewModel<AuthViewModel>(navController)
+                    ResetPasswordScreen(
+                        viewModel = sharedViewModel, // ĐÃ SỬA LỖI CÚ PHÁP
+                        onNavigateToLogin = {
+                            // Cập nhật pass xong, đá văng về tận Login
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
                         }
-                    },
-                    onNavigateToForgotPassword = {
-                        navController.navigate(Screen.ForgotPassword.route)
-                    },
-                    onNavigateToLoginGoogle = {
-                        // login google
-                    },
-                    onLoginSuccess = { token ->
-                        // Chuyển sang màn hình chính sau khi login
-                        navController.navigate(Screen.Calendar.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
-                )
+                    )
+                }
             }
 
-            composable(Screen.Calendar.route) {
-                ProfileScreen()
-            }
-
-            composable(Screen.Stats.route) {
-                ProfileScreen()
-            }
-
-            composable(Screen.Store.route) {
-                ProfileScreen()
-            }
-
-            composable(Screen.Profile.route) {
-                ProfileScreen()
-            }
-
-            composable(Screen.ForgotPassword.route) {
-                ForgotPasswordScreen(
-                    viewModel = authViewModel,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToVerifyOtp = { email ->
-                        navController.navigate(Screen.VerifyOtp.route)
-                    }
-                )
-            }
-
-
-            composable(Screen.VerifyOtp.route) {
-                VerifyOtpScreen(
-                    viewModel = authViewModel,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToResetPassword = { email, token ->
-                        navController.navigate(Screen.ResetPassword.route)
-                    }
-                )
-            }
-
-            composable(Screen.ResetPassword.route) {
-                ResetPasswordScreen(
-                    onNavigateToLogin = {
-//                        viewModel = authViewModel,
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    }
-                )
-            }
+            // --- CÁC MÀN HÌNH MAIN APP HIỆN BOTTOM BAR ---
+            composable(Screen.Calendar.route) { ProfileScreen() }
+            composable(Screen.Stats.route) { ProfileScreen() }
+            composable(Screen.Store.route) { ProfileScreen() }
+            composable(Screen.Profile.route) { ProfileScreen() }
         }
     }
+}
+
+// Hàm mở rộng (Extension function) giúp chia sẻ ViewModel giữa các màn hình trong cùng 1 Graph
+@Composable
+inline fun <reified T : androidx.lifecycle.ViewModel> NavBackStackEntry.sharedViewModel(
+    navController: NavController
+): T {
+    val navGraphRoute = destination.parent?.route ?: return hiltViewModel()
+    val parentEntry = remember(this) {
+        navController.getBackStackEntry(navGraphRoute)
+    }
+    return hiltViewModel(parentEntry)
 }

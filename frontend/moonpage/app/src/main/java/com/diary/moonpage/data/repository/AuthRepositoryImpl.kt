@@ -6,7 +6,8 @@ import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.ForgotPasswordRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.GoogleLoginRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.ResetPasswordRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.VerifyOtpDTO
+import com.diary.moonpage.data.remote.dto.auth.VerifyOtpRequestDTO
+import com.diary.moonpage.data.remote.dto.auth.VerifyOtpResponseDTO
 import com.diary.moonpage.domain.model.User
 import com.diary.moonpage.domain.repository.AuthRepository
 import com.google.gson.Gson
@@ -75,11 +76,11 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun verifyOtp(request: VerifyOtpDTO): Result<String> {
+    override suspend fun verifyOtp(request: VerifyOtpRequestDTO): Result<VerifyOtpResponseDTO> {
         return try {
             val response = api.verifyOtp(request)
-            if (response.isSuccessful) {
-                Result.success(request.otpCode)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
             } else {
                 val errorMsg = parseErrorResponse(response.errorBody()?.string())
                 Result.failure(Exception(errorMsg))

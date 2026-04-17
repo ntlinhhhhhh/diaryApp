@@ -2,7 +2,6 @@ using DiaryApp.Application.DTOs;
 using DiaryApp.Application.DTOs.Auth;
 using DiaryApp.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Org.BouncyCastle.Ocsp;
 
 namespace DiaryApp.API.Controllers;
 
@@ -75,7 +74,6 @@ public class AuthController(IAuthService authService) : ControllerBase
 
     // POST: api/auth/verify-otp
     [HttpPost("verify-otp")]
-
     public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request)
     {
        try 

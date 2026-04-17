@@ -225,6 +225,7 @@ class AuthViewModel @Inject constructor (
             _uiState.update { it.copy(isLoading = true) }
             val result = verifyOtpUseCase(email, otpCode)
 
+
             result.onSuccess { resetToken ->
                 _uiState.update {
                     it.copy(
@@ -232,6 +233,8 @@ class AuthViewModel @Inject constructor (
                         resetToken = resetToken
                     )
                 }
+                println("--- VERIFY OTP THÀNH CÔNG! TOKEN NHẬN ĐƯỢC LÀ: [$resetToken] ---")
+
                 _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, resetToken))
 
             }.onFailure { exception ->
@@ -267,13 +270,13 @@ class AuthViewModel @Inject constructor (
 
         _uiState.update { it.copy(emailError = null, passwordError = null, usernameError = null, confirmPasswordError = null) }
         when {
-            error.contains("email", ignoreCase = true) || error.contains("user", ignoreCase = true) -> {
+            error.contains("Email", ignoreCase = true) || error.contains("User", ignoreCase = true) -> {
                 _uiState.update { it.copy(emailError = error) }
             }
-            error.contains("password", ignoreCase = true) -> {
+            error.contains("Password", ignoreCase = true) -> {
                 _uiState.update { it.copy(passwordError = error) }
             }
-            error.contains("username", ignoreCase = true) || error.contains("name", ignoreCase = true) -> {
+            error.contains("Username", ignoreCase = true) || error.contains("Name", ignoreCase = true) -> {
                 _uiState.update { it.copy(usernameError = error) }
             }
             else -> {
