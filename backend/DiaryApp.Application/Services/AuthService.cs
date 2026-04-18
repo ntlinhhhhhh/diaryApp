@@ -42,7 +42,7 @@ public class AuthService(
             throw new InvalidOperationException("Email này đã được sử dụng. Vui lòng sử dụng email khác!");
         }
 
-        string hashPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        string hashPassword = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 8);
         User newUser = new User
         {
             Id = Guid.NewGuid().ToString(),
@@ -188,7 +188,7 @@ public class AuthService(
             throw new KeyNotFoundException("Email không tồn tại");
         }
 
-        user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 8);
         await _userRepository.UpdateAsync(user);
         await _cacheService.RemoveAsync(otpCacheKey);
         await _cacheService.RemoveAsync($"auth:email:{email}");
