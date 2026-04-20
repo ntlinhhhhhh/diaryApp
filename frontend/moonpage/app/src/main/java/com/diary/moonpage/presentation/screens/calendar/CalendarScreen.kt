@@ -25,10 +25,9 @@ fun CalendarScreen(
     onNavigateToSettings: () -> Unit
 ) {
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    val currentMonth = remember { YearMonth.now() }
     
     CalendarContent(
-        currentMonthName = "Apr 2026", // Placeholder
+        currentMonthName = "Apr 2026", 
         selectedDate = selectedDate,
         onDateSelected = { selectedDate = it },
         onFilterClick = onNavigateToFilter,
@@ -44,6 +43,9 @@ fun CalendarContent(
     onFilterClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
+    val themePrimary = MaterialTheme.colorScheme.primary
+    val themeSecondary = MaterialTheme.colorScheme.secondary
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,63 +59,74 @@ fun CalendarContent(
             onShareClick = onShareClick
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(60.dp))
 
-        CalendarHeader()
-
-        // Simple Calendar Grid Placeholder
-        val daysInMonth = (1..30).toList()
-        val firstDayOffset = 3 // Wednesday for Apr 2026
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+                .weight(1f),
+            verticalArrangement = Arrangement.Top // Changed to Top to keep it clean after the 20dp spacer
         ) {
-            // Empty spaces for offset
-            items(firstDayOffset) {
-                DayItem(day = null, isSelected = false, moodColor = null, onClick = {})
-            }
+            CalendarHeader()
+
+            // Calendar Grid Placeholder
+            val daysInMonth = (1..30).toList()
+            val firstDayOffset = 3 // Wednesday for Apr 2026
             
-            items(daysInMonth) { day ->
-                val isSelected = day == 14 // Placeholder
-                val moodColor = when (day) {
-                    6 -> Color(0xFFC1E1C1)
-                    8 -> Color(0xFF76BA99)
-                    14 -> Color(0xFF76BA99)
-                    else -> null
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(7),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            ) {
+                // Empty spaces for offset
+                items(firstDayOffset) {
+                    DayItem(day = null, isSelected = false, moodColor = null, onClick = {})
                 }
                 
-                DayItem(
-                    day = day,
-                    isSelected = isSelected,
-                    moodColor = moodColor,
-                    onClick = { /* Handle click */ }
-                )
+                items(daysInMonth) { day ->
+                    val isSelected = day == 14
+                    
+                    // Sử dụng màu từ theme thay vì màu xanh fix cứng
+                    val moodColor = when (day) {
+                        6 -> themeSecondary
+                        8 -> themePrimary
+                        14 -> themePrimary
+                        else -> null
+                    }
+                    
+                    DayItem(
+                        day = day,
+                        isSelected = isSelected,
+                        moodColor = moodColor,
+                        onClick = { /* Handle click */ }
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Selected Day Preview
         DiaryEntryPreview(
             date = "14 Tue",
             moodIcon = Icons.Rounded.SentimentSatisfiedAlt,
-            moodColor = Color(0xFFC1E1C1)
+            moodColor = themePrimary
         )
         
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 fun CalendarScreenPreview() {
-    MoonPageTheme() {
-        CalendarScreen(
-            {},
-            {}
-        )
+    MoonPageTheme(darkTheme = false) {
+        CalendarScreen({}, {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CalendarScreenDarkPreview() {
+    MoonPageTheme(darkTheme = true) {
+        CalendarScreen({}, {})
     }
 }

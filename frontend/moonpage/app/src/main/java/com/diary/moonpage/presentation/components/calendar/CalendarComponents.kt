@@ -4,9 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,11 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
-import java.time.format.TextStyle
 import java.util.*
 
 @Composable
@@ -66,21 +61,38 @@ fun CalendarTopBar(
             Text(
                 text = currentMonth,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
 
         // Right icons
         Row {
             IconButton(onClick = { /* TODO */ }) {
-                Icon(Icons.Rounded.NotificationsNone, contentDescription = null)
+                Icon(
+                    imageVector = Icons.Rounded.NotificationsNone,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
             IconButton(onClick = onShareClick) {
-                Icon(Icons.Rounded.IosShare, contentDescription = "Share")
+                Icon(
+                    imageVector = Icons.Rounded.IosShare,
+                    contentDescription = "Share",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
             IconButton(onClick = { /* TODO */ }) {
-                Icon(Icons.Rounded.Menu, contentDescription = "Menu")
+                Icon(
+                    imageVector = Icons.Rounded.Menu,
+                    contentDescription = "Menu",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }
@@ -89,14 +101,18 @@ fun CalendarTopBar(
 @Composable
 fun CalendarHeader() {
     val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
         daysOfWeek.forEach { day ->
             Text(
                 text = day,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }
@@ -109,16 +125,26 @@ fun DayItem(
     moodColor: Color?,
     onClick: () -> Unit
 ) {
+    val baseMoodColor = moodColor ?: Color.Transparent
+    val finalMoodColor = if (isSelected) {
+        baseMoodColor
+    } else {
+        baseMoodColor.copy(alpha = 0.3f)
+    }
+
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .padding(4.dp)
             .clip(CircleShape)
             .then(
-                if (isSelected) Modifier.border(2.dp, Color(0xFF76BA99), CircleShape)
+                if (isSelected && moodColor == null) 
+                    Modifier.border(2.dp, Color(0xFF76BA99), CircleShape)
+                else if (isSelected)
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                 else Modifier
             )
-            .background(moodColor ?: Color.Transparent)
+            .background(finalMoodColor)
             .clickable(enabled = day != null) { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -126,7 +152,12 @@ fun DayItem(
             Text(
                 text = day.toString(),
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (moodColor != null) Color.White else MaterialTheme.colorScheme.onSurface
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (moodColor != null) {
+                    if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
             )
         }
     }
@@ -144,7 +175,9 @@ fun DiaryEntryPreview(
             .fillMaxWidth()
             .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -155,7 +188,7 @@ fun DiaryEntryPreview(
             Box(
                 modifier = Modifier
                     .size(60.dp)
-                    .background(moodColor.copy(alpha = 0.3f), CircleShape),
+                    .background(moodColor.copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -170,13 +203,14 @@ fun DiaryEntryPreview(
             
             Column {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         text = date,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
