@@ -13,6 +13,7 @@ sealed class Screen (val route: String) {
     // Main App Screens (Bottom Nav)
     object Calendar: Screen("calendar_screen")
     object Stats: Screen("stats_screen")
+    object Camera: Screen("camera_screen")
     object Store: Screen("store_screen")
     object Profile: Screen("profile_screen")
 
@@ -21,7 +22,11 @@ sealed class Screen (val route: String) {
     object Settings: Screen("settings_screen")
     object Notifications: Screen("notifications_screen")
     object Photos: Screen("photos_screen")
+    object Gallery: Screen("gallery_screen")
     object ThemeCalendar: Screen("theme_calendar_screen")
     object Widgets: Screen("widgets_screen")
     object InviteFriend: Screen("invite_friend_screen")
+
+    // Calendar Sub-screens
+    object Filter: Screen("filter_screen")
 }
