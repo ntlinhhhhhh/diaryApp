@@ -1,5 +1,6 @@
 package com.diary.moonpage.presentation.screens.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,12 +30,17 @@ import com.diary.moonpage.presentation.theme.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 
+/**
+ * Stateful Component (Smart Component)
+ * Handles ViewModel, state observation, and event collection.
+ */
 @Composable
 fun ForgotPasswordScreen(
     viewModel: AuthViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToVerifyOtp: (String) -> Unit
+    onNavigateToReset: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -42,12 +48,19 @@ fun ForgotPasswordScreen(
         uiState = uiState,
         uiEvent = viewModel.uiEvent,
         onEmailChange = viewModel::onEmailChange,
-        onSendOtpClick = viewModel::forgotPassword,
+        onSendOtpClick = {
+            // Logic to trigger OTP sending
+            // viewModel.sendOtp()
+        },
         onNavigateBack = onNavigateBack,
-        onNavigateToVerifyOtp = onNavigateToVerifyOtp
+        onNavigateToReset = onNavigateToReset
     )
 }
 
+/**
+ * Stateless Component (Dumb Component)
+ * Purely presentational. Doesn't know about ViewModel or API logic.
+ */
 @Composable
 fun ForgotPasswordScreenContent(
     uiState: AuthUiState,
@@ -55,7 +68,7 @@ fun ForgotPasswordScreenContent(
     onEmailChange: (String) -> Unit,
     onSendOtpClick: () -> Unit,
     onNavigateBack: () -> Unit,
-    onNavigateToVerifyOtp: (String) -> Unit
+    onNavigateToReset: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -69,11 +82,18 @@ fun ForgotPasswordScreenContent(
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
             when (event) {
-                is AuthUiEvent.NavigateToVerifyOtp -> {
-                    onNavigateToVerifyOtp(event.email)
+                is AuthUiEvent.ForgotPasswordSuccess -> {
+                    // Navigate to reset screen with email for verification
+                    onNavigateToReset(uiState.emailInput)
                 }
                 is AuthUiEvent.ShowSnackBar -> {
-                    snackBarHostState.showSnackbar(event.message)
+                    launch {
+                        snackBarHostState.currentSnackbarData?.dismiss()
+                        snackBarHostState.showSnackbar(
+                            message = event.message,
+                            duration = SnackbarDuration.Short
+                        )
+                    }
                 }
                 else -> Unit
             }
@@ -94,6 +114,7 @@ fun ForgotPasswordScreenContent(
         ) {
             Spacer(modifier = Modifier.height(18.dp))
 
+            // Custom Top Bar with Back Button
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.CenterStart
@@ -123,8 +144,8 @@ fun ForgotPasswordScreenContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(
-                        elevation = 16.dp,
-                        shape = RoundedCornerShape(24.dp),
+                        elevation = 16.dp, 
+                        shape = RoundedCornerShape(24.dp), 
                         spotColor = Color.Black.copy(alpha = 0.08f)
                     ),
                 colors = CardDefaults.cardColors(containerColor = cardBgColor),
@@ -166,10 +187,19 @@ fun ForgotPasswordScreenContent(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            // Footer Security Note
+            Row(
+                verticalAlignment = Alignment.CenterVertically, 
+                horizontalArrangement = Arrangement.Center
+            ) {
                 HorizontalDivider(modifier = Modifier.width(40.dp), color = textColor.copy(alpha = 0.1f))
                 Spacer(modifier = Modifier.width(8.dp))
-                Icon(Icons.Outlined.Lock, contentDescription = "Secure", modifier = Modifier.size(14.dp), tint = textColor.copy(alpha = 0.3f))
+                Icon(
+                    Icons.Outlined.Lock, 
+                    contentDescription = "Secure", 
+                    modifier = Modifier.size(14.dp), 
+                    tint = textColor.copy(alpha = 0.3f)
+                )
                 Text(
                     text = " SECURE SANCTUARY ",
                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
@@ -182,9 +212,13 @@ fun ForgotPasswordScreenContent(
             Spacer(modifier = Modifier.height(32.dp))
         }
 
+        // Loading Overlay
         if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -200,7 +234,7 @@ fun ForgotPasswordPreview() {
             onEmailChange = {},
             onSendOtpClick = {},
             onNavigateBack = {},
-            onNavigateToVerifyOtp = {}
+            onNavigateToReset = {}
         )
     }
 }

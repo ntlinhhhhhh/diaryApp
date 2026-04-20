@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.diary.moonpage"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.diary.moonpage"
@@ -67,6 +67,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.3")
     implementation("com.google.firebase:firebase-analytics:22.0.2")
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+    implementation("androidx.compose.material:material-icons-extended:1.6.5")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
