@@ -53,7 +53,7 @@ public class AuthService(
             throw new InvalidOperationException("This email is already in use. Please try another one!");
         }
 
-        string hashPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        string hashPassword = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 8);
         User newUser = new User
         {
             Id = Guid.NewGuid().ToString(),
@@ -220,7 +220,7 @@ public class AuthService(
             throw new KeyNotFoundException("Email not found in our system.");
         }
 
-        user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.HashPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 8);
         await _userRepository.UpdateAsync(user);
 
         await _cacheService.RemoveAsync(tokenCacheKey);
