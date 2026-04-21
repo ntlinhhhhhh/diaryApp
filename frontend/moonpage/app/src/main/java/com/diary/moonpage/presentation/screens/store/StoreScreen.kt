@@ -15,8 +15,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.domain.model.Theme
 import com.diary.moonpage.domain.model.ThemeType
 import com.diary.moonpage.presentation.screens.store.components.*
@@ -49,34 +53,42 @@ fun StoreScreen(
         AnimatedContent(
             targetState = uiState.selectedTabIndex,
             transitionSpec = {
+                val slideSpec = tween<IntOffset>(300)
                 if (targetState > initialState) {
-                    (slideInHorizontally(animationSpec = tween(300)) { it } + fadeIn()).togetherWith(
-                        slideOutHorizontally(animationSpec = tween(300)) { -it } + fadeOut()
+                    (slideInHorizontally(animationSpec = slideSpec) { it } + fadeIn()).togetherWith(
+                        slideOutHorizontally(animationSpec = slideSpec) { -it } + fadeOut()
                     )
                 } else {
-                    (slideInHorizontally(animationSpec = tween(300)) { -it } + fadeIn()).togetherWith(
-                        slideOutHorizontally(animationSpec = tween(300)) { it } + fadeOut()
+                    (slideInHorizontally(animationSpec = slideSpec) { -it } + fadeIn()).togetherWith(
+                        slideOutHorizontally(animationSpec = slideSpec) { it } + fadeOut()
                     )
                 }.using(SizeTransform(clip = false))
             },
             label = "TabAnimation"
         ) { targetIndex ->
-            if (targetIndex == 0) {
-                HomeTabContent(
+            when (targetIndex) {
+                0 -> HomeTabContent(
                     themes = uiState.themes,
                     onThemeClick = { 
                         viewModel.selectTheme(it)
                         onNavigateToDetail()
-                    }
+                    },
+                    onViewAllClick = { viewModel.onTabSelected(2) }
                 )
-            } else {
-                MyThemeTabContent(
+                1 -> MyThemeTabContent(
                     ownedThemes = uiState.ownedThemes,
                     onThemeClick = { 
                         viewModel.selectTheme(it)
                         onNavigateToDetail()
                     },
                     onExploreMore = { viewModel.onTabSelected(0) }
+                )
+                2 -> CollectionsTabContent(
+                    themes = uiState.themes,
+                    onThemeClick = {
+                        viewModel.selectTheme(it)
+                        onNavigateToDetail()
+                    }
                 )
             }
         }
@@ -104,6 +116,8 @@ fun StoreTabs(
         TabItem("Home", selectedIndex == 0) { onTabSelected(0) }
         Spacer(modifier = Modifier.width(16.dp))
         TabItem("My Theme", selectedIndex == 1) { onTabSelected(1) }
+        Spacer(modifier = Modifier.width(16.dp))
+        TabItem("Collections", selectedIndex == 2) { onTabSelected(2) }
     }
 }
 
@@ -137,7 +151,8 @@ fun TabItem(text: String, isSelected: Boolean, onClick: () -> Unit) {
 @Composable
 fun HomeTabContent(
     themes: List<Theme>,
-    onThemeClick: (Theme) -> Unit
+    onThemeClick: (Theme) -> Unit,
+    onViewAllClick: () -> Unit
 ) {
     val featuredThemes = themes.filter { it.type == ThemeType.THEME }
     val iconPacks = themes.filter { it.type == ThemeType.ICON_PACK }
@@ -160,15 +175,31 @@ fun HomeTabContent(
         }
 
         item {
-            Text(
-                text = "Featured Collections",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Featured Collections",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "View All",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onViewAllClick() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
 
-        items(featuredThemes) { theme ->
+        items(featuredThemes.take(3)) { theme ->
             ThemeCard(theme = theme, onClick = { onThemeClick(theme) })
         }
 
@@ -191,7 +222,7 @@ fun HomeTabContent(
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { }
+                        .clickable { onViewAllClick() }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
@@ -248,6 +279,30 @@ fun MyThemeTabContent(
 
         item {
             ExploreMoreCard(onClick = onExploreMore)
+        }
+    }
+}
+
+@Composable
+fun CollectionsTabContent(
+    themes: List<Theme>,
+    onThemeClick: (Theme) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        item {
+            Text(
+                text = "All Collections",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
+        items(themes) { theme ->
+            ThemeCard(theme = theme, onClick = { onThemeClick(theme) })
         }
     }
 }
