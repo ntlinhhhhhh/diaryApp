@@ -28,7 +28,7 @@ import com.diary.moonpage.presentation.screens.profile.*
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route
     
     val authViewModel: AuthViewModel = hiltViewModel()
@@ -117,8 +117,9 @@ fun AppNavigation() {
             composable(Screen.Loading.route) {
                 ScreenWrapper(Screen.Loading.route) {
                     LoadingScreen(
-                        onFinished = {
-                            navController.navigate(Screen.Landing.route) {
+                        onFinished = { isLoggedIn ->
+                            val nextDestination = if (isLoggedIn) Screen.Calendar.route else Screen.Landing.route
+                            navController.navigate(nextDestination) {
                                 popUpTo(Screen.Loading.route) { inclusive = true }
                             }
                         }
@@ -181,7 +182,9 @@ fun AppNavigation() {
                     ForgotPasswordScreen(
                         viewModel = authViewModel,
                         onNavigateBack = { navController.popBackStack() },
-                        onNavigateToReset = { navController.navigate(Screen.VerifyOtp.route) }
+                        onNavigateToVerifyOtp = { email ->
+                            navController.navigate(Screen.VerifyOtp.route)
+                        }
                     )
                 }
             }
@@ -287,6 +290,7 @@ fun AppNavigation() {
                     AccountScreen(
                         onNavigateBack = { navController.popBackStack() },
                         onLogoutClick = {
+                            authViewModel.logout()
                             navController.navigate(Screen.Landing.route) {
                                 popUpTo(0) { inclusive = true }
                             }

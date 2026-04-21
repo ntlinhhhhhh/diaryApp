@@ -56,7 +56,10 @@ fun CalendarTopBar(
         // Month selector
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable { /* Show month picker */ }
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { /* Show month picker */ }
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
                 text = currentMonth,

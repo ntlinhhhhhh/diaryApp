@@ -27,13 +27,15 @@ fun ProfileMenuItem(
     val cardBg = MaterialTheme.colorScheme.surface
     val textColor = MaterialTheme.colorScheme.onSurface
     val iconColor = MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(20.dp)
 
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .clip(shape)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        shape = RoundedCornerShape(20.dp),
+        shape = shape,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(

@@ -1,9 +1,12 @@
 package com.diary.moonpage.presentation.screens.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
@@ -14,8 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +47,7 @@ import kotlinx.coroutines.launch
 fun ForgotPasswordScreen(
     viewModel: AuthViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToReset: (String) -> Unit
+    onNavigateToVerifyOtp: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -49,11 +56,10 @@ fun ForgotPasswordScreen(
         uiEvent = viewModel.uiEvent,
         onEmailChange = viewModel::onEmailChange,
         onSendOtpClick = {
-            // Logic to trigger OTP sending
-            // viewModel.sendOtp()
+            viewModel.forgotPassword()
         },
         onNavigateBack = onNavigateBack,
-        onNavigateToReset = onNavigateToReset
+        onNavigateToVerifyOtp = onNavigateToVerifyOtp
     )
 }
 
@@ -68,11 +74,12 @@ fun ForgotPasswordScreenContent(
     onEmailChange: (String) -> Unit,
     onSendOtpClick: () -> Unit,
     onNavigateBack: () -> Unit,
-    onNavigateToReset: (String) -> Unit
+    onNavigateToVerifyOtp: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     val screenBgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -82,9 +89,8 @@ fun ForgotPasswordScreenContent(
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
             when (event) {
-                is AuthUiEvent.ForgotPasswordSuccess -> {
-                    // Navigate to reset screen with email for verification
-                    onNavigateToReset(uiState.emailInput)
+                is AuthUiEvent.NavigateToVerifyOtp -> {
+                    onNavigateToVerifyOtp(event.email)
                 }
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
@@ -109,7 +115,12 @@ fun ForgotPasswordScreenContent(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
-                .verticalScroll(scrollState),
+                .verticalScroll(scrollState)
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(18.dp))
@@ -161,7 +172,17 @@ fun ForgotPasswordScreenContent(
                         label = "Email Address",
                         placeholderText = "name@example.com",
                         iconVector = Icons.Outlined.Email,
-                        errorText = uiState.emailError
+                        errorText = uiState.emailError,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                keyboardController?.hide()
+                                onSendOtpClick()
+                            }
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -234,7 +255,7 @@ fun ForgotPasswordPreview() {
             onEmailChange = {},
             onSendOtpClick = {},
             onNavigateBack = {},
-            onNavigateToReset = {}
+            onNavigateToVerifyOtp = {}
         )
     }
 }

@@ -2,22 +2,14 @@ package com.diary.moonpage.presentation.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.diary.moonpage.core.util.TokenManager
 import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
 import com.diary.moonpage.domain.model.User
-import com.diary.moonpage.domain.usecase.ForgotPasswordUseCase
-import com.diary.moonpage.domain.usecase.GoogleLoginUseCase
-import com.diary.moonpage.domain.usecase.LoginUseCase
-import com.diary.moonpage.domain.usecase.RegisterUserCase
-import com.diary.moonpage.domain.usecase.ResetPasswordUseCase
-import com.diary.moonpage.domain.usecase.VerifyOtpUseCase
+import com.diary.moonpage.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,7 +20,8 @@ class AuthViewModel @Inject constructor (
     private val googleLoginUseCase: GoogleLoginUseCase,
     private val forgotPasswordUseCase: ForgotPasswordUseCase,
     private val verifyOtpUseCase: VerifyOtpUseCase,
-    private val resetPasswordUseCase: ResetPasswordUseCase
+    private val resetPasswordUseCase: ResetPasswordUseCase,
+    private val tokenManager: TokenManager // Inject TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -37,9 +30,11 @@ class AuthViewModel @Inject constructor (
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     val uiEvent = _uiEvent.receiveAsFlow()
 
+    // Flow để quan sát trạng thái đăng nhập từ bên ngoài
+    val tokenFlow = tokenManager.getToken()
+
     fun onEmailChange(email: String) {
         _uiState.update { it.copy(emailInput = email)}
-
     }
 
     fun onUsernameChange(username: String) {
@@ -55,7 +50,11 @@ class AuthViewModel @Inject constructor (
     }
 
     fun onOtpCodeChange(otpCode: String) {
-        _uiState.update { it.copy(otpCodeInput = otpCode) }
+        _uiState.update { it.copy(otpCodeInput = otpCode, otpCodeError = null) }
+        // Tự động verify khi đủ 6 số
+        if (otpCode.length == 6) {
+            verifyOtp()
+        }
     }
 
     fun login() {
@@ -69,19 +68,14 @@ class AuthViewModel @Inject constructor (
             if (email.isBlank()) {
                 _uiState.update { it.copy(emailError = "Email cannot be empty.") }
                 hasError = true
-                return@launch
-            }
-
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 _uiState.update { it.copy(emailError = "Invalid email format.") }
                 hasError = true
-                return@launch
             }
 
             if (password.isBlank()) {
                 _uiState.update { it.copy(passwordError = "Password cannot be empty.") }
                 hasError = true
-                return@launch
             }
 
             if (hasError) return@launch
@@ -92,17 +86,17 @@ class AuthViewModel @Inject constructor (
                 val result: Result<User> = loginUseCase(loginRequest)
 
                 result.onSuccess { user ->
+                    tokenManager.saveToken(user.token)
                     _uiState.update { it.copy(isLoading = false) }
                     _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
                 }.onFailure { exception ->
                     _uiState.update { it.copy(isLoading = false) }
                     handleAuthError(exception.message)
-//                    _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Login failed. Please check your credentials."))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.ShowSnackBar(e.message ?: "Connection error. Please check your internet connection."))
+                _uiEvent.send(AuthUiEvent.ShowSnackBar(e.message ?: "Connection error."))
             }
         }
     }
@@ -152,16 +146,6 @@ class AuthViewModel @Inject constructor (
 
             if (hasError) return@launch
 
-            if (state.passwordInput.length < 6) {
-                _uiEvent.send(AuthUiEvent.ShowSnackBar("Password must be at least 6 characters."))
-                return@launch
-            }
-
-            if (state.passwordInput != state.confirmPasswordInput) {
-                _uiEvent.send(AuthUiEvent.ShowSnackBar("Passwords do not match."))
-                return@launch
-            }
-
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val request = RegisterRequestDTO(
@@ -171,7 +155,7 @@ class AuthViewModel @Inject constructor (
                 )
                 val result: Result<User> = registerUseCase(request)
 
-                result.onSuccess { user ->
+                result.onSuccess {
                     _uiState.update { it.copy(isLoading = false) }
                     _uiEvent.send(AuthUiEvent.RegisterSuccess("Registration successful. Please log in."))
                 }.onFailure { exception ->
@@ -180,7 +164,7 @@ class AuthViewModel @Inject constructor (
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.ShowSnackBar(e.message ?: "Connection error. Please check your internet connection."))
+                _uiEvent.send(AuthUiEvent.ShowSnackBar(e.message ?: "Connection error."))
             }
         }
     }
@@ -191,6 +175,7 @@ class AuthViewModel @Inject constructor (
             val result = googleLoginUseCase(idToken)
 
             result.onSuccess { user ->
+                tokenManager.saveToken(user.token)
                 _uiState.update { it.copy(isLoading = false) }
                 _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
             }.onFailure { exception ->
@@ -200,8 +185,19 @@ class AuthViewModel @Inject constructor (
         }
     }
 
+    fun logout() {
+        viewModelScope.launch {
+            tokenManager.clearToken()
+            _uiState.update { AuthUiState() }
+        }
+    }
+
     fun forgotPassword() {
         val email = uiState.value.emailInput.trim()
+        if (email.isBlank()) {
+            _uiState.update { it.copy(emailError = "Email is required") }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -212,7 +208,7 @@ class AuthViewModel @Inject constructor (
                 _uiEvent.send(AuthUiEvent.NavigateToVerifyOtp(email))
             }.onFailure { exception ->
                 _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Failed to send OTP."))
+                handleAuthError(exception.message)
             }
         }
     }
@@ -221,59 +217,85 @@ class AuthViewModel @Inject constructor (
         val email = uiState.value.savedEmailForOtp
         val otpCode = uiState.value.otpCodeInput.trim()
 
+        if (otpCode.isBlank()) {
+            _uiState.update { it.copy(otpCodeError = "OTP required") }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val result = verifyOtpUseCase(email, otpCode)
 
-            result.onSuccess { resetToken ->
+            result.onSuccess { response ->
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        resetToken = resetToken
+                        resetToken = response.resetToken
                     )
                 }
-                _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, resetToken))
-
+                println("--- VERIFY OTP THÀNH CÔNG! TOKEN NHẬN ĐƯỢC LÀ: [${response.resetToken}] ---")
+                _uiEvent.send(AuthUiEvent.NavigateToResetPassword(email, response.resetToken))
             }.onFailure { exception ->
                 _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Invalid OTP Code."))
+                handleAuthError(exception.message)
             }
         }
     }
 
     fun resetPassword() {
-        val email = uiState.value.savedEmailForOtp
-        val token = uiState.value.resetToken
-        val newPassword = uiState.value.passwordInput
-
         viewModelScope.launch {
+            val email = uiState.value.savedEmailForOtp
+            val resetToken = uiState.value.resetToken
+            val newPassword = uiState.value.passwordInput
+
+            if (newPassword.isBlank()) {
+                _uiState.update { it.copy(passwordError = "New password required") }
+                return@launch
+            }
+            if (newPassword != uiState.value.confirmPasswordInput) {
+                _uiEvent.send(AuthUiEvent.ShowSnackBar("Passwords do not match"))
+                return@launch
+            }
+            if (resetToken.isNullOrBlank()) {
+                _uiEvent.send(AuthUiEvent.ShowSnackBar("Invalid or expired session. Please try again."))
+                return@launch
+            }
+
             _uiState.update { it.copy(isLoading = true) }
-            val result = resetPasswordUseCase(email, token, newPassword)
+            val result = resetPasswordUseCase(email, resetToken, newPassword)
 
             result.onSuccess {
-                _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.ShowSnackBar("Password reset successful! Please login."))
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        passwordInput = "",
+                        confirmPasswordInput = "",
+                        otpCodeInput = "",
+                        resetToken = "",
+                        emailInput = it.savedEmailForOtp // Giữ lại email để login
+                    ) 
+                }
+                _uiEvent.send(AuthUiEvent.ResetPasswordSuccess("Password reset successful! Please login."))
                 _uiEvent.send(AuthUiEvent.NavigateToLogin)
             }.onFailure { exception ->
                 _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Failed to reset password."))
+                handleAuthError(exception.message)
             }
         }
     }
 
-    // handle error
     private fun handleAuthError(message: String?) {
         val error = message ?: "An unknown error occurred"
 
         _uiState.update { it.copy(emailError = null, passwordError = null, usernameError = null, confirmPasswordError = null) }
         when {
-            error.contains("email", ignoreCase = true) || error.contains("user", ignoreCase = true) -> {
+            error.contains("Email", ignoreCase = true) || error.contains("User", ignoreCase = true) -> {
                 _uiState.update { it.copy(emailError = error) }
             }
-            error.contains("password", ignoreCase = true) -> {
+            error.contains("Password", ignoreCase = true) -> {
                 _uiState.update { it.copy(passwordError = error) }
             }
-            error.contains("username", ignoreCase = true) || error.contains("name", ignoreCase = true) -> {
+            error.contains("Username", ignoreCase = true) || error.contains("Name", ignoreCase = true) -> {
                 _uiState.update { it.copy(usernameError = error) }
             }
             else -> {

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,7 +33,12 @@ fun MoonOtpField(
     label: String,
     otpText: String,
     onOtpTextChange: (String) -> Unit,
-    otpCount: Int = 6
+    otpCount: Int = 6,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(
+        keyboardType = KeyboardType.NumberPassword,
+        imeAction = ImeAction.Done
+    ),
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     val textColor = MaterialTheme.colorScheme.onSurface
 
@@ -47,20 +54,29 @@ fun MoonOtpField(
         OtpInputField(
             otpText = otpText,
             onOtpTextChange = onOtpTextChange,
-            otpCount = otpCount
+            otpCount = otpCount,
+            keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions
         )
     }
 }
 
 @Composable
-fun OtpInputField(otpText: String, onOtpTextChange: (String) -> Unit, otpCount: Int = 6) {
+fun OtpInputField(
+    otpText: String, 
+    onOtpTextChange: (String) -> Unit, 
+    otpCount: Int = 6,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+    keyboardActions: KeyboardActions = KeyboardActions.Default
+) {
     val bgColor = MaterialTheme.colorScheme.surfaceVariant
     val textColor = MaterialTheme.colorScheme.onSurface
 
     BasicTextField(
         value = otpText,
         onValueChange = { if (it.length <= otpCount) onOtpTextChange(it) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         decorationBox = {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 repeat(otpCount) { index ->

@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
@@ -14,16 +16,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
-import com.diary.moonpage.presentation.components.auth.SocialLoginButton
 import com.diary.moonpage.presentation.components.auth.SocialLoginButton
 import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
 import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
@@ -76,6 +81,7 @@ fun RegisterScreenContent(
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     val screenBgColor = MaterialTheme.colorScheme.background
     val backIconColor = MaterialTheme.colorScheme.onSurface
@@ -84,16 +90,11 @@ fun RegisterScreenContent(
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
             when (event) {
-                is AuthUiEvent.RegisterSuccess -> {
-                    onRegisterSuccess()
-                }
+                is AuthUiEvent.RegisterSuccess -> onRegisterSuccess()
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
                         snackBarHostState.currentSnackbarData?.dismiss()
-                        snackBarHostState.showSnackbar(
-                            message = event.message,
-                            duration = SnackbarDuration.Short
-                        )
+                        snackBarHostState.showSnackbar(event.message)
                     }
                 }
                 else -> Unit
@@ -103,24 +104,25 @@ fun RegisterScreenContent(
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
-        containerColor = screenBgColor
+        containerColor = screenBgColor,
+        contentWindowInsets = WindowInsets.systemBars
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding() 
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(vertical = 20.dp),
+                    .verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.Start
                 ) {
                     IconButton(onClick = onNavigateBack) {
@@ -132,7 +134,7 @@ fun RegisterScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Card(
                     modifier = Modifier
@@ -148,7 +150,7 @@ fun RegisterScreenContent(
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
                             .padding(horizontal = 28.dp, vertical = 36.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -163,7 +165,14 @@ fun RegisterScreenContent(
                             placeholderText = "Enter your username",
                             label = "Username",
                             iconVector = Icons.Outlined.Person,
-                            errorText = uiState.usernameError
+                            errorText = uiState.usernameError,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            )
                         )
 
                         MoonTextField(
@@ -172,7 +181,14 @@ fun RegisterScreenContent(
                             label = "Email address",
                             placeholderText = "Enter your email",
                             iconVector = Icons.Outlined.Email,
-                            errorText = uiState.emailError
+                            errorText = uiState.emailError,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            )
                         )
 
                         MoonTextField(
@@ -181,7 +197,14 @@ fun RegisterScreenContent(
                             label = "Password",
                             placeholderText = "Enter your password",
                             isPassword = true,
-                            errorText = uiState.passwordError
+                            errorText = uiState.passwordError,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            )
                         )
 
                         MoonTextField(
@@ -190,7 +213,17 @@ fun RegisterScreenContent(
                             label = "Confirm Password",
                             placeholderText = "Confirm your password",
                             isPassword = true,
-                            errorText = uiState.confirmPasswordError
+                            errorText = uiState.confirmPasswordError,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    keyboardController?.hide()
+                                    onSignUpClick()
+                                }
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -225,6 +258,8 @@ fun RegisterScreenContent(
                         )
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(36.dp))
             }
 
             if (uiState.isLoading) {
@@ -238,45 +273,5 @@ fun RegisterScreenContent(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RegisterScreenPreviewLight() {
-    MoonPageTheme {
-        RegisterScreenContent(
-            uiState = AuthUiState(),
-            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
-            onUsernameChange = {},
-            onEmailChange = {},
-            onPasswordChange = {},
-            onSignUpClick = {},
-            onNavigateBack = {},
-            onNavigateToLogin = {},
-            onNavigateToLoginGoogle = {},
-            onRegisterSuccess = {},
-            onConfirmPasswordChange = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun RegisterScreenPreviewDark() {
-    MoonPageTheme {
-        RegisterScreenContent(
-            uiState = AuthUiState(),
-            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
-            onUsernameChange = {},
-            onEmailChange = {},
-            onPasswordChange = {},
-            onSignUpClick = {},
-            onNavigateBack = {},
-            onNavigateToLogin = {},
-            onNavigateToLoginGoogle = {},
-            onRegisterSuccess = {},
-            onConfirmPasswordChange = {}
-        )
     }
 }

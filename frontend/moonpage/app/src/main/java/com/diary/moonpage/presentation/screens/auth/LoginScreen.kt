@@ -5,6 +5,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
@@ -13,11 +15,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.diary.moonpage.R
@@ -76,6 +81,7 @@ fun LoginScreenContent(
     val snackBarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    
     val screenBgColor = MaterialTheme.colorScheme.background
     val backIconColor = MaterialTheme.colorScheme.onSurface
     val cardBgColor = MaterialTheme.colorScheme.surface
@@ -83,17 +89,11 @@ fun LoginScreenContent(
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
             when (event) {
-                is AuthUiEvent.LoginSuccess -> {
-                    onLoginSuccess(event.token)
-                }
+                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token)
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
                         snackBarHostState.currentSnackbarData?.dismiss()
-
-                        snackBarHostState.showSnackbar(
-                            message = event.message,
-                            duration = SnackbarDuration.Short
-                        )
+                        snackBarHostState.showSnackbar(event.message)
                     }
                 }
                 else -> Unit
@@ -103,27 +103,28 @@ fun LoginScreenContent(
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
-        containerColor = screenBgColor
+        containerColor = screenBgColor,
+        contentWindowInsets = WindowInsets.systemBars
     ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .imePadding() 
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(vertical = 20.dp)
                     .pointerInput(Unit) {
-                        detectTapGestures {
-                            focusManager.clearFocus()
-                        }
+                        detectTapGestures { focusManager.clearFocus() }
                     },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.Start
                 ) {
                     IconButton(onClick = onNavigateBack) {
@@ -135,7 +136,7 @@ fun LoginScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Card(
                     modifier = Modifier
@@ -151,7 +152,7 @@ fun LoginScreenContent(
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
                             .padding(horizontal = 28.dp, vertical = 36.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -166,7 +167,14 @@ fun LoginScreenContent(
                             label = "Email address",
                             placeholderText = "Enter your email",
                             iconVector = Icons.Outlined.Email,
-                            errorText = uiState.emailError
+                            errorText = uiState.emailError,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            )
                         )
 
                         MoonTextField(
@@ -177,7 +185,17 @@ fun LoginScreenContent(
                             trailingLabel = "Forgot Password?",
                             placeholderText = "Enter your password",
                             errorText = uiState.passwordError,
-                            onTrailingClick = { onNavigateToForgotPassword() }
+                            onTrailingClick = { onNavigateToForgotPassword() },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    keyboardController?.hide()
+                                    onLoginClick()
+                                }
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -212,6 +230,8 @@ fun LoginScreenContent(
                         )
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(36.dp))
             }
 
             if (uiState.isLoading) {
@@ -225,43 +245,5 @@ fun LoginScreenContent(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreviewLight() {
-    MoonPageTheme {
-        LoginScreenContent(
-            uiState = AuthUiState(),
-            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
-            onEmailChange = {},
-            onPasswordChange = {},
-            onLoginClick = {},
-            onNavigateBack = {},
-            onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onNavigateToLoginGoogle = {},
-            onLoginSuccess = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun LoginScreenPreviewDark() {
-    MoonPageTheme {
-        LoginScreenContent(
-            uiState = AuthUiState(),
-            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
-            onEmailChange = {},
-            onPasswordChange = {},
-            onLoginClick = {},
-            onNavigateBack = {},
-            onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onNavigateToLoginGoogle = {},
-            onLoginSuccess = {}
-        )
     }
 }

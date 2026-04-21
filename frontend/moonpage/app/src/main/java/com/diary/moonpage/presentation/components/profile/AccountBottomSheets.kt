@@ -46,6 +46,71 @@ fun BottomSheetHeader(title: String, onClose: () -> Unit) {
 }
 
 @Composable
+fun UsernameBottomSheetContent(
+    currentUsername: String,
+    onUsernameChange: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    var text by remember { mutableStateOf(currentUsername) }
+    val maxLength = 12
+    val colorScheme = MaterialTheme.colorScheme
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .imePadding() // Key for smooth keyboard interaction
+            .padding(bottom = 24.dp)
+    ) {
+        BottomSheetHeader(title = "Change", onClose = onClose)
+
+        OutlinedTextField(
+            value = text,
+            onValueChange = { if (it.length <= maxLength) text = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colorScheme.primary.copy(alpha = 0.3f),
+                unfocusedBorderColor = colorScheme.onSurface.copy(alpha = 0.1f),
+            ),
+            singleLine = true
+        )
+
+        Text(
+            text = "${text.length}/$maxLength",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = colorScheme.onSurface.copy(alpha = 0.4f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.End
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                onUsernameChange(text)
+                onClose()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .height(54.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorScheme.primary.copy(alpha = 0.3f)
+            ),
+            shape = RoundedCornerShape(20.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+        ) {
+            Text("Done", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        }
+    }
+}
+
+@Composable
 fun GenderBottomSheetContent(
     currentGender: String,
     onGenderSelected: (String) -> Unit,

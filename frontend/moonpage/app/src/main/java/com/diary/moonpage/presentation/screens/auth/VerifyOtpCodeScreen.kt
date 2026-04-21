@@ -41,9 +41,7 @@ fun VerifyOtpScreen(
         onVerifySubmit = viewModel::verifyOtp,
         onNavigateBack = onNavigateBack,
         onNavigateToResetPassword = onNavigateToResetPassword,
-        onResendClick = {
-            // viewModel.resendOtp()
-        }
+        onResendClick = viewModel::forgotPassword
     )
 }
 

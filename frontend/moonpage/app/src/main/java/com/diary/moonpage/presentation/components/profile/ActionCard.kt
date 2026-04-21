@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,13 +27,15 @@ fun ActionCard(
     val textColor = MaterialTheme.colorScheme.onSurface
     val iconBgColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
     val iconColor = MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(24.dp)
 
     Card(
         modifier = modifier
             .height(96.dp)
+            .clip(shape)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        shape = RoundedCornerShape(24.dp),
+        shape = shape,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(

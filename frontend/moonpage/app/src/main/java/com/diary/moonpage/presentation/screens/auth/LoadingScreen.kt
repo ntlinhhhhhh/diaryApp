@@ -21,17 +21,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.theme.MoonPageTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun LoadingScreen(
-    onFinished: () -> Unit
+    viewModel: AuthViewModel = hiltViewModel(),
+    onFinished: (Boolean) -> Unit
 ) {
     LaunchedEffect(Unit) {
-        delay(1500)
-        onFinished()
+        // Kiểm tra xem đã có token chưa
+        val token = viewModel.tokenFlow.first()
+        val isLoggedIn = !token.isNullOrBlank()
+        
+        delay(1500) // Giữ splash screen tối thiểu 1.5s
+        onFinished(isLoggedIn)
     }
 
     val isDarkTheme = isSystemInDarkTheme()

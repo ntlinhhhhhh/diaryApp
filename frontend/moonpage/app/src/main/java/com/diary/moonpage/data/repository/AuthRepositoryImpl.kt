@@ -1,12 +1,7 @@
 package com.diary.moonpage.data.repository
 
 import com.diary.moonpage.data.remote.api.AuthApi
-import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.ForgotPasswordRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.GoogleLoginRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.ResetPasswordRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.VerifyOtpDTO
+import com.diary.moonpage.data.remote.dto.auth.*
 import com.diary.moonpage.domain.model.User
 import com.diary.moonpage.domain.repository.AuthRepository
 import com.google.gson.Gson
@@ -75,11 +70,11 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun verifyOtp(request: VerifyOtpDTO): Result<String> {
+    override suspend fun verifyOtp(request: VerifyOtpDTO): Result<VerifyOtpResponseDTO> {
         return try {
             val response = api.verifyOtp(request)
-            if (response.isSuccessful) {
-                Result.success(request.otpCode)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
             } else {
                 val errorMsg = parseErrorResponse(response.errorBody()?.string())
                 Result.failure(Exception(errorMsg))
@@ -104,7 +99,7 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     private fun parseErrorResponse(errorBody: String?): String {
-        if (errorBody.isNullOrBlank()) return "An unknow error occurred"
+        if (errorBody.isNullOrBlank()) return "An unknown error occurred"
         return try {
             val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
             val errorMap: Map<String, Any> = Gson().fromJson(errorBody, type)
