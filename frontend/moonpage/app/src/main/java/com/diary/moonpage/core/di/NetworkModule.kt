@@ -1,6 +1,7 @@
 package com.diary.moonpage.di
 
 import com.diary.moonpage.data.remote.api.AuthApi
+import com.diary.moonpage.data.remote.api.ThemeApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,5 +45,11 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi {
         return retrofit.create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideThemeApi(retrofit: Retrofit): ThemeApi {
+        return retrofit.create(ThemeApi::class.java)
     }
 }

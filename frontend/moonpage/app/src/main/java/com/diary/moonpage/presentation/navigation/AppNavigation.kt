@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,9 @@ import com.diary.moonpage.presentation.screens.calendar.CalendarScreen
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
 import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
 import com.diary.moonpage.presentation.screens.profile.*
+import com.diary.moonpage.presentation.screens.store.StoreScreen
+import com.diary.moonpage.presentation.screens.store.StoreViewModel
+import com.diary.moonpage.presentation.screens.store.ThemeDetailScreen
 
 @Composable
 fun AppNavigation() {
@@ -82,36 +86,10 @@ fun AppNavigation() {
             startDestination = Screen.Loading.route,
             modifier = Modifier,
             enterTransition = {
-                if (initialState.destination.route in mainAppRoutes && targetState.destination.route in mainAppRoutes) {
-                    fadeIn(animationSpec = tween(300))
-                } else {
-                    slideInHorizontally(
-                        initialOffsetX = { it / 4 },
-                        animationSpec = tween(300)
-                    ) + fadeIn(animationSpec = tween(300))
-                }
+                fadeIn(animationSpec = tween(300))
             },
             exitTransition = {
-                if (initialState.destination.route in mainAppRoutes && targetState.destination.route in mainAppRoutes) {
-                    fadeOut(animationSpec = tween(300))
-                } else {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it / 4 },
-                        animationSpec = tween(300)
-                    ) + fadeOut(animationSpec = tween(300))
-                }
-            },
-            popEnterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { -it / 4 },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300))
-            },
-            popExitTransition = {
-                slideOutHorizontally(
-                    targetOffsetX = { it / 4 },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                fadeOut(animationSpec = tween(300))
             }
         ) {
             composable(Screen.Loading.route) {
@@ -254,16 +232,29 @@ fun AppNavigation() {
                 }
             }
 
-            composable(Screen.Store.route) {
+            composable(Screen.Store.route) { backStackEntry ->
+                // Scope StoreViewModel to this route to share it with ThemeDetail
+                val storeViewModel: StoreViewModel = hiltViewModel(backStackEntry)
                 ScreenWrapper(Screen.Store.route) {
-                    ProfileScreen(
-                        onNavigateToAccount = { navController.navigate(Screen.Account.route) },
-                        onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                        onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
-                        onNavigateToPhotos = { navController.navigate(Screen.Gallery.route) },
-                        onNavigateToThemeCalendar = { navController.navigate(Screen.ThemeCalendar.route) },
-                        onNavigateToWidgets = { navController.navigate(Screen.Widgets.route) },
-                        onNavigateToInviteFriend = { navController.navigate(Screen.InviteFriend.route) }
+                    StoreScreen(
+                        viewModel = storeViewModel,
+                        onNavigateToDetail = { navController.navigate(Screen.ThemeDetail.route) },
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+
+            composable(Screen.ThemeDetail.route) {
+                // Get the same StoreViewModel instance by using the Store backstack entry
+                val storeEntry = remember(it) {
+                    navController.getBackStackEntry(Screen.Store.route)
+                }
+                val storeViewModel: StoreViewModel = hiltViewModel(storeEntry)
+                
+                ScreenWrapper(Screen.ThemeDetail.route) {
+                    ThemeDetailScreen(
+                        viewModel = storeViewModel,
+                        onNavigateBack = { navController.popBackStack() }
                     )
                 }
             }
