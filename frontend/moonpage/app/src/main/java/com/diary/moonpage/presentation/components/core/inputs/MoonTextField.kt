@@ -104,9 +104,8 @@ fun MoonTextField(
                 .onFocusChanged { focusState ->
                     if (focusState.isFocused) {
                         coroutineScope.launch {
-                            delay(150) // Giảm delay nhẹ để mượt hơn
+                            delay(150)
                             if (columnHeight > 0) {
-                                // Giảm extraSpace xuống khoảng 85dp để nút bấm hiện ra cách bàn phím vừa phải (tầm 20dp)
                                 val extraSpace = with(density) { 85.dp.toPx() }
                                 bringIntoViewRequester.bringIntoView(
                                     Rect(0f, 0f, columnWidth, columnHeight + extraSpace)

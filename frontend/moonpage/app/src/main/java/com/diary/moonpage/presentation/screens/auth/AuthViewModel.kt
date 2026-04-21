@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.moonpage.core.util.TokenManager
 import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
+import com.diary.moonpage.data.remote.dto.auth.GoogleLoginRequestDTO
 import com.diary.moonpage.domain.model.User
 import com.diary.moonpage.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -172,15 +173,20 @@ class AuthViewModel @Inject constructor (
     fun loginWithGoogle(idToken: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val result = googleLoginUseCase(idToken)
+            try {
+                val result = googleLoginUseCase(idToken)
 
-            result.onSuccess { user ->
-                tokenManager.saveToken(user.token)
+                result.onSuccess { user ->
+                    tokenManager.saveToken(user.token)
+                    _uiState.update { it.copy(isLoading = false) }
+                    _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
+                }.onFailure { exception ->
+                    _uiState.update { it.copy(isLoading = false) }
+                    _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Google login failed."))
+                }
+            } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
-            }.onFailure { exception ->
-                _uiState.update { it.copy(isLoading = false) }
-                _uiEvent.send(AuthUiEvent.ShowSnackBar(exception.message ?: "Google login failed."))
+                _uiEvent.send(AuthUiEvent.ShowSnackBar(e.message ?: "Connection error."))
             }
         }
     }

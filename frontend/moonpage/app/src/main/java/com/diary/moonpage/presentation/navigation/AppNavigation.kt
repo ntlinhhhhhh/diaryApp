@@ -148,7 +148,7 @@ fun AppNavigation() {
                         },
                         onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
                         onNavigateToLoginGoogle = { /* TODO */ },
-                        onLoginSuccess = {
+                        onLoginSuccess = { _ ->
                             navController.navigate(Screen.Calendar.route) {
                                 popUpTo(0) { inclusive = true }
                             }
@@ -171,6 +171,11 @@ fun AppNavigation() {
                         onRegisterSuccess = {
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(Screen.Register.route) { inclusive = true }
+                            }
+                        },
+                        onLoginSuccess = { _ ->
+                            navController.navigate(Screen.Calendar.route) {
+                                popUpTo(0) { inclusive = true }
                             }
                         }
                     )

@@ -5,11 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -38,11 +40,11 @@ val onboardingPages = listOf(
         cardDescription = "Review your past entries to see how\nyou have grown over time."
     ),
     OnboardingPage(
-        title = "Monthly statistics",
-        subtitle = "A beautiful overview of your\nemotional journey.",
+        title = "Self reflection",
+        subtitle = "Take a moment to breathe and\nlook deep inside your soul.",
         imageRes = R.drawable.logo,
-        cardTitle = "Visualize your mood",
-        cardDescription = "Get insights into your feelings through\nbeautifully crafted charts."
+        cardTitle = "Understand yourself",
+        cardDescription = "Review your past entries to see how\nyou have grown over time."
     ),
     OnboardingPage(
         title = "Monthly statistics",
@@ -115,8 +117,9 @@ fun LandingScreen(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { onNavigateToLogin() }
-                    .padding(8.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }

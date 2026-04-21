@@ -18,13 +18,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,6 +38,7 @@ import com.diary.moonpage.presentation.components.auth.SocialLoginButton
 import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
 import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
 import com.diary.moonpage.presentation.components.core.layout.MoonDivider
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -56,6 +61,7 @@ fun LoginScreen(
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
         onLoginClick = viewModel::login,
+        onGoogleLoginClick = viewModel::loginWithGoogle,
         onNavigateBack = onNavigateBack,
         onNavigateToRegister = onNavigateToRegister,
         onNavigateToForgotPassword = onNavigateToForgotPassword,
@@ -71,6 +77,7 @@ fun LoginScreenContent(
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
+    onGoogleLoginClick: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
@@ -81,6 +88,10 @@ fun LoginScreenContent(
     val snackBarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    val googleWebClientId = stringResource(R.string.google_web_client_id)
     
     val screenBgColor = MaterialTheme.colorScheme.background
     val backIconColor = MaterialTheme.colorScheme.onSurface
@@ -218,7 +229,32 @@ fun LoginScreenContent(
                         SocialLoginButton(
                             text = "Login with Google",
                             iconResId = R.drawable.ic_google,
-                            onClick = { onNavigateToLoginGoogle() }
+                            onClick = {
+                                scope.launch {
+                                    try {
+                                        val credentialManager = CredentialManager.create(context)
+                                        val googleIdOption = GetGoogleIdOption.Builder()
+                                            .setFilterByAuthorizedAccounts(false)
+                                            .setServerClientId(googleWebClientId)
+                                            .setAutoSelectEnabled(false)
+                                            .build()
+
+                                        val request = GetCredentialRequest.Builder()
+                                            .addCredentialOption(googleIdOption)
+                                            .build()
+
+                                        val result = credentialManager.getCredential(context, request)
+                                        
+                                        val credential = result.credential
+                                        if (credential is androidx.credentials.CustomCredential && credential.type == com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                            val googleIdToken = com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(credential.data)
+                                            onGoogleLoginClick(googleIdToken.idToken)
+                                        }
+                                    } catch (e: Exception) {
+                                        snackBarHostState.showSnackbar("Google Sign-In failed")
+                                    }
+                                }
+                            }
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
@@ -245,5 +281,25 @@ fun LoginScreenContent(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    MoonPageTheme {
+        LoginScreenContent(
+            uiState = AuthUiState(),
+            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
+            onEmailChange = {},
+            onPasswordChange = {},
+            onLoginClick = {},
+            onGoogleLoginClick = {},
+            onNavigateBack = {},
+            onNavigateToRegister = {},
+            onNavigateToForgotPassword = {},
+            onNavigateToLoginGoogle = {},
+            onLoginSuccess = {}
+        )
     }
 }
