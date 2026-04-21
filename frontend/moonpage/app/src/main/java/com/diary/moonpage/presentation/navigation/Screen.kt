@@ -29,4 +29,7 @@ sealed class Screen (val route: String) {
 
     // Calendar Sub-screens
     object Filter: Screen("filter_screen")
+
+    // Store Sub-screens
+    object ThemeDetail: Screen("theme_detail_screen")
 }

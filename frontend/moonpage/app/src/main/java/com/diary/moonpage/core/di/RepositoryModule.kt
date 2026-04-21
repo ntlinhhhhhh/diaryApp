@@ -1,7 +1,9 @@
 package com.diary.moonpage.di
 
 import com.diary.moonpage.data.repository.AuthRepositoryImpl
+import com.diary.moonpage.data.repository.ThemeRepositoryImpl
 import com.diary.moonpage.domain.repository.AuthRepository
+import com.diary.moonpage.domain.repository.ThemeRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -17,5 +19,11 @@ abstract class RepositoryModule {
     abstract fun bindAuthRepository(
         authRepositoryImpl: AuthRepositoryImpl
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindThemeRepository(
+        themeRepositoryImpl: ThemeRepositoryImpl
+    ): ThemeRepository
 
 }
