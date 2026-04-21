@@ -1,13 +1,13 @@
-package com.diary.moonpage.domain.usecase
+package com.diary.moonpage.domain.usecase.theme
 
 import com.diary.moonpage.domain.model.Theme
 import com.diary.moonpage.domain.repository.ThemeRepository
 import javax.inject.Inject
 
-class GetOwnedThemesUseCase @Inject constructor(
+class GetThemesUseCase @Inject constructor(
     private val repository: ThemeRepository
 ) {
     suspend operator fun invoke(token: String): Result<List<Theme>> {
-        return repository.getOwnedThemes(token)
+        return repository.getAllThemes(token)
     }
 }

@@ -1,4 +1,4 @@
-package com.diary.moonpage.domain.usecase
+package com.diary.moonpage.domain.usecase.auth
 
 import android.util.Patterns
 import com.diary.moonpage.data.remote.dto.auth.ForgotPasswordRequestDTO

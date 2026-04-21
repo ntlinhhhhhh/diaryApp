@@ -19,6 +19,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -109,15 +111,17 @@ fun ThemeDetailScreen(
                                 .background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "$",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
+                            Text(
+                                text = "$",
+                                modifier = Modifier.offset(y = (-0.8).dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                style = TextStyle(
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
                                 )
-                            }
+                            )
                         }
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(

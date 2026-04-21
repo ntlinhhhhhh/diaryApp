@@ -1,4 +1,4 @@
-package com.diary.moonpage.domain.usecase
+package com.diary.moonpage.domain.usecase.auth
 
 import com.diary.moonpage.data.remote.dto.auth.ResetPasswordRequestDTO
 import com.diary.moonpage.domain.repository.AuthRepository

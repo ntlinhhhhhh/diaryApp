@@ -17,6 +17,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -158,18 +160,17 @@ fun StoreTopBar(
                         .background(MaterialTheme.colorScheme.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
+                    Text(
+                        text = "$",
+                        modifier = Modifier.offset(y = (-0.8).dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
-                    }
+                    )
                 }
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
@@ -244,17 +245,17 @@ fun ThemeCard(
                                 .background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "$", 
-                                    color = MaterialTheme.colorScheme.onPrimary, 
-                                    fontSize = 8.sp, 
-                                    fontWeight = FontWeight.Bold
+                            Text(
+                                text = "$", 
+                                modifier = Modifier.offset(y = (-0.8).dp),
+                                color = MaterialTheme.colorScheme.onPrimary, 
+                                fontSize = 8.sp, 
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                style = TextStyle(
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
                                 )
-                            }
+                            )
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
@@ -356,11 +357,35 @@ fun IconPackCard(pack: Theme, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.primary
                 )
             } else {
-                Text(
-                    text = "${pack.price} $", 
-                    style = MaterialTheme.typography.bodySmall, 
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$",
+                            modifier = Modifier.offset(y = (-0.8).dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            style = TextStyle(
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${pack.price}", 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
     }

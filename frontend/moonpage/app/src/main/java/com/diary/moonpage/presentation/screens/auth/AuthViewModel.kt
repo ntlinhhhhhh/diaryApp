@@ -5,9 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.diary.moonpage.core.util.TokenManager
 import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.GoogleLoginRequestDTO
 import com.diary.moonpage.domain.model.User
-import com.diary.moonpage.domain.usecase.*
+import com.diary.moonpage.domain.usecase.auth.ForgotPasswordUseCase
+import com.diary.moonpage.domain.usecase.auth.LoginUseCase
+import com.diary.moonpage.domain.usecase.auth.RegisterUserCase
+import com.diary.moonpage.domain.usecase.auth.ResetPasswordUseCase
+import com.diary.moonpage.domain.usecase.auth.VerifyOtpUseCase
+import com.diary.moonpage.domain.usecase.auth.GoogleLoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*

@@ -1,7 +1,6 @@
-package com.diary.moonpage.domain.usecase
+package com.diary.moonpage.domain.usecase.auth
 
 import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.LoginResponseDTO
 import com.diary.moonpage.domain.model.User
 import com.diary.moonpage.domain.repository.AuthRepository
 import javax.inject.Inject
