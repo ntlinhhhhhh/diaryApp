@@ -41,7 +41,7 @@ class StoreViewModel @Inject constructor(
                     type = ThemeType.THEME,
                     description = "A set of shy but sweet bean expressions.",
                     icons = listOf("VERY_HAPPY", "HAPPY", "NEUTRAL", "SAD", "ANGRY"),
-                    primaryColor = "#FFF0F3", 
+                    primaryColor = "#FFDDE1",
                     decoration = "BLUSHING"
                 ),
                 Theme(
@@ -54,7 +54,7 @@ class StoreViewModel @Inject constructor(
                     type = ThemeType.THEME,
                     description = "Adorable cat-eared beans for your daily logs.",
                     icons = listOf("VERY_HAPPY", "HAPPY", "NEUTRAL", "SAD", "ANGRY"),
-                    primaryColor = "#E8EAF6", 
+                    primaryColor = "#D1D9FF",
                     decoration = "KITTY"
                 ),
                 Theme(
@@ -67,7 +67,7 @@ class StoreViewModel @Inject constructor(
                     type = ThemeType.THEME,
                     description = "Tiny sprouts growing on happy little beans.",
                     icons = listOf("VERY_HAPPY", "HAPPY", "NEUTRAL", "SAD", "ANGRY"),
-                    primaryColor = "#F1F8E9", 
+                    primaryColor = "#C2E5A0",
                     decoration = "SPROUT"
                 ),
                 Theme(

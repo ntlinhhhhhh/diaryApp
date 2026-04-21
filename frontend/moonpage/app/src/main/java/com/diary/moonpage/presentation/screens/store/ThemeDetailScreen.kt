@@ -48,7 +48,8 @@ fun ThemeDetailScreen(
     }
 
     val backgroundColor = MaterialTheme.colorScheme.background
-    val onSurface = MaterialTheme.colorScheme.onBackground
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onBackground = MaterialTheme.colorScheme.onBackground
 
     val shakeOffset = remember { Animatable(0f) }
     LaunchedEffect(uiState.showPurchaseSuccessDialog) {
@@ -79,14 +80,14 @@ fun ThemeDetailScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
-                        tint = onSurface
+                        tint = onBackground
                     )
                 }
 
                 Text(
                     text = "Theme Detail",
                     style = MaterialTheme.typography.titleMedium,
-                    color = onSurface
+                    color = onBackground
                 )
 
                 Surface(
@@ -122,7 +123,7 @@ fun ThemeDetailScreen(
                         Text(
                             text = "${uiState.userCoins}",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MoonTextDark,
+                            color = onSurface,
                             fontSize = 11.sp
                         )
                     }
@@ -136,7 +137,7 @@ fun ThemeDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp), // Expanded horizontally to give more space
+                .padding(horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -144,14 +145,14 @@ fun ThemeDetailScreen(
             Text(
                 text = theme.name,
                 style = MaterialTheme.typography.headlineLarge,
-                color = onSurface,
+                color = onBackground,
                 textAlign = TextAlign.Center
             )
 
             Text(
                 text = theme.description ?: "Experience the beauty of this unique set.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = onSurface.copy(alpha = 0.6f),
+                color = onBackground.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(vertical = 12.dp)
             )
@@ -180,7 +181,7 @@ fun ThemeDetailScreen(
             Text(
                 text = "INCLUDES: CALENDAR ICONS, PREMIUM BACKGROUND, CUSTOM UI TONES",
                 style = MaterialTheme.typography.labelSmall,
-                color = onSurface.copy(alpha = 0.5f),
+                color = onBackground.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -214,7 +215,7 @@ fun ThemeCalendarPreview(theme: Theme) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(32.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 8.dp, vertical = 24.dp), // Expanded horizontally
+            .padding(horizontal = 8.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Month Header
@@ -243,7 +244,7 @@ fun ThemeCalendarPreview(theme: Theme) {
         val days = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
         Row(
             modifier = Modifier.fillMaxWidth(), 
-            horizontalArrangement = Arrangement.SpaceEvenly // Use SpaceEvenly for better distribution
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             days.forEach { day ->
                 Text(
@@ -269,7 +270,7 @@ fun ThemeCalendarPreview(theme: Theme) {
             repeat(4) { rowIndex ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly // Space icons evenly
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     repeat(7) { colIndex ->
                         val iconIndex = (rowIndex + colIndex) % 5
