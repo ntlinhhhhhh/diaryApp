@@ -1,5 +1,4 @@
 <resources>
     <string name="app_name">Moon Page</string>
-    <!-- Web Client ID phai khop voi Project Number 11803658921 -->
-    <string name="google_web_client_id">11803658921-m8jmplb158akjj874288pipkt3emset0.apps.googleusercontent.com</string>
+    <string name="google_web_client_id">511455154390-m8jmplb158akjj874288pipkt3emset0.apps.googleusercontent.com</string>
 </resources>

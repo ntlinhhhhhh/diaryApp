@@ -47,8 +47,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import java.security.MessageDigest
-import java.util.UUID
 
 @Composable
 fun LoginScreen(
@@ -240,18 +238,10 @@ fun LoginScreenContent(
                                     try {
                                         val credentialManager = CredentialManager.create(context)
                                         
-                                        // Create a nonce for security (optional but recommended)
-                                        val rawNonce = UUID.randomUUID().toString()
-                                        val bytes = rawNonce.toByteArray()
-                                        val md = MessageDigest.getInstance("SHA-256")
-                                        val digest = md.digest(bytes)
-                                        val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
-
                                         val googleIdOption = GetGoogleIdOption.Builder()
                                             .setFilterByAuthorizedAccounts(false)
                                             .setServerClientId(googleWebClientId)
-                                            .setNonce(hashedNonce)
-                                            .setAutoSelectEnabled(false) // Changed to false for better manual selection if no account is "authorized" yet
+                                            .setAutoSelectEnabled(true)
                                             .build()
 
                                         val request = GetCredentialRequest.Builder()
@@ -269,8 +259,8 @@ fun LoginScreenContent(
                                             snackBarHostState.showSnackbar("Unexpected login error")
                                         }
                                     } catch (e: NoCredentialException) {
-                                        Log.e("Auth", "No Google accounts found or Client ID mismatch. Check google-services.json and SHA-1 registration.", e)
-                                        snackBarHostState.showSnackbar("No Google accounts available. Please ensure you are signed in on this device.")
+                                        Log.e("Auth", "No Google accounts found. Check Client ID and SHA-1.", e)
+                                        snackBarHostState.showSnackbar("Please sign in to a Google account on this device.")
                                     } catch (e: GetCredentialException) {
                                         Log.e("Auth", "Google Sign-In Error: ${e.message}", e)
                                         snackBarHostState.showSnackbar(e.message ?: "Google Sign-In failed")
