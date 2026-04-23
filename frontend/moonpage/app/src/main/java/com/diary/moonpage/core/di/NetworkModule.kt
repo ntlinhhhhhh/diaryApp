@@ -2,6 +2,7 @@ package com.diary.moonpage.di
 
 import com.diary.moonpage.core.network.AuthInterceptor
 import com.diary.moonpage.data.remote.api.AuthApi
+import com.diary.moonpage.data.remote.api.MomentApi
 import com.diary.moonpage.data.remote.api.ThemeApi
 import com.diary.moonpage.data.remote.api.UserApi
 import dagger.Module
@@ -38,7 +39,9 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://diaryapp-api.onrender.com/")
+//            .baseUrl("https://diaryapp-api.onrender.com/")
+            .baseUrl("https://moonpage.duckdns.org/")
+
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -60,5 +63,11 @@ object NetworkModule {
     @Singleton
     fun provideUserApi(retrofit: Retrofit): UserApi {
         return retrofit.create(UserApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMomentApi(retrofit: Retrofit): MomentApi {
+        return retrofit.create(MomentApi::class.java)
     }
 }

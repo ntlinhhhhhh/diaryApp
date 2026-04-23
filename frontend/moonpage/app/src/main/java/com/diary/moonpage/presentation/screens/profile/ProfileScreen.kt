@@ -126,7 +126,7 @@ fun ProfileScreenContent(
                 )
 
                 ActionCard(
-                    title = "My Themes",
+                    title = "My Photos",
                     value = photoCount,
                     modifier = Modifier.weight(1f),
                     onClick = onPhotosClick

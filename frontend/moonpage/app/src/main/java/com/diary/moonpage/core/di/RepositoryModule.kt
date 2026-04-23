@@ -1,9 +1,11 @@
 package com.diary.moonpage.di
 
 import com.diary.moonpage.data.repository.AuthRepositoryImpl
+import com.diary.moonpage.data.repository.MomentRepositoryImpl
 import com.diary.moonpage.data.repository.ThemeRepositoryImpl
 import com.diary.moonpage.data.repository.UserRepositoryImpl
 import com.diary.moonpage.domain.repository.AuthRepository
+import com.diary.moonpage.domain.repository.MomentRepository
 import com.diary.moonpage.domain.repository.ThemeRepository
 import com.diary.moonpage.domain.repository.UserRepository
 import dagger.Binds
@@ -33,5 +35,11 @@ abstract class RepositoryModule {
     abstract fun bindUserRepository(
         userRepositoryImpl: UserRepositoryImpl
     ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMomentRepository(
+        momentRepositoryImpl: MomentRepositoryImpl
+    ): MomentRepository
 
 }

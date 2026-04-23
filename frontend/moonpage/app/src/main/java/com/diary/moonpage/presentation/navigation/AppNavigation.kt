@@ -233,9 +233,7 @@ fun AppNavigation() {
                 ScreenWrapper(Screen.Camera.route) {
                     MomentCameraScreen(
                         onNavigateToGallery = { navController.navigate(Screen.Gallery.route) },
-                        onNavigateToHistory = { /* TODO */ },
-                        onFlipCamera = { /* TODO */ },
-                        onCapture = { /* TODO */ }
+                        onNavigateToHistory = { /* TODO */ }
                     )
                 }
             }

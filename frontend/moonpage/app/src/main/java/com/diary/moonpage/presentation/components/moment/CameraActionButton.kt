@@ -24,13 +24,14 @@ fun CameraActionButton(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.clickable(onClick = onClick)
+        modifier = modifier
     ) {
         Box(
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(onClick = onClick)
                 .padding(12.dp),
             contentAlignment = Alignment.Center
         ) {
