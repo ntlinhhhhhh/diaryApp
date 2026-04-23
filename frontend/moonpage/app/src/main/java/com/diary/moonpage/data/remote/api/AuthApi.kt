@@ -28,7 +28,7 @@ interface AuthApi {
 
     @POST("api/auth/verify-otp")
     suspend fun verifyOtp(
-        @Body request: VerifyOtpDTO
+        @Body request: VerifyOtpRequestDTO
     ): Response<VerifyOtpResponseDTO>
 
     @POST("api/auth/reset-password")

@@ -1,6 +1,6 @@
 package com.diary.moonpage.domain.usecase.auth
 
-import com.diary.moonpage.data.remote.dto.auth.VerifyOtpDTO
+import com.diary.moonpage.data.remote.dto.auth.VerifyOtpRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.VerifyOtpResponseDTO
 import com.diary.moonpage.domain.repository.AuthRepository
 import javax.inject.Inject
@@ -16,7 +16,7 @@ class VerifyOtpUseCase @Inject constructor(
             return Result.failure(Exception("OTP code must be 6 digits."))
         }
 
-        val request = VerifyOtpDTO(email, otpCode)
+        val request = VerifyOtpRequestDTO(email, otpCode)
         return repository.verifyOtp(request)
     }
 }

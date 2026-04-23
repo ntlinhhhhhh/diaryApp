@@ -70,7 +70,7 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun verifyOtp(request: VerifyOtpDTO): Result<VerifyOtpResponseDTO> {
+    override suspend fun verifyOtp(request: VerifyOtpRequestDTO): Result<VerifyOtpResponseDTO> {
         return try {
             val response = api.verifyOtp(request)
             if (response.isSuccessful && response.body() != null) {
