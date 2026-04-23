@@ -1,6 +1,5 @@
 package com.diary.moonpage.presentation.screens.profile
 
-import android.content.res.Configuration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -8,9 +7,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.presentation.components.profile.*
 import com.diary.moonpage.presentation.components.core.layout.SectionTitle
 import com.diary.moonpage.presentation.theme.*
@@ -20,6 +24,7 @@ import com.diary.moonpage.presentation.theme.*
  */
 @Composable
 fun ProfileScreen(
+    viewModel: ProfileViewModel = hiltViewModel(),
     onNavigateToAccount: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToNotifications: () -> Unit,
@@ -28,18 +33,37 @@ fun ProfileScreen(
     onNavigateToWidgets: () -> Unit,
     onNavigateToInviteFriend: () -> Unit
 ) {
-    ProfileScreenContent(
-        userId = "#0320",
-        recordedDays = "8",
-        photoCount = "3",
-        onNotificationClick = onNavigateToNotifications,
-        onSettingsClick = onNavigateToSettings,
-        onAccountClick = onNavigateToAccount,
-        onPhotosClick = onNavigateToPhotos,
-        onThemeCalendarClick = onNavigateToThemeCalendar,
-        onWidgetsClick = onNavigateToWidgets,
-        onInviteFriendClick = onNavigateToInviteFriend
-    )
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Refresh data when entering the screen
+    LaunchedEffect(Unit) {
+        viewModel.loadProfile()
+        viewModel.loadMyThemes()
+    }
+
+    if (uiState.isLoading && uiState.user == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+    } else {
+        ProfileScreenContent(
+            userId = uiState.user?.id?.take(8) ?: "",
+            userName = uiState.user?.name ?: "User",
+            avatarUrl = uiState.user?.avatarUrl,
+            recordedDays = "8", // Can be updated if API provides it
+            photoCount = uiState.myThemes.size.toString(),
+            onNotificationClick = onNavigateToNotifications,
+            onSettingsClick = onNavigateToSettings,
+            onAccountClick = onNavigateToAccount,
+            onPhotosClick = onNavigateToPhotos,
+            onThemeCalendarClick = onNavigateToThemeCalendar,
+            onWidgetsClick = onNavigateToWidgets,
+            onInviteFriendClick = onNavigateToInviteFriend
+        )
+    }
 }
 
 /**
@@ -48,6 +72,8 @@ fun ProfileScreen(
 @Composable
 fun ProfileScreenContent(
     userId: String,
+    userName: String,
+    avatarUrl: String?,
     recordedDays: String,
     photoCount: String,
     onNotificationClick: () -> Unit,
@@ -81,7 +107,9 @@ fun ProfileScreenContent(
             // 2. Account Section
             SectionTitle("Account")
             UserInfoCard(
-                userId = userId,
+                userId = if (userId.isNotEmpty()) "#$userId" else "",
+                userName = userName,
+                avatarUrl = avatarUrl,
                 onClick = onAccountClick
             )
 
@@ -98,7 +126,7 @@ fun ProfileScreenContent(
                 )
 
                 ActionCard(
-                    title = "Photos",
+                    title = "My Themes",
                     value = photoCount,
                     modifier = Modifier.weight(1f),
                     onClick = onPhotosClick
@@ -140,26 +168,9 @@ fun ProfileScreenContent(
 fun ProfileScreenPreview() {
     MoonPageTheme {
         ProfileScreenContent(
-            userId = "#0320",
-            recordedDays = "8",
-            photoCount = "3",
-            onNotificationClick = {},
-            onSettingsClick = {},
-            onAccountClick = {},
-            onPhotosClick = {},
-            onThemeCalendarClick = {},
-            onWidgetsClick = {},
-            onInviteFriendClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun ProfileScreenDarkPreview() {
-    MoonPageTheme {
-        ProfileScreenContent(
-            userId = "#0320",
+            userId = "0320",
+            userName = "Moon User",
+            avatarUrl = null,
             recordedDays = "8",
             photoCount = "3",
             onNotificationClick = {},

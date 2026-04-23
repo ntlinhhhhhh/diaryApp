@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "562775714953",
-    "project_id": "diaryapp-36c8f",
-    "storage_bucket": "diaryapp-36c8f.firebasestorage.app"
+    "project_number": "11803658921",
+    "project_id": "moodyfy-3f2dd",
+    "storage_bucket": "moodyfy-3f2dd.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:562775714953:android:a1f1dcd4385f75906eaa58",
+        "mobilesdk_app_id": "1:11803658921:android:d134ff7f540866684137b8",
         "android_client_info": {
           "package_name": "com.diary.moonpage"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA1Pjo5Ryq0ojPlK8WbqJJY9znWQYgkyts"
+          "current_key": "AIzaSyCRKuEz_8wsXShWxLnZJySzt4hhFI4ypSc"
         }
       ],
       "services": {

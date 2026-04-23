@@ -1,20 +1,14 @@
 package com.diary.moonpage.presentation.screens.profile
 
-import android.content.res.Configuration
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Cake
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material.icons.rounded.Wc
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.profile.*
 import com.diary.moonpage.presentation.theme.MoonPageTheme
@@ -40,10 +35,12 @@ enum class BottomSheetType { NONE, BIRTHDAY, GENDER, USERNAME }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountScreen(
+    viewModel: ProfileViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onLogoutClick: () -> Unit,
     onNavigateToChangeAvatar: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )
@@ -51,9 +48,12 @@ fun AccountScreen(
     val coroutineScope = rememberCoroutineScope()
     var currentBottomSheet by remember { mutableStateOf(BottomSheetType.NONE) }
 
-    var username by remember { mutableStateOf("🥑") }
-    var gender by remember { mutableStateOf("Female") }
-    var birthday by remember { mutableStateOf("04/06/2005") }
+    val user = uiState.user
+
+    // Fetch latest profile data when screen is launched
+    LaunchedEffect(Unit) {
+        viewModel.loadProfile()
+    }
 
     val hideBottomSheet = {
         coroutineScope.launch {
@@ -65,27 +65,51 @@ fun AccountScreen(
         }
     }
 
-    AccountScreenContent(
-        username = username,
-        gender = gender,
-        birthday = birthday,
-        onNavigateBack = onNavigateBack,
-        onLogoutClick = onLogoutClick,
-        onBirthdayClick = { currentBottomSheet = BottomSheetType.BIRTHDAY },
-        onGenderClick = { currentBottomSheet = BottomSheetType.GENDER },
-        onAvatarEditClick = onNavigateToChangeAvatar,
-        onUsernameEditClick = { currentBottomSheet = BottomSheetType.USERNAME }
-    )
+    // Listen for events (like showing snackbar)
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when(event) {
+                is ProfileUiEvent.ShowSnackBar -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                is ProfileUiEvent.UpdateSuccess -> {
+                    // Success logic if needed
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
+            AccountScreenContent(
+                username = user?.name ?: "",
+                gender = user?.gender ?: "Not specified",
+                birthday = user?.birthday ?: "Not specified",
+                userIdFull = user?.id ?: "",
+                email = user?.email ?: "",
+                avatarUrl = user?.avatarUrl,
+                onNavigateBack = onNavigateBack,
+                onLogoutClick = onLogoutClick,
+                onBirthdayClick = { currentBottomSheet = BottomSheetType.BIRTHDAY },
+                onGenderClick = { currentBottomSheet = BottomSheetType.GENDER },
+                onAvatarEditClick = onNavigateToChangeAvatar,
+                onUsernameEditClick = { currentBottomSheet = BottomSheetType.USERNAME }
+            )
+        }
+    }
 
     if (currentBottomSheet != BottomSheetType.NONE) {
         ModalBottomSheet(
             onDismissRequest = { currentBottomSheet = BottomSheetType.NONE },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surface,
-            // Xử lý insets ở mức Sheet để nội dung bên trong trôi mượt khi hiện bàn phím
             contentWindowInsets = { WindowInsets.ime.union(WindowInsets.navigationBars) },
             tonalElevation = 0.dp,
-            scrimColor = Color.Black.copy(alpha = 0.32f), // Màu scrim nhạt hơn cho cảm giác nhanh hơn
+            scrimColor = Color.Black.copy(alpha = 0.32f),
             dragHandle = {
                 Box(
                     modifier = Modifier
@@ -96,27 +120,45 @@ fun AccountScreen(
                 )
             }
         ) {
-            // Bao bọc bởi Box để tránh nhảy padding khi Sheet đang trượt
             Box(modifier = Modifier.fillMaxWidth()) {
                 when (currentBottomSheet) {
                     BottomSheetType.GENDER -> {
                         GenderBottomSheetContent(
-                            currentGender = gender,
-                            onGenderSelected = { 
-                                gender = it
+                            currentGender = user?.gender ?: "Other",
+                            onGenderSelected = { newGender ->
+                                viewModel.updateProfile(
+                                    name = user?.name ?: "",
+                                    gender = newGender,
+                                    birthday = user?.birthday
+                                )
                                 hideBottomSheet() 
                             },
                             onClose = { hideBottomSheet() }
                         )
                     }
                     BottomSheetType.BIRTHDAY -> {
-                        BirthdayBottomSheetContent(onClose = { hideBottomSheet() })
+                        BirthdayBottomSheetContent(
+                            currentBirthday = user?.birthday ?: "01/01/2000",
+                            onBirthdaySelected = { newBirthday ->
+                                viewModel.updateProfile(
+                                    name = user?.name ?: "",
+                                    gender = user?.gender,
+                                    birthday = newBirthday
+                                )
+                                hideBottomSheet()
+                            },
+                            onClose = { hideBottomSheet() }
+                        )
                     }
                     BottomSheetType.USERNAME -> {
                         UsernameBottomSheetContent(
-                            currentUsername = username,
-                            onUsernameChange = { 
-                                username = it
+                            currentUsername = user?.name ?: "",
+                            onUsernameChange = { newName ->
+                                viewModel.updateProfile(
+                                    name = newName,
+                                    gender = user?.gender,
+                                    birthday = user?.birthday
+                                )
                                 hideBottomSheet()
                             },
                             onClose = { hideBottomSheet() }
@@ -138,6 +180,9 @@ fun AccountScreenContent(
     username: String,
     gender: String,
     birthday: String,
+    userIdFull: String,
+    email: String,
+    avatarUrl: String?,
     onNavigateBack: () -> Unit,
     onLogoutClick: () -> Unit,
     onBirthdayClick: () -> Unit,
@@ -146,6 +191,7 @@ fun AccountScreenContent(
     onUsernameEditClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val isUsernameEmpty = username.trim().isEmpty()
 
     Scaffold(
         containerColor = colorScheme.background,
@@ -182,28 +228,37 @@ fun AccountScreenContent(
         ) {
             Spacer(modifier = Modifier.height(30.dp))
 
-            AccountAvatar(onEditClick = onAvatarEditClick)
+            AccountAvatar(
+                onEditClick = onAvatarEditClick,
+                avatarUrl = avatarUrl
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(username, fontSize = 20.sp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onUsernameEditClick() }
+            ) {
+                Text(
+                    text = if (isUsernameEmpty) "Set Username" else username,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isUsernameEmpty) colorScheme.onBackground.copy(alpha = 0.5f) else colorScheme.onBackground
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = onUsernameEditClick, modifier = Modifier.size(20.dp)) {
-                    Icon(
-                        imageVector = Icons.Rounded.Edit, 
-                        contentDescription = "Edit Username",
-                        tint = colorScheme.onBackground.copy(alpha = 0.4f), 
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Rounded.Edit, 
+                    contentDescription = "Edit Username",
+                    tint = colorScheme.onBackground.copy(alpha = 0.4f), 
+                    modifier = Modifier.size(16.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(40.dp))
 
             AccountInfoRow(
                 label = "User ID",
-                value = "01KJPADDQZ5DSB2GYGFGX384RF",
+                value = userIdFull,
                 actionText = "Copy",
                 icon = Icons.Rounded.Person,
                 isColumnValue = true,
@@ -240,7 +295,7 @@ fun AccountScreenContent(
 
             AccountInfoRow(
                 label = "My social account",
-                value = "duonghoangg241@gmail.com",
+                value = email,
                 iconRes = R.drawable.ic_google,
                 isColumnValue = true,
                 onClick = {}
@@ -278,24 +333,9 @@ fun AccountScreenPreview() {
             username = "🥑",
             gender = "Female",
             birthday = "04/06/2005",
-            onNavigateBack = {},
-            onLogoutClick = {},
-            onBirthdayClick = {},
-            onGenderClick = {},
-            onAvatarEditClick = {},
-            onUsernameEditClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Account Screen Dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun AccountScreenDarkPreview() {
-    MoonPageTheme {
-        AccountScreenContent(
-            username = "🥑",
-            gender = "Female",
-            birthday = "04/06/2005",
+            userIdFull = "01KJPADDQZ5DSB2GYGFGX384RF",
+            email = "demo@gmail.com",
+            avatarUrl = null,
             onNavigateBack = {},
             onLogoutClick = {},
             onBirthdayClick = {},

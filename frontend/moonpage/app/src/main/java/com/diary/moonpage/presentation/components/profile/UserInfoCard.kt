@@ -16,18 +16,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 
 @Composable
-fun UserInfoCard(userId: String, onClick: () -> Unit) {
+fun UserInfoCard(
+    userId: String,
+    userName: String,
+    avatarUrl: String?,
+    onClick: () -> Unit
+) {
     val cardBg = MaterialTheme.colorScheme.surface
     val textColor = MaterialTheme.colorScheme.onSurface
     val outerCircleColor = MaterialTheme.colorScheme.surfaceVariant
     val innerCircleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-
-
 
     Card(
         modifier = Modifier
@@ -41,37 +46,48 @@ fun UserInfoCard(userId: String, onClick: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar with outer ring and smiley bean
+            // Avatar with outer ring and smiley bean or AsyncImage
             Box(
                 modifier = Modifier
                     .size(64.dp)
                     .background(outerCircleColor, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(innerCircleColor, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                if (avatarUrl != null) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(innerCircleColor, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row {
-                            Box(modifier = Modifier.size(3.dp).background(Color.Black, CircleShape))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Box(modifier = Modifier.size(3.dp).background(Color.Black, CircleShape))
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Canvas(modifier = Modifier.size(width = 12.dp, height = 6.dp)) {
-                            drawArc(
-                                color = Color.Black,
-                                startAngle = 0f,
-                                sweepAngle = 180f,
-                                useCenter = false,
-                                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-                            )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Row {
+                                Box(modifier = Modifier.size(3.dp).background(Color.Black, CircleShape))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(modifier = Modifier.size(3.dp).background(Color.Black, CircleShape))
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Canvas(modifier = Modifier.size(width = 12.dp, height = 6.dp)) {
+                                drawArc(
+                                    color = Color.Black,
+                                    startAngle = 0f,
+                                    sweepAngle = 180f,
+                                    useCenter = false,
+                                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                                )
+                            }
                         }
                     }
                 }
@@ -80,10 +96,13 @@ fun UserInfoCard(userId: String, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                // Avocado icon placeholder + Text
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🥑", fontSize = 18.sp)
-                }
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = textColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
                 Text(
                     text = userId,
                     style = MaterialTheme.typography.bodyMedium.copy(

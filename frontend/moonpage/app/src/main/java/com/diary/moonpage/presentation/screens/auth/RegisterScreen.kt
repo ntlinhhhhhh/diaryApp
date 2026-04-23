@@ -1,6 +1,6 @@
 package com.diary.moonpage.presentation.screens.auth
 
-import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -30,6 +30,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthFooter
@@ -40,10 +42,13 @@ import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
 import com.diary.moonpage.presentation.components.core.layout.MoonDivider
 import com.diary.moonpage.presentation.theme.*
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
+import java.util.UUID
 
 @Composable
 fun RegisterScreen(
@@ -267,10 +272,19 @@ fun RegisterScreenContent(
                                 scope.launch {
                                     try {
                                         val credentialManager = CredentialManager.create(context)
+                                        
+                                        // Create a nonce for security
+                                        val rawNonce = UUID.randomUUID().toString()
+                                        val bytes = rawNonce.toByteArray()
+                                        val md = MessageDigest.getInstance("SHA-256")
+                                        val digest = md.digest(bytes)
+                                        val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
+
                                         val googleIdOption = GetGoogleIdOption.Builder()
-                                            .setFilterByAuthorizedAccounts(false)
+                                            .setFilterByAuthorizedAccounts(false) // HIỆN TẤT CẢ TÀI KHOẢN
                                             .setServerClientId(context.getString(R.string.google_web_client_id))
-                                            .setAutoSelectEnabled(false)
+                                            .setNonce(hashedNonce)
+                                            .setAutoSelectEnabled(false) // LUÔN HIỆN DANH SÁCH CHỌN
                                             .build()
 
                                         val request = GetCredentialRequest.Builder()
@@ -279,13 +293,22 @@ fun RegisterScreenContent(
 
                                         val result = credentialManager.getCredential(context, request)
                                         val credential = result.credential
-                                        if (credential is androidx.credentials.CustomCredential && 
-                                            credential.type == com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                                            val googleIdToken = com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(credential.data)
+                                        if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                            val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data)
                                             onGoogleLoginClick(googleIdToken.idToken)
+                                        } else {
+                                            Log.e("Auth", "Unexpected credential type: ${credential.type}")
+                                            snackBarHostState.showSnackbar("Unexpected registration error")
                                         }
+                                    } catch (e: NoCredentialException) {
+                                        Log.e("Auth", "Lỗi: Không tìm thấy tài khoản hoặc Client ID sai. Hãy kiểm tra SHA-1 và google-services.json.", e)
+                                        snackBarHostState.showSnackbar("Không tìm thấy tài khoản Google. Hãy đảm bảo bạn đã đăng nhập trên thiết bị.")
+                                    } catch (e: GetCredentialException) {
+                                        Log.e("Auth", "Google Sign-In Error: ${e.message}", e)
+                                        snackBarHostState.showSnackbar(e.message ?: "Google Sign-In failed")
                                     } catch (e: Exception) {
-                                        snackBarHostState.showSnackbar("Google Sign-In failed")
+                                        Log.e("Auth", "General Error: ${e.message}", e)
+                                        snackBarHostState.showSnackbar("An unexpected error occurred")
                                     }
                                 }
                             }

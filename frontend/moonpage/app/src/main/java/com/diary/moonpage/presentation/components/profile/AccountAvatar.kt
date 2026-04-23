@@ -12,12 +12,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 
 @Composable
 fun AccountAvatar(
     onEditClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    avatarUrl: String? = null
 ) {
     val colorScheme = MaterialTheme.colorScheme
     
@@ -31,22 +34,33 @@ fun AccountAvatar(
                 .background(colorScheme.surfaceVariant, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(CircleShape)
-                    .background(colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                // Smiley face using onPrimary color for contrast
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row {
-                        Box(modifier = Modifier.size(4.dp).background(colorScheme.onPrimary, CircleShape))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(modifier = Modifier.size(4.dp).background(colorScheme.onPrimary, CircleShape))
+            if (avatarUrl != null) {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(70.dp)
+                        .clip(CircleShape)
+                        .background(colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Smiley face using onPrimary color for contrast
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row {
+                            Box(modifier = Modifier.size(4.dp).background(colorScheme.onPrimary, CircleShape))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(modifier = Modifier.size(4.dp).background(colorScheme.onPrimary, CircleShape))
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(modifier = Modifier.width(12.dp).height(2.dp).background(colorScheme.onPrimary))
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Box(modifier = Modifier.width(12.dp).height(2.dp).background(colorScheme.onPrimary))
                 }
             }
         }

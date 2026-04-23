@@ -1,7 +1,9 @@
 package com.diary.moonpage.di
 
+import com.diary.moonpage.core.network.AuthInterceptor
 import com.diary.moonpage.data.remote.api.AuthApi
 import com.diary.moonpage.data.remote.api.ThemeApi
+import com.diary.moonpage.data.remote.api.UserApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,13 +21,14 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
+            .addInterceptor(authInterceptor)
             .connectTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .build()
@@ -51,5 +54,11 @@ object NetworkModule {
     @Singleton
     fun provideThemeApi(retrofit: Retrofit): ThemeApi {
         return retrofit.create(ThemeApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApi(retrofit: Retrofit): UserApi {
+        return retrofit.create(UserApi::class.java)
     }
 }
