@@ -1,13 +1,21 @@
 package com.diary.moonpage.core.util
 
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URL
 import kotlin.math.min
 
 object ImageUtils {
@@ -67,6 +75,46 @@ object ImageUtils {
             }
         } catch (e: Exception) {
             0
+        }
+    }
+
+    suspend fun downloadAndSaveImage(context: Context, imageUrl: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val url = URL(imageUrl)
+                val bitmap = BitmapFactory.decodeStream(url.openConnection().getInputStream())
+                saveBitmapToGallery(context, bitmap)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Image saved to gallery", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Failed to download image", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    fun saveBitmapToGallery(context: Context, bitmap: Bitmap) {
+        val filename = "MP_${System.currentTimeMillis()}.jpg"
+        val outputStream = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MoonPage")
+            }
+            val imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            imageUri?.let { resolver.openOutputStream(it) }
+        } else {
+            val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()
+            val file = File(imagesDir, filename)
+            FileOutputStream(file)
+        }
+
+        outputStream?.use {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
         }
     }
 }

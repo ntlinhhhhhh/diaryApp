@@ -37,6 +37,11 @@ fun GalleryScreen(
     val colorScheme = MaterialTheme.colorScheme
     val moments by viewModel.moments.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    
+    // Sort moments by capturedAt descending (newest first)
+    val sortedMoments = remember(moments) {
+        moments.sortedByDescending { it.capturedAt }
+    }
 
     Scaffold(
         containerColor = colorScheme.background,
@@ -66,7 +71,7 @@ fun GalleryScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (moments.isEmpty() && !isLoading) {
+            if (sortedMoments.isEmpty() && !isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Chưa có ảnh nào", color = colorScheme.onBackground.copy(alpha = 0.6f))
                 }
@@ -81,7 +86,7 @@ fun GalleryScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(
-                        items = moments,
+                        items = sortedMoments,
                         key = { it.id }
                     ) { moment ->
                         GalleryItem(url = moment.imageUrl)
