@@ -16,27 +16,43 @@ using DiaryApp.Infrastructure.Providers;
 using Google.Cloud.Firestore;
 using DiaryApp.Infrastructure.Messaging;
 using DiaryApp.Infrastructure.Workers;
+using Microsoft.AspNetCore.ResponseCompression;
+using Google.Api.Gax;
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsDevelopment())
+{
+    var existingHost = Environment.GetEnvironmentVariable("FIRESTORE_EMULATOR_HOST");
+    
+    if (string.IsNullOrEmpty(existingHost)) 
+    {
+        Console.WriteLine("Using Firestore Emulator in Standalone mode (localhost:3000)");
+        Environment.SetEnvironmentVariable("FIRESTORE_EMULATOR_HOST", "localhost:3000");
+    }
+    else 
+    {
+        Console.WriteLine($"Using Firestore Emulator from external environment: {existingHost}");
+    }
+}
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// CONFIGURATIONS
+// configuration
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleSettings"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
 
-// builder.Services.AddFirebaseAdminConfig(builder.Configuration);
-
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
 var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
 
-// AUTHENTICATION & AUTHORIZATION
+// authentication & authorization
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -74,35 +90,39 @@ if (!string.IsNullOrEmpty(firebaseBase64))
     {
         Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(decodedJson)
     });
-
-    builder.Services.AddSingleton<FirestoreDb>(provider =>
-    {
-        return new FirestoreDbBuilder { ProjectId = projectId, JsonCredentials = decodedJson }.Build();
-    });
 }
 else
 {
     string serviceAccountPath = builder.Configuration["Firebase:ServiceAccountPath"];
-    
     if (!string.IsNullOrEmpty(serviceAccountPath))
     {
         Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", serviceAccountPath);
-        
         FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
         {
             Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromFile(serviceAccountPath)
         });
-
-        builder.Services.AddSingleton<FirestoreDb>(provider =>
-        {
-            return FirestoreDb.Create(projectId);
-        });
-    }
-    else
-    {
-        throw new Exception("Lỗi: Không tìm thấy chìa khóa Firebase! Hãy kiểm tra lại Base64 hoặc ServiceAccountPath.");
     }
 }
+
+builder.Services.AddSingleton<FirestoreDb>(provider =>
+{
+    var firestoreBuilder = new FirestoreDbBuilder
+    {
+        ProjectId = projectId,
+        EmulatorDetection = EmulatorDetection.EmulatorOrProduction
+    };
+
+    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIRESTORE_EMULATOR_HOST")))
+    {
+        if (!string.IsNullOrEmpty(firebaseBase64))
+        {
+            byte[] decodedBytes = Convert.FromBase64String(firebaseBase64);
+            firestoreBuilder.JsonCredentials = System.Text.Encoding.UTF8.GetString(decodedBytes);
+        }
+    }
+
+    return firestoreBuilder.Build();
+});
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -110,10 +130,15 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "DiaryApp_";
 });
 
-// DEPENDENCY INJECTION
-// Infrastructure
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
+// dependency injection
 builder.Services.AddSingleton<FirestoreProvider>();
-// builder.Services.AddScoped<ActivitySeeder>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
@@ -124,7 +149,7 @@ builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<IMessageProducer, RabbitMQProducer>();
 builder.Services.AddHostedService<ImageUploadWorker>();
-// Application
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
@@ -137,7 +162,7 @@ builder.Services.AddScoped<IFirebaseNotificationService, FirebaseNotificationSer
 builder.Services.AddScoped<IAppNotificationService, AppNotificationService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
-// CONTROLLERS & SWAGGER 
+// controllers & swagger
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
         {
@@ -173,24 +198,32 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 app.UseDeveloperExceptionPage();
 
+app.UseResponseCompression();
 
-// MIDDLEWARE PIPELINE
 app.UseSwagger();
 app.UseSwaggerUI();
-
-// app.UseHttpsRedirection();
 
 app.UseAuthentication(); 
 app.UseAuthorization();
 
 app.MapControllers();
-// using (var scope = app.Services.CreateScope())
-// {
-//     var db = scope.ServiceProvider.GetRequiredService<FirestoreDb>();
-//     Console.WriteLine("Đang khởi tạo kết nối Firestore...");
-//     await db.Collection("themes").Limit(1).GetSnapshotAsync(); 
-//     Console.WriteLine("Firestore đã sẵn sàng!");
-// }
+
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<FirestoreDb>();
+        Console.WriteLine("nitializing gRPC connection to Firestore (Warm-up)...");
+        
+        await db.Collection("Users").Limit(1).GetSnapshotAsync(); 
+        
+        Console.WriteLine("Firestore is ready! API will respond at lightning speed.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Firestore warm-up warning: {ex.Message}");
+    }
+}
 
 app.MapGet("/", () => Results.Ok("I am alive!"));
 app.Run();

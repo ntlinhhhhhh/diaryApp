@@ -1,125 +1,165 @@
 package com.diary.moonpage.presentation.screens.profile
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.diary.moonpage.presentation.components.profile.ActionCard
-import com.diary.moonpage.presentation.components.profile.ProfileHeader
-import com.diary.moonpage.presentation.components.profile.ProfileMenuItem
-import com.diary.moonpage.presentation.components.profile.StatCard
-import com.diary.moonpage.presentation.components.profile.UserInfoCard
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.diary.moonpage.presentation.components.profile.*
 import com.diary.moonpage.presentation.components.core.layout.SectionTitle
-import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
 import com.diary.moonpage.presentation.theme.*
 
+/**
+ * Stateful Component for Profile Screen
+ */
 @Composable
-fun ProfileScreen() {
-    val isDark = isSystemInDarkTheme()
-    val outerBgColor = MaterialTheme.colorScheme.background
-    val innerBgColor = MaterialTheme.colorScheme.background
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val inputBgColor = MaterialTheme.colorScheme.surfaceVariant
+fun ProfileScreen(
+    viewModel: ProfileViewModel = hiltViewModel(),
+    onNavigateToAccount: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToPhotos: () -> Unit,
+    onNavigateToThemeCalendar: () -> Unit,
+    onNavigateToWidgets: () -> Unit,
+    onNavigateToInviteFriend: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Refresh data when entering the screen
+    LaunchedEffect(Unit) {
+        viewModel.loadProfile()
+        viewModel.loadMyThemes()
+    }
+
+    if (uiState.isLoading && uiState.user == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+    } else {
+        ProfileScreenContent(
+            userId = uiState.user?.id?.take(8) ?: "",
+            userName = uiState.user?.name ?: "User",
+            avatarUrl = uiState.user?.avatarUrl,
+            recordedDays = "8", // Can be updated if API provides it
+            photoCount = uiState.myThemes.size.toString(),
+            onNotificationClick = onNavigateToNotifications,
+            onSettingsClick = onNavigateToSettings,
+            onAccountClick = onNavigateToAccount,
+            onPhotosClick = onNavigateToPhotos,
+            onThemeCalendarClick = onNavigateToThemeCalendar,
+            onWidgetsClick = onNavigateToWidgets,
+            onInviteFriendClick = onNavigateToInviteFriend
+        )
+    }
+}
+
+/**
+ * Stateless Content for Profile Screen
+ */
+@Composable
+fun ProfileScreenContent(
+    userId: String,
+    userName: String,
+    avatarUrl: String?,
+    recordedDays: String,
+    photoCount: String,
+    onNotificationClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onAccountClick: () -> Unit,
+    onPhotosClick: () -> Unit,
+    onThemeCalendarClick: () -> Unit,
+    onWidgetsClick: () -> Unit,
+    onInviteFriendClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
 
     Scaffold(
-        containerColor = outerBgColor,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { /* TODO: Xử lý FAB */ },
-                containerColor = inputBgColor,
-                contentColor = textColor,
-                shape = CircleShape,
-                modifier = Modifier.shadow(8.dp, CircleShape, spotColor = inputBgColor)
-            ) {
-                Icon(Icons.Outlined.AddReaction, contentDescription = "Add Emotion")
-            }
+        containerColor = colorScheme.background,
+        topBar = {
+            ProfileHeader(
+                title = "My Info",
+                onNotificationClick = onNotificationClick,
+                onSettingsClick = onSettingsClick
+            )
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(outerBgColor)
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                    .background(innerBgColor)
-                    .padding(horizontal = 14.dp)
-                    .verticalScroll(rememberScrollState())
+
+            // 2. Account Section
+            SectionTitle("Account")
+            UserInfoCard(
+                userId = if (userId.isNotEmpty()) "#$userId" else "",
+                userName = userName,
+                avatarUrl = avatarUrl,
+                onClick = onAccountClick
+            )
+
+            // 3. My Records Section
+            SectionTitle("My records")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
-                ProfileHeader(
-                    title = "My Info",
-                    onNotificationClick = { /* TODO */ },
-                    onSettingsClick = { /* TODO */ }
+                StatCard(
+                    title = "Recorded days",
+                    value = recordedDays,
+                    modifier = Modifier.weight(1f)
                 )
 
-                UserInfoCard(
-                    name = "Alex Wanderer",
-                    userId = "#0320",
-                    onClick = { /* TODO */ }
+                ActionCard(
+                    title = "My Photos",
+                    value = photoCount,
+                    modifier = Modifier.weight(1f),
+                    onClick = onPhotosClick
                 )
-
-                SectionTitle("My Records")
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    StatCard(
-                        title = "Recorded days",
-                        value = "128",
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    ActionCard(
-                        title = "Photos",
-                        icon = Icons.Outlined.PhotoLibrary,
-                        modifier = Modifier.weight(1f),
-                        onClick = { /* TODO */ }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                ProfileMenuItem(
-                    title = "Theme Calendar",
-                    icon = Icons.Outlined.CalendarMonth,
-                    onClick = { /* TODO */ }
-                )
-
-                SectionTitle("More")
-
-                ProfileMenuItem(
-                    title = "Widgets",
-                    icon = Icons.Outlined.Widgets,
-                    onClick = { /* TODO */ }
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                ProfileMenuItem(
-                    title = "Invite a Friend",
-                    icon = Icons.Outlined.PersonAdd,
-                    onClick = { /* TODO */ }
-                )
-
-                Spacer(modifier = Modifier.height(100.dp))
             }
 
-        }
+            Spacer(modifier = Modifier.height(16.dp))
 
+            ProfileMenuItem(
+                title = "Theme Calendar",
+                icon = Icons.Rounded.CalendarMonth,
+                onClick = onThemeCalendarClick
+            )
+
+            // 4. More Section
+            SectionTitle("More")
+
+            ProfileMenuItem(
+                title = "Widgets",
+                icon = Icons.Rounded.Widgets,
+                onClick = onWidgetsClick
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ProfileMenuItem(
+                title = "Invite a Friend",
+                icon = Icons.Rounded.PersonAdd,
+                onClick = onInviteFriendClick
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
     }
 }
 
@@ -127,6 +167,19 @@ fun ProfileScreen() {
 @Composable
 fun ProfileScreenPreview() {
     MoonPageTheme {
-        ProfileScreen()
+        ProfileScreenContent(
+            userId = "0320",
+            userName = "Moon User",
+            avatarUrl = null,
+            recordedDays = "8",
+            photoCount = "3",
+            onNotificationClick = {},
+            onSettingsClick = {},
+            onAccountClick = {},
+            onPhotosClick = {},
+            onThemeCalendarClick = {},
+            onWidgetsClick = {},
+            onInviteFriendClick = {}
+        )
     }
 }

@@ -40,6 +40,7 @@ fun MoonBottomNavBar(
 
     val calendar = Screen.Calendar.route
     val stats = Screen.Stats.route
+    val camera = Screen.Camera.route
     val store = Screen.Store.route
     val profile = Screen.Profile.route
 
@@ -80,13 +81,13 @@ fun MoonBottomNavBar(
                     .size(56.dp)
                     .clip(CircleShape)
                     .background(cameraBgColor)
-                    .clickable { onItemSelected("camera") },
+                    .clickable { onItemSelected(camera) },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.CameraAlt,
                     contentDescription = "Camera",
-                    tint = if (selectedRoute == "camera") activeColor else inactiveColor,
+                    tint = if (selectedRoute == camera) activeColor else inactiveColor,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -149,7 +150,7 @@ private fun NavBarItem(
 fun BottomNavPreviewLight() {
     MoonPageTheme {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-            MoonBottomNavBar(selectedRoute = "profile", onItemSelected = {})
+            MoonBottomNavBar(selectedRoute = Screen.Profile.route, onItemSelected = {})
         }
     }
 }
@@ -159,7 +160,7 @@ fun BottomNavPreviewLight() {
 fun BottomNavPreviewDark() {
     MoonPageTheme(darkTheme = true) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-            MoonBottomNavBar(selectedRoute = "profile", onItemSelected = {})
+            MoonBottomNavBar(selectedRoute = Screen.Profile.route, onItemSelected = {})
         }
     }
 }

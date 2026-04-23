@@ -1,14 +1,6 @@
 package com.diary.moonpage.data.remote.api
 
-import com.diary.moonpage.data.remote.dto.auth.ForgotPasswordRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.GoogleLoginRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.LoginResponseDTO
-import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.RegisterResponseDTO
-import com.diary.moonpage.data.remote.dto.auth.ResetPasswordRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.VerifyOtpRequestDTO
-import com.diary.moonpage.data.remote.dto.auth.VerifyOtpResponseDTO
+import com.diary.moonpage.data.remote.dto.auth.*
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -36,7 +28,7 @@ interface AuthApi {
 
     @POST("api/auth/verify-otp")
     suspend fun verifyOtp(
-        @Body request: VerifyOtpRequestDTO
+        @Body request: VerifyOtpDTO
     ): Response<VerifyOtpResponseDTO>
 
     @POST("api/auth/reset-password")

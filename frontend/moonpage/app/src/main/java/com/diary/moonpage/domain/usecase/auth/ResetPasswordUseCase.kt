@@ -1,11 +1,11 @@
-package com.diary.moonpage.domain.usecase
+package com.diary.moonpage.domain.usecase.auth
 
 import com.diary.moonpage.data.remote.dto.auth.ResetPasswordRequestDTO
 import com.diary.moonpage.domain.repository.AuthRepository
 import javax.inject.Inject
 
 class ResetPasswordUseCase @Inject constructor(
-    private  val repository: AuthRepository
+    private val repository: AuthRepository
 ) {
     suspend operator fun invoke(email: String, resetToken: String, newPassword: String): Result<Unit> {
         if (newPassword.length < 6) {

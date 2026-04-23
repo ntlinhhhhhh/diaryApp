@@ -1,16 +1,35 @@
 package com.diary.moonpage.presentation.navigation
 
 sealed class Screen (val route: String) {
-    object Loading: Screen("loading_Screen")
-    object Landing: Screen("landing_Screen")
-    object Login: Screen("login_Screen")
-    object Register: Screen("register_Screen")
-    object ForgotPassword: Screen("forgotPassword_Screen")
-    object ResetPassword: Screen("resetPassword_Screen")
-    object VerifyOtp: Screen("verifyOtp_Screen")
+    // Auth Screens
+    object Loading: Screen("loading_screen")
+    object Landing: Screen("landing_screen")
+    object Login: Screen("login_screen")
+    object Register: Screen("register_screen")
+    object ForgotPassword: Screen("forgot_password_screen")
+    object ResetPassword: Screen("reset_password_screen")
+    object VerifyOtp: Screen("verify_otp_screen")
 
-    object Calendar: Screen("calendar_Screen")
-    object Stats: Screen("stats_Screen")
-    object Store: Screen("store_Screen")
-    object Profile: Screen("Profile_Screen")
+    // Main App Screens (Bottom Nav)
+    object Calendar: Screen("calendar_screen")
+    object Stats: Screen("stats_screen")
+    object Camera: Screen("camera_screen")
+    object Store: Screen("store_screen")
+    object Profile: Screen("profile_screen")
+
+    // Profile Sub-screens
+    object Account: Screen("account_screen")
+    object Settings: Screen("settings_screen")
+    object Notifications: Screen("notifications_screen")
+    object Photos: Screen("photos_screen")
+    object Gallery: Screen("gallery_screen")
+    object ThemeCalendar: Screen("theme_calendar_screen")
+    object Widgets: Screen("widgets_screen")
+    object InviteFriend: Screen("invite_friend_screen")
+
+    // Calendar Sub-screens
+    object Filter: Screen("filter_screen")
+
+    // Store Sub-screens
+    object ThemeDetail: Screen("theme_detail_screen")
 }

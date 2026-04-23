@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -52,6 +55,10 @@ fun ResetPasswordScreenContent(
     onResetClick: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
+    var otpCode by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -122,7 +129,8 @@ fun ResetPasswordScreenContent(
                             label = "New Password",
                             placeholderText = "••••••••",
                             isPassword = true,
-                            errorText = uiState.passwordError
+                            errorText = uiState.passwordError,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                         )
 
                         // Xác nhận Pass mới
@@ -132,7 +140,14 @@ fun ResetPasswordScreenContent(
                             label = "Confirm Password",
                             placeholderText = "••••••••",
                             isPassword = true,
-                            errorText = uiState.confirmPasswordError
+                            errorText = uiState.confirmPasswordError,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    keyboardController?.hide()
+                                    onResetClick()
+                                }
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))

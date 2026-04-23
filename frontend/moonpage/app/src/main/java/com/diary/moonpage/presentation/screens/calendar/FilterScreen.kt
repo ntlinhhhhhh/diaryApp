@@ -1,0 +1,209 @@
+package com.diary.moonpage.presentation.screens.calendar
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun FilterScreen(
+    onDismiss: () -> Unit,
+    onSeeResults: () -> Unit
+) {
+    // Stateful logic for filters
+    var selectedMood by remember { mutableStateOf<Int?>(null) }
+    val selectedHobbies = remember { mutableStateListOf<String>() }
+
+    FilterContent(
+        selectedMood = selectedMood,
+        onMoodSelect = { selectedMood = it },
+        onDismiss = onDismiss,
+        onReset = {
+            selectedMood = null
+            selectedHobbies.clear()
+        },
+        onSeeResults = onSeeResults
+    )
+}
+
+@Composable
+fun FilterContent(
+    selectedMood: Int?,
+    onMoodSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    onReset: () -> Unit,
+    onSeeResults: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.width(48.dp)) // To center title
+                Text(
+                    text = "When did I record...",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                item {
+                    // Mood Section
+                    FilterSectionTitle("Mood")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        val moods = listOf(
+                            Color(0xFFFFE599), Color(0xFFC1E1C1), Color(0xFF76BA99),
+                            Color(0xFF4E944F), Color(0xFF555555)
+                        )
+                        moods.forEachIndexed { index, color ->
+                            MoodItem(
+                                color = color,
+                                isSelected = selectedMood == index,
+                                onClick = { onMoodSelect(index) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                item {
+                    // Hobbies Section
+                    FilterSectionTitle("Hobbies")
+                    val hobbies = listOf(
+                        Icons.Rounded.FitnessCenter, Icons.Rounded.Tv, Icons.Rounded.LocalMovies,
+                        Icons.Rounded.Gamepad, Icons.Rounded.MenuBook, Icons.Rounded.DirectionsRun,
+                        Icons.Rounded.Headphones, Icons.Rounded.Palette
+                    )
+                    FlowRow(hobbies)
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                item {
+                    // Emotions Section
+                    FilterSectionTitle("Emotions")
+                    val emotions = listOf(Icons.Rounded.Weekend, Icons.Rounded.Bedtime)
+                    FlowRow(emotions)
+                }
+            }
+
+            // Bottom Buttons
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Button(
+                    onClick = onReset,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F3F4)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Reset", color = Color.Gray)
+                }
+                Button(
+                    onClick = onSeeResults,
+                    modifier = Modifier.weight(2f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF76BA99)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("See results", color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterSectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.bodyMedium,
+        color = Color.Gray,
+        modifier = Modifier.padding(bottom = 12.dp)
+    )
+}
+
+@Composable
+fun MoodItem(color: Color, isSelected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(50.dp)
+            .clip(CircleShape)
+            .background(color)
+            .clickable { onClick() }
+            .then(
+                if (isSelected) Modifier.background(color.copy(alpha = 0.7f)) else Modifier
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.SentimentSatisfied,
+            contentDescription = null,
+            tint = Color.Black.copy(alpha = 0.5f),
+            modifier = Modifier.size(30.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun FlowRow(icons: List<ImageVector>) {
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        icons.forEach { icon ->
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFF1F3F4)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}

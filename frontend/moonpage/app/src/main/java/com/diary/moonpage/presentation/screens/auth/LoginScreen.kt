@@ -1,10 +1,13 @@
 package com.diary.moonpage.presentation.screens.auth
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
@@ -13,13 +16,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,6 +41,8 @@ import com.diary.moonpage.presentation.components.auth.SocialLoginButton
 import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
 import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
 import com.diary.moonpage.presentation.components.core.layout.MoonDivider
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -51,6 +65,7 @@ fun LoginScreen(
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
         onLoginClick = viewModel::login,
+        onGoogleLoginClick = viewModel::loginWithGoogle,
         onNavigateBack = onNavigateBack,
         onNavigateToRegister = onNavigateToRegister,
         onNavigateToForgotPassword = onNavigateToForgotPassword,
@@ -66,6 +81,7 @@ fun LoginScreenContent(
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
+    onGoogleLoginClick: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
@@ -76,6 +92,11 @@ fun LoginScreenContent(
     val snackBarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    val googleWebClientId = stringResource(R.string.google_web_client_id)
+    
     val screenBgColor = MaterialTheme.colorScheme.background
     val backIconColor = MaterialTheme.colorScheme.onSurface
     val cardBgColor = MaterialTheme.colorScheme.surface
@@ -83,17 +104,11 @@ fun LoginScreenContent(
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
             when (event) {
-                is AuthUiEvent.LoginSuccess -> {
-                    onLoginSuccess(event.token)
-                }
+                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token)
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
                         snackBarHostState.currentSnackbarData?.dismiss()
-
-                        snackBarHostState.showSnackbar(
-                            message = event.message,
-                            duration = SnackbarDuration.Short
-                        )
+                        snackBarHostState.showSnackbar(event.message)
                     }
                 }
                 else -> Unit
@@ -103,27 +118,28 @@ fun LoginScreenContent(
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
-        containerColor = screenBgColor
+        containerColor = screenBgColor,
+        contentWindowInsets = WindowInsets.systemBars
     ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .imePadding() 
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(vertical = 20.dp)
                     .pointerInput(Unit) {
-                        detectTapGestures {
-                            focusManager.clearFocus()
-                        }
+                        detectTapGestures { focusManager.clearFocus() }
                     },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.Start
                 ) {
                     IconButton(onClick = onNavigateBack) {
@@ -135,7 +151,7 @@ fun LoginScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Card(
                     modifier = Modifier
@@ -151,7 +167,7 @@ fun LoginScreenContent(
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
                             .padding(horizontal = 28.dp, vertical = 36.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -166,7 +182,14 @@ fun LoginScreenContent(
                             label = "Email address",
                             placeholderText = "Enter your email",
                             iconVector = Icons.Outlined.Email,
-                            errorText = uiState.emailError
+                            errorText = uiState.emailError,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            )
                         )
 
                         MoonTextField(
@@ -177,7 +200,17 @@ fun LoginScreenContent(
                             trailingLabel = "Forgot Password?",
                             placeholderText = "Enter your password",
                             errorText = uiState.passwordError,
-                            onTrailingClick = { onNavigateToForgotPassword() }
+                            onTrailingClick = { onNavigateToForgotPassword() },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    keyboardController?.hide()
+                                    onLoginClick()
+                                }
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -200,7 +233,43 @@ fun LoginScreenContent(
                         SocialLoginButton(
                             text = "Login with Google",
                             iconResId = R.drawable.ic_google,
-                            onClick = { onNavigateToLoginGoogle() }
+                            onClick = {
+                                scope.launch {
+                                    try {
+                                        val credentialManager = CredentialManager.create(context)
+                                        
+                                        val googleIdOption = GetGoogleIdOption.Builder()
+                                            .setFilterByAuthorizedAccounts(false)
+                                            .setServerClientId(googleWebClientId)
+                                            .setAutoSelectEnabled(true)
+                                            .build()
+
+                                        val request = GetCredentialRequest.Builder()
+                                            .addCredentialOption(googleIdOption)
+                                            .build()
+
+                                        val result = credentialManager.getCredential(context, request)
+                                        
+                                        val credential = result.credential
+                                        if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                            val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data)
+                                            onGoogleLoginClick(googleIdToken.idToken)
+                                        } else {
+                                            Log.e("Auth", "Unexpected credential type: ${credential.type}")
+                                            snackBarHostState.showSnackbar("Unexpected login error")
+                                        }
+                                    } catch (e: NoCredentialException) {
+                                        Log.e("Auth", "No Google accounts found. Check Client ID and SHA-1.", e)
+                                        snackBarHostState.showSnackbar("Please sign in to a Google account on this device.")
+                                    } catch (e: GetCredentialException) {
+                                        Log.e("Auth", "Google Sign-In Error: ${e.message}", e)
+                                        snackBarHostState.showSnackbar(e.message ?: "Google Sign-In failed")
+                                    } catch (e: Exception) {
+                                        Log.e("Auth", "General Error: ${e.message}", e)
+                                        snackBarHostState.showSnackbar("An unexpected error occurred")
+                                    }
+                                }
+                            }
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
@@ -212,6 +281,8 @@ fun LoginScreenContent(
                         )
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(36.dp))
             }
 
             if (uiState.isLoading) {
@@ -230,7 +301,7 @@ fun LoginScreenContent(
 
 @Preview(showBackground = true)
 @Composable
-fun LoginScreenPreviewLight() {
+fun LoginScreenPreview() {
     MoonPageTheme {
         LoginScreenContent(
             uiState = AuthUiState(),
@@ -238,25 +309,7 @@ fun LoginScreenPreviewLight() {
             onEmailChange = {},
             onPasswordChange = {},
             onLoginClick = {},
-            onNavigateBack = {},
-            onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onNavigateToLoginGoogle = {},
-            onLoginSuccess = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun LoginScreenPreviewDark() {
-    MoonPageTheme {
-        LoginScreenContent(
-            uiState = AuthUiState(),
-            uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
-            onEmailChange = {},
-            onPasswordChange = {},
-            onLoginClick = {},
+            onGoogleLoginClick = {},
             onNavigateBack = {},
             onNavigateToRegister = {},
             onNavigateToForgotPassword = {},

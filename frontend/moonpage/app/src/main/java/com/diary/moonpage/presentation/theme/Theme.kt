@@ -43,24 +43,63 @@ private val LightColorScheme = lightColorScheme(
     error = MoonErrorLight
 )
 
+private val GreenColorScheme = lightColorScheme(
+    primary = MoonGreenPrimary,
+    onPrimary = Color.White,
+
+    background = MoonGreenBg,
+    onBackground = MoonGreenTextPrimary,
+
+    surface = Color.White,
+    onSurface = MoonGreenTextPrimary,
+
+    surfaceVariant = MoonGreenSurface,
+    secondary = MoonGreenSecondary,
+    tertiary = MoonGreenTertiary,
+    
+    outline = MoonGreenTextSecondary,
+    error = MoonErrorLight
+)
+
+enum class MoonThemeType {
+    LIGHT, DARK, GREEN
+}
+
 @Composable
 fun MoonPageTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeType: MoonThemeType = if (isSystemInDarkTheme()) MoonThemeType.DARK else MoonThemeType.LIGHT,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (themeType == MoonThemeType.DARK) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
+        themeType == MoonThemeType.DARK -> DarkColorScheme
+        themeType == MoonThemeType.GREEN -> GreenColorScheme
         else -> LightColorScheme
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        content = content
+    )
+}
+
+/**
+ * Legacy support for the old boolean parameter
+ */
+@Composable
+fun MoonPageTheme(
+    darkTheme: Boolean,
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    MoonPageTheme(
+        themeType = if (darkTheme) MoonThemeType.DARK else MoonThemeType.LIGHT,
+        dynamicColor = dynamicColor,
         content = content
     )
 }
