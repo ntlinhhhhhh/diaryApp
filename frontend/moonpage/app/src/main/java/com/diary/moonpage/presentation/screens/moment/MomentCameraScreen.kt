@@ -4,49 +4,70 @@ import android.Manifest
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FlipCameraIos
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.diary.moonpage.presentation.components.moment.CameraActionButton
+import com.diary.moonpage.core.util.ImageUtils
 import com.diary.moonpage.presentation.components.moment.CaptureButton
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executor
+
+data class MomentTag(
+    val id: String,
+    val icon: ImageVector?,
+    val text: String,
+    val containerColor: Color? = null,
+    val contentColor: Color = Color.White
+)
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -67,26 +88,81 @@ fun MomentCameraScreen(
         )
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Camera permission is required")
+            Text("Camera permission is required", color = MaterialTheme.colorScheme.onBackground)
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalPermissionsApi::class)
 @Composable
 fun MomentCameraContent(
     onNavigateToGallery: () -> Unit,
-    onNavigateToHistory: () -> Unit
+    onNavigateToHistory: () -> Unit,
+    viewModel: MomentViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
+    var capturedLensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
     val imageCapture: ImageCapture = remember { ImageCapture.Builder().build() }
     val previewView = remember { PreviewView(context) }
     
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var caption by remember { mutableStateOf("") }
-    var isUploading by remember { mutableStateOf(false) }
+    val isLoading by viewModel.isLoading.collectAsState()
+    var isSuccess by remember { mutableStateOf(false) }
+    var showTagSheet by remember { mutableStateOf(false) }
+
+    // States for Tag Details
+    var userMessage by remember { mutableStateOf("") }
+    var userRating by remember { mutableIntStateOf(0) }
+    var userLocation by remember { mutableStateOf("") }
+    var userWeather by remember { mutableStateOf("Sunny ☀️") }
+
+    val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_COARSE_LOCATION)
+    val currentTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+
+    val allTags = remember {
+        listOf(
+            MomentTag("text", Icons.Rounded.TextFields, "Message"),
+            MomentTag("review", Icons.Rounded.Star, "Review"),
+            MomentTag("location", Icons.Rounded.LocationOn, "Location"),
+            MomentTag("weather", Icons.Rounded.WbSunny, "Weather"),
+            MomentTag("time", Icons.Rounded.AccessTime, currentTime),
+            MomentTag("party", null, "Party Time!", containerColor = Color(0xFF80FFE8), contentColor = Color.Black),
+            MomentTag("ootd", null, "OOTD", containerColor = Color.White, contentColor = Color.Black),
+            MomentTag("missyou", null, "Miss you", containerColor = Color(0xFFFF4B4B), contentColor = Color.White)
+        )
+    }
+
+    val pagerState = rememberPagerState(pageCount = { allTags.size })
+
+    // Reset UI after success
+    LaunchedEffect(isSuccess) {
+        if (isSuccess) {
+            delay(1500)
+            capturedImageUri = null
+            userMessage = ""
+            userRating = 0
+            userLocation = ""
+            isSuccess = false
+        }
+    }
+
+    // Auto-request location when swiped or permission granted
+    LaunchedEffect(pagerState.currentPage, locationPermissionState.status.isGranted, capturedImageUri) {
+        if (capturedImageUri != null) {
+            val currentTag = allTags[pagerState.currentPage]
+            if (currentTag.id == "location" || currentTag.id == "weather") {
+                if (!locationPermissionState.status.isGranted) {
+                    locationPermissionState.launchPermissionRequest()
+                } else if (userLocation.isEmpty()) {
+                    userLocation = "Hà Nội, Việt Nam"
+                }
+            }
+        }
+    }
 
     LaunchedEffect(lensFacing) {
         val cameraProvider = ProcessCameraProvider.getInstance(context).get()
@@ -118,26 +194,48 @@ fun MomentCameraContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top Bar
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
-            horizontalArrangement = Arrangement.End
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .height(56.dp)
         ) {
             if (capturedImageUri != null) {
+                Text(
+                    text = "Upload",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontStyle = FontStyle.Normal,
+                    modifier = Modifier.align(Alignment.Center),
+                    textAlign = TextAlign.Center
+                )
+                
                 IconButton(
                     onClick = { 
-                        capturedImageUri = null
-                        caption = ""
+                        Toast.makeText(context, "Image saved to gallery", Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
+                    modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Discard")
+                    Icon(
+                        Icons.Rounded.FileDownload,
+                        contentDescription = "Download",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
             } else {
-                Box(modifier = Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant))
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .align(Alignment.CenterEnd)
+                )
             }
         }
 
-        // Camera Preview or Captured Image Preview
+        // Image Box - Fixed 0.9f width
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
@@ -147,48 +245,145 @@ fun MomentCameraContent(
             contentAlignment = Alignment.Center
         ) {
             if (capturedImageUri != null) {
-                // Show captured image immediately
                 AsyncImage(
                     model = capturedImageUri,
                     contentDescription = "Captured Image",
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(scaleX = if (capturedLensFacing == CameraSelector.LENS_FACING_FRONT) -1f else 1f),
                     contentScale = ContentScale.Crop
                 )
                 
-                // Note Overlay (like Locket)
+                // Swipeable Tag Overlay - Positioned low
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(bottom = 4.dp),
                     contentAlignment = Alignment.BottomCenter
                 ) {
-                    TextField(
-                        value = caption,
-                        onValueChange = { caption = it },
-                        placeholder = { Text("Write a caption...", color = Color.White.copy(alpha = 0.6f)) },
+                    HorizontalPager(
+                        state = pagerState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 20.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Black.copy(alpha = 0.4f),
-                            unfocusedContainerColor = Color.Black.copy(alpha = 0.4f),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = Color.White,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(20.dp),
-                        textStyle = TextStyle(
-                            textAlign = TextAlign.Center,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
+                            .height(60.dp),
+                        contentPadding = PaddingValues(horizontal = 48.dp)
+                    ) { page ->
+                        val tag = allTags[page]
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Surface(
+                                color = tag.containerColor ?: Color.Black.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(24.dp),
+                                modifier = Modifier.wrapContentSize()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (tag.id != "review") {
+                                        tag.icon?.let {
+                                            Icon(
+                                                it,
+                                                null,
+                                                tint = tag.contentColor,
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .clickable { showTagSheet = true }
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
+                                    }
+
+                                    when(tag.id) {
+                                        "text" -> {
+                                            BasicTextField(
+                                                value = userMessage,
+                                                onValueChange = { userMessage = it },
+                                                textStyle = TextStyle(
+                                                    color = tag.contentColor,
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontSize = 16.sp,
+                                                    textAlign = TextAlign.Center
+                                                ),
+                                                cursorBrush = SolidColor(tag.contentColor),
+                                                decorationBox = { innerTextField ->
+                                                    if (userMessage.isEmpty()) {
+                                                        Text(
+                                                            "Add a message",
+                                                            color = tag.contentColor.copy(alpha = 0.6f),
+                                                            fontSize = 16.sp
+                                                        )
+                                                    }
+                                                    innerTextField()
+                                                }
+                                            )
+                                        }
+                                        "review" -> {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                repeat(5) { index ->
+                                                    val starRating = index + 1
+                                                    Icon(
+                                                        imageVector = if (starRating <= userRating) Icons.Default.Star else Icons.Default.StarBorder,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFFFFD700),
+                                                        modifier = Modifier
+                                                            .size(24.dp)
+                                                            .clickable { userRating = starRating }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        "location" -> {
+                                            Text(
+                                                text = if (userLocation.isNotEmpty()) userLocation else "Tap to add location",
+                                                color = tag.contentColor,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.clickable {
+                                                    if (locationPermissionState.status.isGranted) {
+                                                        userLocation = "Hà Nội, Việt Nam"
+                                                    } else {
+                                                        locationPermissionState.launchPermissionRequest()
+                                                    }
+                                                }
+                                            )
+                                        }
+                                        "weather" -> {
+                                            val weathers = listOf("Sunny ☀️", "Cloudy ☁️", "Rainy 🌧️", "Snowy ❄️")
+                                            Text(
+                                                text = userWeather,
+                                                color = tag.contentColor,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.clickable {
+                                                    if (locationPermissionState.status.isGranted) {
+                                                        val currentIndex = weathers.indexOf(userWeather)
+                                                        userWeather = weathers[(currentIndex + 1) % weathers.size]
+                                                    } else {
+                                                        locationPermissionState.launchPermissionRequest()
+                                                    }
+                                                }
+                                            )
+                                        }
+                                        else -> {
+                                            Text(
+                                                text = tag.text,
+                                                color = tag.contentColor,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
-                if (isUploading) {
-                    CircularProgressIndicator(color = Color.White)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
             } else {
                 AndroidView(
@@ -198,20 +393,48 @@ fun MomentCameraContent(
             }
         }
 
+        // Pager dots sync with current page
+        if (capturedImageUri != null) {
+            Row(
+                modifier = Modifier.padding(top = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                repeat(allTags.size) { i ->
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (i == pagerState.currentPage) MaterialTheme.colorScheme.onBackground 
+                                else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                            )
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.weight(1f))
 
-        // Action Buttons
+        // Action Buttons - NO CAPTIONS, NO BORDERS, CONSISTENT SIZE
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 40.dp, vertical = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (capturedImageUri == null) {
-                CameraActionButton(
-                    icon = Icons.Default.PhotoLibrary,
-                    label = "Gallery",
-                    onClick = onNavigateToGallery
-                )
+                // Camera Mode
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { onNavigateToGallery() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.PhotoLibrary, null, tint = MaterialTheme.colorScheme.primary)
+                }
 
                 CaptureButton(
                     onClick = {
@@ -219,63 +442,219 @@ fun MomentCameraContent(
                             context = context,
                             imageCapture = imageCapture,
                             executor = ContextCompat.getMainExecutor(context),
-                            onImageCaptured = { uri ->
-                                capturedImageUri = uri
+                            onImageCaptured = { uri -> 
+                                capturedImageUri = uri 
+                                capturedLensFacing = lensFacing
                             },
                             onError = { Log.e("Camera", "Capture failed", it) }
                         )
                     }
                 )
 
-                CameraActionButton(
-                    icon = Icons.Default.FlipCameraIos,
-                    label = "Flip",
-                    onClick = {
-                        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-                            CameraSelector.LENS_FACING_FRONT
-                        } else {
-                            CameraSelector.LENS_FACING_BACK
-                        }
-                    }
-                )
-            } else {
-                // Send button when image is captured
-                Spacer(modifier = Modifier.width(56.dp)) // For balance
-                
-                Button(
-                    onClick = {
-                        // isUploading = true
-                        // uploadMoment(capturedImageUri!!, caption)
-                        Log.d("Camera", "Sending moment with caption: $caption")
-                    },
-                    modifier = Modifier.size(72.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    contentPadding = PaddingValues(0.dp)
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable {
+                            lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                                CameraSelector.LENS_FACING_FRONT
+                            } else {
+                                CameraSelector.LENS_FACING_BACK
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Send, contentDescription = "Send", modifier = Modifier.size(32.dp))
+                    Icon(Icons.Rounded.FlipCameraIos, null, tint = MaterialTheme.colorScheme.primary)
+                }
+            } else {
+                // Send Mode
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { 
+                            capturedImageUri = null
+                            userMessage = ""
+                            userRating = 0
+                            userLocation = ""
+                            userWeather = "Sunny ☀️"
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Rounded.Close,
+                        contentDescription = "Cancel",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
 
-                Spacer(modifier = Modifier.width(56.dp)) // For balance
+                // Send Button with Animation
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .border(4.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape)
+                        .padding(8.dp)
+                        .clip(CircleShape)
+                        .background(Color.Transparent)
+                        .clickable(enabled = !isLoading && !isSuccess) { 
+                            capturedImageUri?.let { uri ->
+                                scope.launch {
+                                    val compressedFile = ImageUtils.compressAndCropSquare(context, uri)
+                                    if (compressedFile != null) {
+                                        val currentTag = allTags[pagerState.currentPage]
+                                        val caption = when(currentTag.id) {
+                                            "text" -> userMessage
+                                            "review" -> "Rating: $userRating stars"
+                                            "location" -> userLocation
+                                            "weather" -> userWeather
+                                            else -> currentTag.text
+                                        }
+                                        viewModel.uploadMoment(compressedFile, caption)
+                                        isSuccess = true
+                                    } else {
+                                        Toast.makeText(context, "Failed to process image", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedContent(
+                        targetState = isSuccess,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                        },
+                        label = "SuccessAnimation"
+                    ) { success ->
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(if (success) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (success) Icons.Default.Check else Icons.Rounded.Send,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { showTagSheet = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Rounded.AutoAwesome,
+                        "Tags",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // History
         if (capturedImageUri == null) {
             Row(
-                modifier = Modifier.padding(bottom = 32.dp).clickable { onNavigateToHistory() },
+                modifier = Modifier
+                    .padding(bottom = 32.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onNavigateToHistory() }
+                    .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.History, "History", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Rounded.History,
+                    contentDescription = "History",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("HISTORY", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
+                Text(
+                    "HISTORY",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 1.sp
+                )
             }
         } else {
             Spacer(modifier = Modifier.height(50.dp))
         }
         Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    if (showTagSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showTagSheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    "Captions",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                FlowRow(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    allTags.forEachIndexed { index, tag ->
+                        TagChip(tag) {
+                            scope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                            showTagSheet = false
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun TagChip(tag: MomentTag, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = tag.containerColor ?: MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tag.icon?.let {
+                Icon(it, null, tint = tag.contentColor, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                tag.text,
+                color = tag.contentColor,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
