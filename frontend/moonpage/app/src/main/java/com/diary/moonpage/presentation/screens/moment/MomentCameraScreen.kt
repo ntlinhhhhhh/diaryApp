@@ -2,6 +2,8 @@ package com.diary.moonpage.presentation.screens.moment
 
 import android.Manifest
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,10 +16,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.presentation.components.moment.CameraMainUI
 import com.diary.moonpage.presentation.components.moment.TagChip
+import com.diary.moonpage.presentation.theme.MoonPageTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -60,8 +64,18 @@ fun MomentCameraContent(
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     var capturedLensFacing by remember { mutableIntStateOf(0) }
     
-    val verticalPagerState = rememberPagerState(initialPage = 1, pageCount = { 2 })
+    // Page 0: Camera, Page 1: History. Swipe down to see History.
+    val verticalPagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     val scope = rememberCoroutineScope()
+
+    // Gallery Picker for posting Moment
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            capturedImageUri = uri
+        }
+    }
 
     // Tag States
     var userMessage by remember { mutableStateOf("") }
@@ -82,22 +96,22 @@ fun MomentCameraContent(
                 userScrollEnabled = true
             ) { page ->
                 if (page == 0) {
-                    MomentHistoryScreen(
-                        moments = moments,
-                        onNavigateToGallery = onNavigateToGallery,
-                        onBackToCamera = {
-                            scope.launch { verticalPagerState.animateScrollToPage(1) }
-                        }
-                    )
-                } else {
                     CameraMainUI(
-                        onNavigateToGallery = onNavigateToGallery,
+                        onSelectFromGallery = { galleryLauncher.launch("image/*") },
                         onNavigateToHistory = {
-                            scope.launch { verticalPagerState.animateScrollToPage(0) }
+                            scope.launch { verticalPagerState.animateScrollToPage(1) }
                         },
                         onImageCaptured = { uri, lensFacing ->
                             capturedImageUri = uri
                             capturedLensFacing = lensFacing
+                        }
+                    )
+                } else {
+                    MomentHistoryScreen(
+                        moments = moments,
+                        onNavigateToGallery = onNavigateToGallery,
+                        onBackToCamera = {
+                            scope.launch { verticalPagerState.animateScrollToPage(0) }
                         }
                     )
                 }
@@ -156,5 +170,13 @@ fun MomentCameraContent(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MomentCameraScreenPreview() {
+    MoonPageTheme {
+        MomentCameraScreen(onNavigateToGallery = {}, onNavigateToHistory = {})
     }
 }

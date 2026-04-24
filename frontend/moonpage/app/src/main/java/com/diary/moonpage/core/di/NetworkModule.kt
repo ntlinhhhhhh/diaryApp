@@ -5,6 +5,7 @@ import com.diary.moonpage.data.remote.api.AuthApi
 import com.diary.moonpage.data.remote.api.MomentApi
 import com.diary.moonpage.data.remote.api.ThemeApi
 import com.diary.moonpage.data.remote.api.UserApi
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,6 +20,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson = Gson()
 
     @Provides
     @Singleton
@@ -39,9 +44,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-//            .baseUrl("https://diaryapp-api.onrender.com/")
             .baseUrl("https://moonpage.duckdns.org/")
-
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

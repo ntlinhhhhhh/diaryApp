@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.diary.moonpage.core.util.UiText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -39,7 +40,7 @@ fun MoonTextField(
     placeholderText: String = "",
     iconVector: ImageVector? = null,
     iconRes: Int? = null,
-    errorText: String? = null,
+    errorText: UiText? = null,
     onTrailingClick: (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default
@@ -169,7 +170,7 @@ fun MoonTextField(
 
         if (errorText != null) {
             Text(
-                text = errorText,
+                text = errorText.asString(),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = 16.dp, top = 4.dp)

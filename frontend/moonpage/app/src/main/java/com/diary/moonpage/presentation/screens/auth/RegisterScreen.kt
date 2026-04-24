@@ -113,7 +113,7 @@ fun RegisterScreenContent(
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
                         snackBarHostState.currentSnackbarData?.dismiss()
-                        snackBarHostState.showSnackbar(event.message)
+                        snackBarHostState.showSnackbar(event.message.asString(context))
                     }
                 }
                 else -> Unit

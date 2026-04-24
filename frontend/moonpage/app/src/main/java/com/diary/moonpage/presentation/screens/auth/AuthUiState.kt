@@ -1,5 +1,7 @@
 package com.diary.moonpage.presentation.screens.auth
 
+import com.diary.moonpage.core.util.UiText
+
 data class AuthUiState (
     val emailInput: String = "",
     val usernameInput: String = "",
@@ -11,12 +13,12 @@ data class AuthUiState (
     val resetToken: String = "",
 
 
-    val emailError: String? = null,
-    val usernameError: String? = null,
-    val passwordError: String? = null,
-    val confirmPasswordError: String? = null,
-    val otpCodeError: String? = null,
+    val emailError: UiText? = null,
+    val usernameError: UiText? = null,
+    val passwordError: UiText? = null,
+    val confirmPasswordError: UiText? = null,
+    val otpCodeError: UiText? = null,
 
     val isLoading: Boolean = false,
-    val generalError: String? = null
+    val generalError: UiText? = null
 )

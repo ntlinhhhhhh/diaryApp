@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +63,7 @@ fun ResetPasswordScreenContent(
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
 
     val screenBgColor = MaterialTheme.colorScheme.background
     val cardBgColor = MaterialTheme.colorScheme.surface
@@ -76,7 +78,7 @@ fun ResetPasswordScreenContent(
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
                         snackbarHostState.currentSnackbarData?.dismiss()
-                        snackbarHostState.showSnackbar(event.message)
+                        snackbarHostState.showSnackbar(event.message.asString(context))
                     }
                 }
                 else -> Unit

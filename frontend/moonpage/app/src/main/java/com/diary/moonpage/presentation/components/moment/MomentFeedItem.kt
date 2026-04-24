@@ -29,12 +29,21 @@ fun MomentFeedItem(moment: MomentResponse) {
     
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Image Frame - Match Camera UI
+        // Placeholder for Top Bar (matching CameraMainUI)
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .height(56.dp)
+        )
+
+        // Same 20dp shift as CameraMainUI
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Image Frame - Exact match to Camera UI size and position
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.9f)

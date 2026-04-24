@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,13 +20,12 @@ data class ProfileUiState(
     val user: UserResponseDto? = null,
     val myThemes: List<Theme> = emptyList(),
     val isLoading: Boolean = false,
-    val isUpdating: Boolean = false, // Separate loading state for updates
+    val isUpdating: Boolean = false,
     val error: String? = null
 )
 
 sealed class ProfileUiEvent {
     data class ShowSnackBar(val message: String) : ProfileUiEvent()
-
     object UpdateSuccess : ProfileUiEvent()
 }
 
@@ -41,14 +41,26 @@ class ProfileViewModel @Inject constructor(
     val uiEvent = _uiEvent.asSharedFlow()
 
     init {
-        loadProfile()
+        // Observe cache changes from repository
+        viewModelScope.launch {
+            userRepository.currentUser.collectLatest { user ->
+                _uiState.update { it.copy(user = user) }
+            }
+        }
+        
+        loadProfile(forceRefresh = false)
         loadMyThemes()
     }
 
-    fun loadProfile() {
+    fun loadProfile(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            // Chỉ hiện loading chính nếu chưa có dữ liệu user
+            if (forceRefresh) {
+                userRepository.clearCache()
+            }
+            
+            // Only show loading if we don't have cached user
             _uiState.update { it.copy(isLoading = it.user == null) }
+            
             userRepository.getCurrentUser()
                 .onSuccess { userDto ->
                     _uiState.update { it.copy(user = userDto, isLoading = false) }
@@ -74,24 +86,9 @@ class ProfileViewModel @Inject constructor(
             val request = UpdateProfileRequestDto(name = name, gender = gender, birthday = birthday)
             userRepository.updateProfile(request)
                 .onSuccess { updatedUser ->
-                    // Gộp dữ liệu mới với dữ liệu hiện tại để tránh mất thông tin (flicker)
-                    _uiState.update { state ->
-                        val currentUser = state.user
-                        val mergedUser = currentUser?.copy(
-                            name = if (!updatedUser.name.isNullOrBlank()) updatedUser.name else name,
-                            gender = updatedUser.gender ?: gender ?: currentUser.gender,
-                            birthday = updatedUser.birthday ?: birthday ?: currentUser.birthday,
-                            avatarUrl = updatedUser.avatarUrl ?: currentUser.avatarUrl
-                        ) ?: updatedUser
-                        
-                        state.copy(user = mergedUser, isUpdating = false)
-                    }
-                    
                     _uiEvent.emit(ProfileUiEvent.UpdateSuccess)
                     _uiEvent.emit(ProfileUiEvent.ShowSnackBar("Profile updated successfully"))
-                    
-                    // Đồng bộ lại với server một lần nữa để chắc chắn
-                    loadProfile()
+                    _uiState.update { it.copy(isUpdating = false) }
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(isUpdating = false) }
