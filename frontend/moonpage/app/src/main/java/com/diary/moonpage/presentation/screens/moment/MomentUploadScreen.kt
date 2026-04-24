@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -39,6 +40,7 @@ import coil.compose.AsyncImage
 import com.diary.moonpage.core.util.ImageUtils
 import com.diary.moonpage.presentation.components.moment.MomentTag
 import com.diary.moonpage.presentation.theme.MoonPageTheme
+import com.diary.moonpage.presentation.theme.nunitoFontFamily
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -78,29 +80,13 @@ fun MomentUploadScreen(
                 text = "Upload",
                 color = onBgColor,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontFamily = nunitoFontFamily,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
             )
-            IconButton(
-                onClick = {
-                    scope.launch {
-                        try {
-                            val inputStream = context.contentResolver.openInputStream(capturedImageUri)
-                            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-                            if (bitmap != null) {
-                                ImageUtils.saveBitmapToGallery(context, bitmap)
-                                Toast.makeText(context, "Image saved to gallery", Toast.LENGTH_SHORT).show()
-                            }
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                Icon(Icons.Rounded.FileDownload, null, tint = onBgColor, modifier = Modifier.size(36.dp))
-            }
         }
+
+        Spacer(modifier = Modifier.height(60.dp))
 
         // Image Box
         Box(
@@ -113,6 +99,42 @@ fun MomentUploadScreen(
                 modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = if (capturedLensFacing == CameraSelector.LENS_FACING_FRONT) -1f else 1f),
                 contentScale = ContentScale.Crop
             )
+
+            // Magic Icon in Top Right
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                    .clickable { onShowTagSheet() },
+                contentAlignment = Alignment.Center
+            ) {
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val inputStream = context.contentResolver.openInputStream(capturedImageUri)
+                                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                                if (bitmap != null) {
+                                    ImageUtils.saveBitmapToGallery(context, bitmap)
+                                    Toast.makeText(context, "Image saved to gallery", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Icon(
+                        Icons.Rounded.FileDownload,
+                        null, tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(28.dp))
+                }
+            }
+
             Box(modifier = Modifier.fillMaxSize().padding(bottom = 4.dp), contentAlignment = Alignment.BottomCenter) {
                 HorizontalPager(
                     state = pagerState,
@@ -178,7 +200,7 @@ fun MomentUploadScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(22.dp))
 
         // Actions
         Row(
@@ -187,10 +209,10 @@ fun MomentUploadScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(50.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, onBgColor.copy(alpha = 0.1f), CircleShape).clickable { onCancel() },
+                modifier = Modifier.size(50.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onCancel() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.Close, "Cancel", tint = onBgColor, modifier = Modifier.size(32.dp))
+                Icon(Icons.Rounded.Close, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
 
             Box(
@@ -223,10 +245,10 @@ fun MomentUploadScreen(
             }
 
             Box(
-                modifier = Modifier.size(50.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, onBgColor.copy(alpha = 0.1f), CircleShape).clickable { onShowTagSheet() },
+                modifier = Modifier.size(50.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onShowTagSheet() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.AutoAwesome, "Tags", tint = onBgColor, modifier = Modifier.size(36.dp))
+                Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
         }
         Spacer(modifier = Modifier.height(100.dp))
@@ -236,7 +258,31 @@ fun MomentUploadScreen(
 @ComposePreview(showBackground = true)
 @Composable
 fun MomentUploadScreenPreview() {
+    val pagerState = rememberPagerState(pageCount = { 4 })
     MoonPageTheme {
-        // MomentUploadScreen requires many states, this is a simplified preview
+        MomentUploadScreen(
+            capturedImageUri = Uri.EMPTY,
+            capturedLensFacing = 0,
+            pagerState = pagerState,
+            allTags = listOf(
+                MomentTag("text", Icons.Rounded.TextFields, "Text", Color.White, Color.Black.copy(0.6f)),
+                MomentTag("location", Icons.Rounded.LocationOn, "Location", Color.White, Color.Blue.copy(0.6f)),
+                MomentTag("weather", Icons.Rounded.Cloud, "Weather", Color.White, Color.Cyan.copy(0.6f)),
+                MomentTag("review", Icons.Rounded.Star, "Review", Color.White, Color.Yellow.copy(0.6f))
+            ),
+            userMessage = "Hello World",
+            onUserMessageChange = {},
+            userRating = 4,
+            onUserRatingChange = {},
+            userLocation = "Hanoi",
+            onLocationClick = {},
+            userWeather = "Sunny",
+            onWeatherClick = {},
+            isLoading = false,
+            isSuccess = false,
+            onCancel = {},
+            onUpload = { _, _ -> },
+            onShowTagSheet = {}
+        )
     }
 }

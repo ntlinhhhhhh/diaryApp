@@ -99,8 +99,7 @@ fun CameraMainUI(
             }
         }
 
-        // Shifting camera preview down by 20.dp
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(60.dp))
 
         // Image Box - Fixed 0.9f width, 1f aspect ratio
         Box(
@@ -114,7 +113,7 @@ fun CameraMainUI(
             AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(40.dp))
 
         // Action Buttons - Removed borders
         Row(
@@ -132,7 +131,7 @@ fun CameraMainUI(
                     .clickable { onSelectFromGallery() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.AddPhotoAlternate, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Rounded.AddPhotoAlternate, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
 
             CaptureButton(onClick = {
@@ -154,11 +153,11 @@ fun CameraMainUI(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.FlipCameraIos, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Rounded.FlipCameraIos, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Row(
             modifier = Modifier

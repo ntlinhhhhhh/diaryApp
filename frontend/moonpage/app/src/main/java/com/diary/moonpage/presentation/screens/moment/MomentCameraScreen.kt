@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -19,19 +21,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.diary.moonpage.data.remote.api.MomentResponse
 import com.diary.moonpage.presentation.components.moment.CameraMainUI
+import com.diary.moonpage.presentation.components.moment.MomentTag
 import com.diary.moonpage.presentation.components.moment.TagChip
 import com.diary.moonpage.presentation.theme.MoonPageTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MomentCameraScreen(
     onNavigateToGallery: () -> Unit,
-    onNavigateToHistory: () -> Unit
+    onNavigateToHistory: () -> Unit,
+    viewModel: MomentViewModel = hiltViewModel()
 ) {
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     
@@ -40,7 +46,14 @@ fun MomentCameraScreen(
     }
 
     if (cameraPermissionState.status.isGranted) {
+        val moments by viewModel.moments.collectAsState()
+        val isLoading by viewModel.isLoading.collectAsState()
+        
         MomentCameraContent(
+            moments = moments,
+            isLoading = isLoading,
+            allTags = viewModel.allTags,
+            onUpload = viewModel::uploadMoment,
             onNavigateToGallery = onNavigateToGallery,
             onNavigateToHistory = onNavigateToHistory
         )
@@ -54,13 +67,13 @@ fun MomentCameraScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MomentCameraContent(
+    moments: List<MomentResponse>,
+    isLoading: Boolean,
+    allTags: List<MomentTag>,
+    onUpload: (File, String) -> Unit,
     onNavigateToGallery: () -> Unit,
-    onNavigateToHistory: () -> Unit,
-    viewModel: MomentViewModel = hiltViewModel()
+    onNavigateToHistory: () -> Unit
 ) {
-    val moments by viewModel.moments.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     var capturedLensFacing by remember { mutableIntStateOf(0) }
     
@@ -68,7 +81,7 @@ fun MomentCameraContent(
     val verticalPagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     val scope = rememberCoroutineScope()
 
-    // Gallery Picker for posting Moment
+    // Gallery Picker
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -85,7 +98,6 @@ fun MomentCameraContent(
     var isSuccess by remember { mutableStateOf(false) }
     var showTagSheet by remember { mutableStateOf(false) }
 
-    val allTags = viewModel.allTags
     val uploadPagerState = rememberPagerState(pageCount = { allTags.size })
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -127,14 +139,14 @@ fun MomentCameraContent(
                 userRating = userRating,
                 onUserRatingChange = { userRating = it },
                 userLocation = userLocation,
-                onLocationClick = { /* Handled via LaunchedEffect in UploadScreen or passed down */ },
+                onLocationClick = { /* Click handled here if needed */ },
                 userWeather = userWeather,
                 onWeatherClick = { /* Cycle weather */ },
                 isLoading = isLoading,
                 isSuccess = isSuccess,
                 onCancel = { capturedImageUri = null },
                 onUpload = { file, caption ->
-                    viewModel.uploadMoment(file, caption)
+                    onUpload(file, caption)
                     isSuccess = true
                 },
                 onShowTagSheet = { showTagSheet = true }
@@ -173,10 +185,24 @@ fun MomentCameraContent(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun MomentCameraScreenPreview() {
+    val mockTags = listOf(
+        MomentTag("text", Icons.Rounded.TextFields, "Message"),
+        MomentTag("review", Icons.Rounded.Star, "Review"),
+        MomentTag("location", Icons.Rounded.LocationOn, "Location"),
+        MomentTag("weather", Icons.Rounded.WbSunny, "Weather")
+    )
+
     MoonPageTheme {
-        MomentCameraScreen(onNavigateToGallery = {}, onNavigateToHistory = {})
+        MomentCameraContent(
+            moments = emptyList(),
+            isLoading = false,
+            allTags = mockTags,
+            onUpload = { _, _ -> },
+            onNavigateToGallery = {},
+            onNavigateToHistory = {}
+        )
     }
 }
