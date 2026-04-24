@@ -1,5 +1,6 @@
 package com.diary.moonpage.data.repository
 
+import com.diary.moonpage.core.util.TokenManager
 import com.diary.moonpage.core.util.UserManager
 import com.diary.moonpage.data.remote.api.UserApi
 import com.diary.moonpage.data.remote.dto.auth.UpdateProfileRequestDto
@@ -19,22 +20,28 @@ import javax.inject.Singleton
 @Singleton
 class UserRepositoryImpl @Inject constructor(
     private val userApi: UserApi,
-    private val userManager: UserManager
+    private val userManager: UserManager,
+    private val tokenManager: TokenManager
 ) : UserRepository {
 
     private val _currentUser = MutableStateFlow<UserResponseDto?>(null)
     override val currentUser: StateFlow<UserResponseDto?> = _currentUser.asStateFlow()
 
     init {
-        // Load user from DataStore (local storage) on initialization
+        // Load user from DataStore (local storage) on initialization to show UI immediately
         CoroutineScope(Dispatchers.IO).launch {
-            val savedUser = userManager.getUser().first()
-            _currentUser.value = savedUser
+            userManager.getUser().collect { savedUser ->
+                _currentUser.value = savedUser
+            }
         }
     }
 
     override suspend fun getCurrentUser(): Result<UserResponseDto> {
-        // Return cached memory value if available, but fetch background anyway
+        val token = tokenManager.getToken().first()
+        if (token.isNullOrBlank()) {
+            return Result.failure(Exception("Not authenticated"))
+        }
+
         val cached = _currentUser.value
         
         return try {
@@ -72,6 +79,9 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMyThemes(): Result<List<Theme>> {
+        val token = tokenManager.getToken().first()
+        if (token.isNullOrBlank()) return Result.success(emptyList())
+
         return try {
             val response = userApi.getMyThemes()
             if (response.isSuccessful && response.body() != null) {

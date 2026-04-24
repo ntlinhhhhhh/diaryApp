@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -300,6 +301,8 @@ fun RegisterScreenContent(
                                             Log.e("Auth", "Unexpected credential type: ${credential.type}")
                                             snackBarHostState.showSnackbar("Unexpected registration error")
                                         }
+                                    } catch (e: GetCredentialCancellationException) {
+                                        Log.d("Auth", "User cancelled the Google Sign-In selector")
                                     } catch (e: NoCredentialException) {
                                         Log.e("Auth", "Lỗi: Không tìm thấy tài khoản hoặc Client ID sai. Hãy kiểm tra SHA-1 và google-services.json.", e)
                                         snackBarHostState.showSnackbar("Không tìm thấy tài khoản Google. Hãy đảm bảo bạn đã đăng nhập trên thiết bị.")

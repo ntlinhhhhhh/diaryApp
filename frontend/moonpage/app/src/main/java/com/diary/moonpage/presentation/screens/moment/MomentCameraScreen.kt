@@ -1,9 +1,15 @@
 package com.diary.moonpage.presentation.screens.moment
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.location.Geocoder
+import android.location.Location
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,9 +35,15 @@ import com.diary.moonpage.presentation.components.moment.TagChip
 import com.diary.moonpage.presentation.theme.MoonPageTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -39,21 +52,36 @@ fun MomentCameraScreen(
     onNavigateToHistory: () -> Unit,
     viewModel: MomentViewModel = hiltViewModel()
 ) {
-    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    val cameraPermissionState = rememberMultiplePermissionsState(
+        permissions = listOf(Manifest.permission.CAMERA)
+    )
+
+    val locationPermissionState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
     
     LaunchedEffect(Unit) {
-        cameraPermissionState.launchPermissionRequest()
+        cameraPermissionState.launchMultiplePermissionRequest()
     }
 
-    if (cameraPermissionState.status.isGranted) {
+    val cameraPermission = cameraPermissionState.permissions.find { it.permission == Manifest.permission.CAMERA }
+    if (cameraPermission?.status?.isGranted == true) {
         val moments by viewModel.moments.collectAsState()
+        val localPaths by viewModel.localPaths.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
         
         MomentCameraContent(
             moments = moments,
+            localPaths = localPaths,
             isLoading = isLoading,
             allTags = viewModel.allTags,
-            onUpload = viewModel::uploadMoment,
+            locationPermissionState = locationPermissionState,
+            onUpload = { file, caption, location, weather, rating, onSuccess -> 
+                viewModel.uploadMoment(file, caption, location, weather, rating, onSuccess = onSuccess)
+            },
             onNavigateToGallery = onNavigateToGallery,
             onNavigateToHistory = onNavigateToHistory
         )
@@ -64,41 +92,107 @@ fun MomentCameraScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("MissingPermission")
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun MomentCameraContent(
     moments: List<MomentResponse>,
+    localPaths: Map<String, String>,
     isLoading: Boolean,
     allTags: List<MomentTag>,
-    onUpload: (File, String) -> Unit,
+    locationPermissionState: com.google.accompanist.permissions.MultiplePermissionsState,
+    onUpload: (File, String, String?, String?, Float?, () -> Unit) -> Unit,
     onNavigateToGallery: () -> Unit,
     onNavigateToHistory: () -> Unit
 ) {
-    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var capturedLensFacing by remember { mutableIntStateOf(0) }
-    
-    // Page 0: Camera, Page 1: History. Swipe down to see History.
-    val verticalPagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    
+    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var capturedLensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+    
+    val verticalPagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
 
-    // Gallery Picker
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             capturedImageUri = uri
+            capturedLensFacing = CameraSelector.LENS_FACING_BACK
         }
     }
 
-    // Tag States
     var userMessage by remember { mutableStateOf("") }
-    var userRating by remember { mutableIntStateOf(0) }
+    var userRating by remember { mutableFloatStateOf(0.0f) }
     var userLocation by remember { mutableStateOf("") }
     var userWeather by remember { mutableStateOf("Sunny ☀️") }
     var isSuccess by remember { mutableStateOf(false) }
     var showTagSheet by remember { mutableStateOf(false) }
 
     val uploadPagerState = rememberPagerState(pageCount = { allTags.size })
+
+    val weatherIcons = listOf("Sunny ☀️", "Cloudy ☁️", "Rainy 🌧️", "Snowy ❄️", "Windy 💨")
+
+    // Hàm helper để xử lý tọa độ thành địa chỉ
+    val reverseGeocode = { location: Location ->
+        scope.launch(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    val address = addresses[0]
+                    val locationName = address.locality ?: address.subAdminArea ?: address.adminArea ?: "Somewhere"
+                    withContext(Dispatchers.Main) {
+                        userLocation = locationName
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    userLocation = "Location error"
+                }
+            }
+        }
+    }
+
+    // Chiến thuật Hybrid: Thử lastLocation trước, nếu hụt mới getCurrentLocation
+    val fetchLocationFast = {
+        if (locationPermissionState.allPermissionsGranted) {
+            if (userLocation.isEmpty() || userLocation == "Location error") {
+                userLocation = "Locating..."
+                fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                    if (loc != null) {
+                        reverseGeocode(loc)
+                    } else {
+                        // Backup bằng getCurrentLocation với độ chính xác cân bằng để lấy nhanh
+                        fusedLocationClient.getCurrentLocation(
+                            Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                            CancellationTokenSource().token
+                        ).addOnSuccessListener { freshLoc ->
+                            if (freshLoc != null) reverseGeocode(freshLoc)
+                            else userLocation = ""
+                        }.addOnFailureListener {
+                            userLocation = ""
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Tự động lấy vị trí ngay khi ảnh được chụp xong (Pre-fetching)
+    LaunchedEffect(capturedImageUri) {
+        if (capturedImageUri != null) {
+            fetchLocationFast()
+        }
+    }
+
+    // Tự động lấy lại nếu vừa cấp quyền xong
+    LaunchedEffect(locationPermissionState.allPermissionsGranted) {
+        if (locationPermissionState.allPermissionsGranted && capturedImageUri != null) {
+            fetchLocationFast()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (capturedImageUri == null) {
@@ -114,6 +208,7 @@ fun MomentCameraContent(
                             scope.launch { verticalPagerState.animateScrollToPage(1) }
                         },
                         onImageCaptured = { uri, lensFacing ->
+                            Log.d("MomentCamera", "Captured image: $uri")
                             capturedImageUri = uri
                             capturedLensFacing = lensFacing
                         }
@@ -121,6 +216,7 @@ fun MomentCameraContent(
                 } else {
                     MomentHistoryScreen(
                         moments = moments,
+                        localPaths = localPaths,
                         onNavigateToGallery = onNavigateToGallery,
                         onBackToCamera = {
                             scope.launch { verticalPagerState.animateScrollToPage(0) }
@@ -139,15 +235,26 @@ fun MomentCameraContent(
                 userRating = userRating,
                 onUserRatingChange = { userRating = it },
                 userLocation = userLocation,
-                onLocationClick = { /* Click handled here if needed */ },
+                onLocationClick = {
+                    if (locationPermissionState.allPermissionsGranted) {
+                        fetchLocationFast()
+                    } else {
+                        locationPermissionState.launchMultiplePermissionRequest()
+                    }
+                },
                 userWeather = userWeather,
-                onWeatherClick = { /* Cycle weather */ },
+                onWeatherClick = {
+                    val currentIndex = weatherIcons.indexOf(userWeather)
+                    userWeather = weatherIcons[(currentIndex + 1) % weatherIcons.size]
+                },
                 isLoading = isLoading,
                 isSuccess = isSuccess,
                 onCancel = { capturedImageUri = null },
                 onUpload = { file, caption ->
-                    onUpload(file, caption)
-                    isSuccess = true
+                    // Caption được xử lý tại Screen, nhưng metadata khác truyền riêng biệt
+                    onUpload(file, caption, userLocation, userWeather, userRating) {
+                        isSuccess = true
+                    }
                 },
                 onShowTagSheet = { showTagSheet = true }
             )
@@ -158,7 +265,7 @@ fun MomentCameraContent(
                     capturedImageUri = null
                     isSuccess = false
                     userMessage = ""
-                    userRating = 0
+                    userRating = 0.0f
                     userLocation = ""
                 }
             }
@@ -182,27 +289,5 @@ fun MomentCameraContent(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun MomentCameraScreenPreview() {
-    val mockTags = listOf(
-        MomentTag("text", Icons.Rounded.TextFields, "Message"),
-        MomentTag("review", Icons.Rounded.Star, "Review"),
-        MomentTag("location", Icons.Rounded.LocationOn, "Location"),
-        MomentTag("weather", Icons.Rounded.WbSunny, "Weather")
-    )
-
-    MoonPageTheme {
-        MomentCameraContent(
-            moments = emptyList(),
-            isLoading = false,
-            allTags = mockTags,
-            onUpload = { _, _ -> },
-            onNavigateToGallery = {},
-            onNavigateToHistory = {}
-        )
     }
 }

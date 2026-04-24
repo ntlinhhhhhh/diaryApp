@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.diary.moonpage.R
@@ -254,19 +255,13 @@ fun LoginScreenContent(
                                         if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                                             val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data)
                                             onGoogleLoginClick(googleIdToken.idToken)
-                                        } else {
-                                            Log.e("Auth", "Unexpected credential type: ${credential.type}")
-                                            snackBarHostState.showSnackbar("Unexpected login error")
                                         }
+                                    } catch (e: GetCredentialCancellationException) {
+                                        Log.d("Auth", "User cancelled")
                                     } catch (e: NoCredentialException) {
-                                        Log.e("Auth", "No Google accounts found. Check Client ID and SHA-1.", e)
-                                        snackBarHostState.showSnackbar("Please sign in to a Google account on this device.")
-                                    } catch (e: GetCredentialException) {
-                                        Log.e("Auth", "Google Sign-In Error: ${e.message}", e)
-                                        snackBarHostState.showSnackbar(e.message ?: "Google Sign-In failed")
+                                        snackBarHostState.showSnackbar("Please sign in to a Google account.")
                                     } catch (e: Exception) {
-                                        Log.e("Auth", "General Error: ${e.message}", e)
-                                        snackBarHostState.showSnackbar("An unexpected error occurred")
+                                        Log.e("Auth", "Error: ${e.message}")
                                     }
                                 }
                             }
@@ -289,10 +284,10 @@ fun LoginScreenContent(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.1f)),
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)), // Sử dụng màu nền của theme thay vì màu đen tuyệt đối
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
         }

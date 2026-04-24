@@ -11,6 +11,9 @@ interface MomentRepository {
         imageFile: MultipartBody.Part,
         caption: RequestBody,
         isPublic: RequestBody,
-        capturedAt: RequestBody
-    ): Result<Unit>
+        capturedAt: RequestBody,
+        location: RequestBody?,
+        weather: RequestBody?,
+        rating: RequestBody?
+    ): Result<MomentResponse>
 }

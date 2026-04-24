@@ -16,8 +16,11 @@ interface MomentApi {
         @Part imageFile: MultipartBody.Part,
         @Part("Caption") caption: RequestBody,
         @Part("IsPublic") isPublic: RequestBody,
-        @Part("CapturedAt") capturedAt: RequestBody
-    ): Response<Unit>
+        @Part("CapturedAt") capturedAt: RequestBody,
+        @Part("Location") location: RequestBody?,
+        @Part("Weather") weather: RequestBody?,
+        @Part("Rating") rating: RequestBody?
+    ): Response<MomentResponse>
 
     @GET("api/moments/me")
     suspend fun getMyMoments(): Response<List<MomentResponse>>
@@ -28,5 +31,8 @@ data class MomentResponse(
     val imageUrl: String,
     val caption: String?,
     val capturedAt: String,
-    val isPublic: Boolean
+    val isPublic: Boolean,
+    val location: String? = null,
+    val weather: String? = null,
+    val rating: Float? = null
 )

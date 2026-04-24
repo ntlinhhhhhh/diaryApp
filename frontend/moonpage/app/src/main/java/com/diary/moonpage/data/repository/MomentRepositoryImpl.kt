@@ -28,12 +28,15 @@ class MomentRepositoryImpl @Inject constructor(
         imageFile: MultipartBody.Part,
         caption: RequestBody,
         isPublic: RequestBody,
-        capturedAt: RequestBody
-    ): Result<Unit> {
+        capturedAt: RequestBody,
+        location: RequestBody?,
+        weather: RequestBody?,
+        rating: RequestBody?
+    ): Result<MomentResponse> {
         return try {
-            val response = api.uploadMoment(dailyLogId, imageFile, caption, isPublic, capturedAt)
-            if (response.isSuccessful) {
-                Result.success(Unit)
+            val response = api.uploadMoment(dailyLogId, imageFile, caption, isPublic, capturedAt, location, weather, rating)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
             } else {
                 Result.failure(Exception("Upload failed"))
             }

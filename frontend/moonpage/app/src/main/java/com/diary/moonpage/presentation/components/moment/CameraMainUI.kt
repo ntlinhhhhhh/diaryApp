@@ -20,7 +20,6 @@ import androidx.compose.material.icons.rounded.FlipCameraIos
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,40 +37,65 @@ import coil.compose.AsyncImage
 import com.diary.moonpage.data.remote.dto.auth.UserResponseDto
 import com.diary.moonpage.domain.repository.UserRepository
 import java.io.File
+import java.util.concurrent.Executor
 
 @Composable
 fun CameraMainUI(
     onSelectFromGallery: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onImageCaptured: (Uri, Int) -> Unit,
-    userRepository: UserRepository? = null, // Passed or injected if possible, but let's use a simpler way for now
+    userRepository: UserRepository? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val mainExecutor = remember(context) { ContextCompat.getMainExecutor(context) }
     
-    var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
-    val imageCapture: ImageCapture = remember { ImageCapture.Builder().build() }
+    var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+    val imageCapture = remember { ImageCapture.Builder().build() }
     val previewView = remember { PreviewView(context) }
 
-    // Use collectAsState for user info if repository is available
     val currentUser by if (userRepository != null) {
         userRepository.currentUser.collectAsState()
     } else {
         remember { mutableStateOf<UserResponseDto?>(null) }
     }
 
-    LaunchedEffect(lensFacing) {
-        val cameraProvider = ProcessCameraProvider.getInstance(context).get()
-        val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(previewView.surfaceProvider)
-        }
-        val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-        try {
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture)
-        } catch (e: Exception) {
-            Log.e("Camera", "Use case binding failed", e)
+    LaunchedEffect(lensFacing, lifecycleOwner) {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build()
+            val cameraSelector = CameraSelector.Builder()
+                .requireLensFacing(lensFacing)
+                .build()
+
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+                )
+                preview.setSurfaceProvider(previewView.surfaceProvider)
+            } catch (e: Exception) {
+                Log.e("CameraMainUI", "Camera binding failed", e)
+            }
+        }, mainExecutor)
+    }
+
+    // Explicit cleanup when Composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+            cameraProviderFuture.addListener({
+                try {
+                    cameraProviderFuture.get().unbindAll()
+                } catch (e: Exception) {
+                    Log.e("CameraMainUI", "Error unbinding on dispose", e)
+                }
+            }, mainExecutor)
         }
     }
 
@@ -81,8 +105,13 @@ fun CameraMainUI(
             .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Bar - Avatar moved to Top Left
-        Box(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp).height(56.dp)) {
+        // Top Bar
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .height(56.dp)
+        ) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -90,7 +119,6 @@ fun CameraMainUI(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .align(Alignment.CenterStart)
             ) {
-                // Placeholder for Avatar
                 AsyncImage(
                     model = currentUser?.avatarUrl,
                     contentDescription = "Profile",
@@ -101,7 +129,7 @@ fun CameraMainUI(
 
         Spacer(modifier = Modifier.height(60.dp))
 
-        // Image Box - Fixed 0.9f width, 1f aspect ratio
+        // Camera Preview
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
@@ -110,12 +138,15 @@ fun CameraMainUI(
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
-            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+            AndroidView(
+                factory = { previewView },
+                modifier = Modifier.fillMaxSize()
+            )
         }
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Action Buttons - Removed borders
+        // Action Buttons
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -123,6 +154,7 @@ fun CameraMainUI(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Gallery Button
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -134,12 +166,18 @@ fun CameraMainUI(
                 Icon(Icons.Rounded.AddPhotoAlternate, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
 
+            // Capture Button
             CaptureButton(onClick = {
-                takePhoto(context, imageCapture, ContextCompat.getMainExecutor(context), onImageCaptured = { uri ->
-                    onImageCaptured(uri, lensFacing)
-                }, onError = { Log.e("Camera", "Capture failed", it) })
+                takePhoto(
+                    context = context,
+                    imageCapture = imageCapture,
+                    executor = mainExecutor,
+                    onImageCaptured = { uri -> onImageCaptured(uri, lensFacing) },
+                    onError = { Log.e("CameraMainUI", "Capture failed", it) }
+                )
             })
 
+            // Flip Camera Button
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -159,6 +197,7 @@ fun CameraMainUI(
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // History Button
         Row(
             modifier = Modifier
                 .padding(bottom = 32.dp)
@@ -178,7 +217,7 @@ fun CameraMainUI(
 private fun takePhoto(
     context: Context,
     imageCapture: ImageCapture,
-    executor: java.util.concurrent.Executor,
+    executor: Executor,
     onImageCaptured: (Uri) -> Unit,
     onError: (ImageCaptureException) -> Unit
 ) {

@@ -5,12 +5,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.ExifInterface
+import androidx.exifinterface.media.ExifInterface
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.camera.core.CameraSelector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -19,40 +20,77 @@ import java.net.URL
 import kotlin.math.min
 
 object ImageUtils {
-    fun compressAndCropSquare(context: Context, uri: Uri, quality: Int = 80): File? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
+    /**
+     */
+    suspend fun compressAndCropSquare(
+        context: Context,
+        uri: Uri,
+        lensFacing: Int = CameraSelector.LENS_FACING_BACK,
+        quality: Int = 80 // 80% là mức vàng để giữ chất lượng và nhẹ dung lượng
+    ): File? = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true 
+            }
+            context.contentResolver.openInputStream(uri)?.use { 
+                BitmapFactory.decodeStream(it, null, options) 
+            }
 
-            // Fix rotation
+            // Tính toán inSampleSize để không load full ảnh gốc vào RAM
+            val targetSize = 1080
+            var inSampleSize = 1
+            if (options.outHeight > targetSize || options.outWidth > targetSize) {
+                val halfHeight = options.outHeight / 2
+                val halfWidth = options.outWidth / 2
+                while (halfHeight / inSampleSize >= targetSize && halfWidth / inSampleSize >= targetSize) {
+                    inSampleSize *= 2
+                }
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+            }
+            
+            val originalBitmap = context.contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, decodeOptions)
+            } ?: return@withContext null
+
+            // 1. Fix xoay ảnh
             val rotation = getRotation(context, uri)
-            val rotatedBitmap = if (rotation != 0) {
-                val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+            val matrix = Matrix()
+            if (rotation != 0) matrix.postRotate(rotation.toFloat())
+            if (lensFacing == CameraSelector.LENS_FACING_FRONT) matrix.postScale(-1f, 1f)
+
+            val processedBitmap = if (rotation != 0 || lensFacing == CameraSelector.LENS_FACING_FRONT) {
                 Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.width, originalBitmap.height, matrix, true)
             } else {
                 originalBitmap
             }
 
-            // Crop to square
-            val size = min(rotatedBitmap.width, rotatedBitmap.height)
-            val x = (rotatedBitmap.width - size) / 2
-            val y = (rotatedBitmap.height - size) / 2
-            val squareBitmap = Bitmap.createBitmap(rotatedBitmap, x, y, size, size)
+            // 2. Center Crop Square
+            val size = min(processedBitmap.width, processedBitmap.height)
+            val x = (processedBitmap.width - size) / 2
+            val y = (processedBitmap.height - size) / 2
+            val squareBitmap = Bitmap.createBitmap(processedBitmap, x, y, size, size)
 
-            // Scale down if too large (e.g., max 1080px)
-            val finalBitmap = if (size > 1080) {
-                Bitmap.createScaledBitmap(squareBitmap, 1080, 1080, true)
+            // 3. Final Resize to 1080px
+            val finalBitmap = if (size > targetSize) {
+                Bitmap.createScaledBitmap(squareBitmap, targetSize, targetSize, true)
             } else {
                 squareBitmap
             }
 
-            // Save to temp file
-            val compressedFile = File(context.cacheDir, "compressed_${System.currentTimeMillis()}.jpg")
-            val out = FileOutputStream(compressedFile)
-            finalBitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
-            out.flush()
-            out.close()
+            // 4. Save with high compression
+            val compressedFile = File(context.cacheDir, "up_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(compressedFile).use { out ->
+                finalBitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            }
+
+            // Cleanup RAM
+            if (originalBitmap != processedBitmap) originalBitmap.recycle()
+            if (processedBitmap != squareBitmap) processedBitmap.recycle()
+            if (squareBitmap != finalBitmap) squareBitmap.recycle()
+            finalBitmap.recycle()
 
             compressedFile
         } catch (e: Exception) {
@@ -63,16 +101,15 @@ object ImageUtils {
 
     private fun getRotation(context: Context, uri: Uri): Int {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val exif = ExifInterface(inputStream!!)
-            val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-            inputStream.close()
-            when (orientation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> 90
-                ExifInterface.ORIENTATION_ROTATE_180 -> 180
-                ExifInterface.ORIENTATION_ROTATE_270 -> 270
-                else -> 0
-            }
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                val exif = ExifInterface(inputStream)
+                when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                    else -> 0
+                }
+            } ?: 0
         } catch (e: Exception) {
             0
         }

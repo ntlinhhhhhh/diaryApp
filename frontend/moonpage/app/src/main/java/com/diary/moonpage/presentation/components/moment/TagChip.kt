@@ -20,32 +20,47 @@ import androidx.compose.ui.unit.dp
 fun TagChip(
     tag: MomentTag,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
-    Surface(
-        onClick = onClick,
-        color = tag.containerColor ?: MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(24.dp),
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            color = tag.containerColor ?: MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(24.dp),
+            modifier = modifier
         ) {
-            tag.icon?.let {
-                Icon(
-                    it, 
-                    null, 
-                    tint = tag.contentColor, 
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                tag.text,
-                color = tag.contentColor,
-                fontWeight = FontWeight.Bold
-            )
+            TagChipContent(tag)
         }
+    } else {
+        Surface(
+            color = tag.containerColor ?: MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(24.dp),
+            modifier = modifier
+        ) {
+            TagChipContent(tag)
+        }
+    }
+}
+
+@Composable
+private fun TagChipContent(tag: MomentTag) {
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        tag.icon?.let {
+            Icon(
+                it,
+                null,
+                tint = tag.contentColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        Text(
+            tag.text,
+            color = tag.contentColor,
+            fontWeight = FontWeight.Bold
+        )
     }
 }

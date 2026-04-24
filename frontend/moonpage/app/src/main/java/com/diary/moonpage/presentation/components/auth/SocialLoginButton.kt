@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -30,24 +31,27 @@ fun SocialLoginButton(text: String, iconResId: Int, onClick: () -> Unit) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val cardBg = MaterialTheme.colorScheme.surface
     val borderColor = MaterialTheme.colorScheme.onSurface
+    val shape = RoundedCornerShape(20.dp)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
-            .clickable { onClick() }
             .shadow(
                 elevation = 3.dp,
-                shape = RoundedCornerShape(20.dp),
+                shape = shape,
                 spotColor = Color.Black.copy(alpha = 0.05f),
                 ambientColor = Color.Black.copy(alpha = 0.05f)
             ),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        shape = RoundedCornerShape(20.dp),
+        shape = shape,
         border = BorderStroke(0.3.dp, borderColor)
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(shape) // Đảm bảo hiệu ứng click bo theo Card
+                .clickable { onClick() },
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {

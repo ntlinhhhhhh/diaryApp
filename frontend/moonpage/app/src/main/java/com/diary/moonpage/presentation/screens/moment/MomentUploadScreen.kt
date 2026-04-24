@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -15,23 +16,33 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.StarHalf
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview as ComposePreview
 import androidx.compose.ui.unit.dp
@@ -43,6 +54,7 @@ import com.diary.moonpage.presentation.theme.MoonPageTheme
 import com.diary.moonpage.presentation.theme.nunitoFontFamily
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,8 +65,8 @@ fun MomentUploadScreen(
     allTags: List<MomentTag>,
     userMessage: String,
     onUserMessageChange: (String) -> Unit,
-    userRating: Int,
-    onUserRatingChange: (Int) -> Unit,
+    userRating: Float, // Chuyển sang Float để hỗ trợ nửa sao
+    onUserRatingChange: (Float) -> Unit,
     userLocation: String,
     onLocationClick: () -> Unit,
     userWeather: String,
@@ -68,10 +80,32 @@ fun MomentUploadScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
     val onBgColor = MaterialTheme.colorScheme.onBackground
 
+    // Tự động focus và hiện bàn phím khi chuyển sang tag text
+    LaunchedEffect(pagerState.currentPage) {
+        if (allTags[pagerState.currentPage].id == "text") {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        } else {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
+    }
+
     Column(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                }
+            },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top Bar
@@ -125,8 +159,7 @@ fun MomentUploadScreen(
                                 Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
                             }
                         }
-                    },
-                    modifier = Modifier.align(Alignment.CenterEnd)
+                    }
                 ) {
                     Icon(
                         Icons.Rounded.FileDownload,
@@ -156,9 +189,16 @@ fun MomentUploadScreen(
                                     "text" -> {
                                         BasicTextField(
                                             value = userMessage,
-                                            onValueChange = onUserMessageChange,
+                                            onValueChange = { if (!it.contains("\n")) onUserMessageChange(it) },
+                                            modifier = Modifier.focusRequester(focusRequester),
                                             textStyle = TextStyle(color = tag.contentColor, fontWeight = FontWeight.Medium, fontSize = 16.sp, textAlign = TextAlign.Center),
                                             cursorBrush = SolidColor(tag.contentColor),
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                            keyboardActions = KeyboardActions(onDone = {
+                                                focusManager.clearFocus()
+                                                keyboardController?.hide()
+                                            }),
                                             decorationBox = { innerTextField ->
                                                 if (userMessage.isEmpty()) Text("Add a message", color = tag.contentColor.copy(alpha = 0.6f), fontSize = 16.sp)
                                                 innerTextField()
@@ -168,12 +208,24 @@ fun MomentUploadScreen(
                                     "review" -> {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             repeat(5) { index ->
-                                                val starRating = index + 1
+                                                val starIndex = index + 1
+                                                val starIcon = when {
+                                                    userRating >= starIndex -> Icons.Default.Star
+                                                    userRating >= starIndex - 0.5f -> Icons.Default.StarHalf
+                                                    else -> Icons.Default.StarBorder
+                                                }
                                                 Icon(
-                                                    imageVector = if (starRating <= userRating) Icons.Default.Star else Icons.Default.StarBorder,
+                                                    imageVector = starIcon,
                                                     contentDescription = null,
                                                     tint = Color(0xFFFFD700),
-                                                    modifier = Modifier.size(24.dp).clickable { onUserRatingChange(starRating) }
+                                                    modifier = Modifier
+                                                        .size(28.dp)
+                                                        .clickable {
+                                                            val newRating = if (userRating == starIndex.toFloat()) starIndex - 0.5f 
+                                                                           else if (userRating == starIndex - 0.5f) starIndex - 1.0f
+                                                                           else starIndex.toFloat()
+                                                            onUserRatingChange(newRating)
+                                                        }
                                                 )
                                             }
                                         }
@@ -217,16 +269,28 @@ fun MomentUploadScreen(
 
             Box(
                 modifier = Modifier.size(80.dp).border(4.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape).padding(8.dp).clip(CircleShape).background(Color.Transparent).clickable(enabled = !isLoading && !isSuccess) {
-                    val file = File(capturedImageUri.path!!)
-                    val currentTag = allTags[pagerState.currentPage]
-                    val caption = when(currentTag.id) {
-                        "text" -> userMessage
-                        "review" -> "Rating: $userRating stars"
-                        "location" -> userLocation
-                        "weather" -> userWeather
-                        else -> currentTag.text
+                    scope.launch {
+                        val currentTag = allTags[pagerState.currentPage]
+                        val caption = when(currentTag.id) {
+                            "text" -> userMessage
+                            "review" -> "Rating: $userRating stars"
+                            "location" -> userLocation
+                            "weather" -> userWeather
+                            else -> currentTag.text
+                        }
+                        
+                        val compressedFile = ImageUtils.compressAndCropSquare(
+                            context = context,
+                            uri = capturedImageUri,
+                            lensFacing = capturedLensFacing
+                        )
+                        
+                        if (compressedFile != null) {
+                            onUpload(compressedFile, caption)
+                        } else {
+                            Toast.makeText(context, "Failed to process image", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                    onUpload(file, caption)
                 },
                 contentAlignment = Alignment.Center
             ) {
@@ -239,7 +303,7 @@ fun MomentUploadScreen(
                         modifier = Modifier.size(64.dp).clip(CircleShape).background(if (success) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(if (success) Icons.Default.Check else Icons.Rounded.Send, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(36.dp))
+                        Icon(if (success) Icons.Default.Check else Icons.AutoMirrored.Rounded.Send, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(36.dp))
                     }
                 }
             }
@@ -272,7 +336,7 @@ fun MomentUploadScreenPreview() {
             ),
             userMessage = "Hello World",
             onUserMessageChange = {},
-            userRating = 4,
+            userRating = 4.5f,
             onUserRatingChange = {},
             userLocation = "Hanoi",
             onLocationClick = {},
