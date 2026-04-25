@@ -15,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.diary.moonpage.presentation.screens.auth.OnboardingBirthdayScreen
+import com.diary.moonpage.presentation.screens.auth.OnboardingGenderScreen
+import com.diary.moonpage.presentation.screens.auth.OnboardingViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -38,6 +41,7 @@ fun AppNavigation() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val authViewModel: AuthViewModel = hiltViewModel()
+    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
 
     val mainAppRoutes = listOf(
         Screen.Calendar.route,
@@ -129,7 +133,7 @@ fun AppNavigation() {
                         onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
                         onNavigateToLoginGoogle = { /* TODO */ },
                         onLoginSuccess = { _ ->
-                            navController.navigate(Screen.Calendar.route) {
+                            navController.navigate(Screen.OnboardingBirthday.route) {
                                 popUpTo(0) { inclusive = true }
                             }
                         }
@@ -154,7 +158,7 @@ fun AppNavigation() {
                             }
                         },
                         onLoginSuccess = { _ ->
-                            navController.navigate(Screen.Calendar.route) {
+                            navController.navigate(Screen.OnboardingBirthday.route) {
                                 popUpTo(0) { inclusive = true }
                             }
                         }
@@ -193,6 +197,40 @@ fun AppNavigation() {
                         onNavigateToLogin = {
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+            }
+
+            composable(Screen.OnboardingBirthday.route) {
+                ScreenWrapper(Screen.OnboardingBirthday.route) {
+                    OnboardingBirthdayScreen(
+                        viewModel = onboardingViewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onSkip = {
+                            navController.navigate(Screen.Calendar.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        onNext = { navController.navigate(Screen.OnboardingGender.route) }
+                    )
+                }
+            }
+
+            composable(Screen.OnboardingGender.route) {
+                ScreenWrapper(Screen.OnboardingGender.route) {
+                    OnboardingGenderScreen(
+                        viewModel = onboardingViewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onSkip = {
+                            navController.navigate(Screen.Calendar.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        onFinish = {
+                            navController.navigate(Screen.Calendar.route) {
+                                popUpTo(0) { inclusive = true }
                             }
                         }
                     )

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -15,9 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.profile.*
@@ -47,6 +51,7 @@ fun AccountScreen(
     
     val coroutineScope = rememberCoroutineScope()
     var currentBottomSheet by remember { mutableStateOf(BottomSheetType.NONE) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     val user = uiState.user
 
@@ -80,6 +85,17 @@ fun AccountScreen(
         }
     }
 
+    // Logout Confirmation Dialog
+    if (showLogoutDialog) {
+        LogoutConfirmationDialog(
+            onDismiss = { showLogoutDialog = false },
+            onConfirm = {
+                showLogoutDialog = false
+                onLogoutClick()
+            }
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
@@ -93,7 +109,7 @@ fun AccountScreen(
                 email = user?.email ?: "",
                 avatarUrl = user?.avatarUrl,
                 onNavigateBack = onNavigateBack,
-                onLogoutClick = onLogoutClick,
+                onLogoutClick = { showLogoutDialog = true },
                 onBirthdayClick = { currentBottomSheet = BottomSheetType.BIRTHDAY },
                 onGenderClick = { currentBottomSheet = BottomSheetType.GENDER },
                 onAvatarEditClick = onNavigateToChangeAvatar,
@@ -165,6 +181,114 @@ fun AccountScreen(
                         )
                     }
                     else -> {}
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Logout Confirmation Dialog
+ */
+@Composable
+fun LogoutConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.88f)
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(20.dp),
+            color = colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Title
+                Text(
+                    text = "Log out",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Main message
+                Text(
+                    text = "Are you sure you want to log out?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onSurface.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Warning message
+                Text(
+                    text = "Days recorded while logged out may not be saved.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Cancel button
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorScheme.surfaceVariant,
+                            contentColor = colorScheme.onSurface
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
+                    ) {
+                        Text(
+                            "Cancel",
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    // Log out button
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorScheme.error,
+                            contentColor = colorScheme.onError
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
+                    ) {
+                        Text(
+                            "Log out",
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
             }
         }

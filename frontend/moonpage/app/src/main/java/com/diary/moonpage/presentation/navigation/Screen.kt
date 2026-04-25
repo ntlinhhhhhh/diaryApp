@@ -9,6 +9,8 @@ sealed class Screen (val route: String) {
     object ForgotPassword: Screen("forgot_password_screen")
     object ResetPassword: Screen("reset_password_screen")
     object VerifyOtp: Screen("verify_otp_screen")
+    object OnboardingBirthday: Screen("onboarding_birthday_screen")
+    object OnboardingGender: Screen("onboarding_gender_screen")
 
     // Main App Screens (Bottom Nav)
     object Calendar: Screen("calendar_screen")

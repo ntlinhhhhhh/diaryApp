@@ -116,42 +116,42 @@ fun DailyLogScreen(
 
     val hobbies = listOf(
         DailyActivity(101, "exercise", MoonIcons.Hobbies.Exercise),
-        DailyActivity(102, "TV & content", MoonIcons.Hobbies.Movies),
-        DailyActivity(103, "movie", MoonIcons.Hobbies.Photography),
+        DailyActivity(102, "TV & content", MoonIcons.Hobbies.TvContent),
+        DailyActivity(103, "movie", MoonIcons.Hobbies.Movie),
         DailyActivity(104, "gaming", MoonIcons.Hobbies.Gaming),
         DailyActivity(105, "reading", MoonIcons.Hobbies.Reading),
-        DailyActivity(106, "walk", MoonIcons.Hobbies.Traveling),
+        DailyActivity(106, "walk", MoonIcons.Hobbies.Walk),
         DailyActivity(107, "music", MoonIcons.Hobbies.Music),
         DailyActivity(108, "drawing", MoonIcons.Hobbies.Drawing)
     )
 
     val emotions = listOf(
         DailyActivity(201, "excited", MoonIcons.Emotions.Excited),
-        DailyActivity(202, "relaxed", MoonIcons.Health.Meditation),
-        DailyActivity(203, "proud", MoonIcons.Emotions.Happy),
-        DailyActivity(204, "hopeful", MoonIcons.Emotions.Calm),
+        DailyActivity(202, "relaxed", MoonIcons.Emotions.Relaxed),
+        DailyActivity(203, "proud", MoonIcons.Emotions.Proud),
+        DailyActivity(204, "hopeful", MoonIcons.Emotions.Hopeful),
         DailyActivity(205, "happy", MoonIcons.Emotions.Happy),
-        DailyActivity(206, "enthusiastic", MoonIcons.Emotions.Excited),
-        DailyActivity(207, "pit-a-pat", MoonIcons.Social.Partner),
+        DailyActivity(206, "enthusiastic", MoonIcons.Emotions.Enthusiastic),
+        DailyActivity(207, "pit-a-pat", MoonIcons.People.Partner),
         DailyActivity(208, "refreshed", MoonIcons.Weather.Windy),
         DailyActivity(209, "calm", MoonIcons.Weather.Cloudy),
         DailyActivity(210, "grateful", MoonIcons.Weather.Sunny),
         DailyActivity(211, "depressed", MoonIcons.Weather.Stormy),
-        DailyActivity(212, "lonely", MoonIcons.Social.Alone)
+        DailyActivity(212, "lonely", MoonIcons.Emotions.Lonely)
     )
 
     val meals = listOf(
-        DailyActivity(301, "breakfast", MoonIcons.Food.HomeCooked),
-        DailyActivity(302, "lunch", MoonIcons.Food.FastFood),
-        DailyActivity(303, "dinner", MoonIcons.Food.DineOut),
-        DailyActivity(304, "night snack", MoonIcons.Food.Sweets)
+        DailyActivity(301, "breakfast", MoonIcons.Meals.Breakfast),
+        DailyActivity(302, "lunch", MoonIcons.Meals.Lunch),
+        DailyActivity(303, "dinner", MoonIcons.Meals.Dinner),
+        DailyActivity(304, "night snack", MoonIcons.Meals.NightSnack)
     )
 
     val selfCare = listOf(
-        DailyActivity(401, "shower", MoonIcons.Weather.Rainy),
-        DailyActivity(402, "brush teeth", MoonIcons.Productivity.Chores),
-        DailyActivity(403, "wash face", MoonIcons.Health.GoodHealth),
-        DailyActivity(404, "drink water", MoonIcons.Food.Healthy)
+        DailyActivity(401, "shower", MoonIcons.SelfCare.Shower),
+        DailyActivity(402, "brush teeth", MoonIcons.SelfCare.BrushTeeth),
+        DailyActivity(403, "wash face", MoonIcons.SelfCare.WashFace),
+        DailyActivity(404, "drink water", MoonIcons.SelfCare.DrinkWater)
     )
 
     Scaffold(
