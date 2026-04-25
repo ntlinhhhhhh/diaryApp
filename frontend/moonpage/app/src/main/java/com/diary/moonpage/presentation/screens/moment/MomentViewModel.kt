@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import android.content.Intent
+import com.diary.moonpage.core.util.ImageUtils
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
@@ -51,7 +53,7 @@ class MomentViewModel @Inject constructor(
     private val MOMENT_LIST_KEY = stringPreferencesKey("cached_moments")
 
     val allTags = listOf(
-        MomentTag("text", Icons.Rounded.TextFields, "Message"),
+        MomentTag("text", null, "Message"),
         MomentTag("review", Icons.Rounded.Star, "Review"),
         MomentTag("location", Icons.Rounded.LocationOn, "Location"),
         MomentTag("weather", Icons.Rounded.WbSunny, "Weather"),
@@ -119,29 +121,13 @@ class MomentViewModel @Inject constructor(
         isPublic: Boolean = true,
         onSuccess: () -> Unit = {}
     ) {
-        val tempId = "temp_${System.currentTimeMillis()}"
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
         val capturedAtStr = sdf.format(Date())
 
-        val tempMoment = MomentResponse(
-            id = tempId,
-            imageUrl = imageFile.absolutePath, // Local path as URL
-            caption = caption,
-            capturedAt = capturedAtStr,
-            isPublic = isPublic,
-            location = location,
-            weather = weather,
-            rating = rating
-        )
-
-        // Optimistic UI: Cập nhật ngay lập tức
-        _localPaths.update { it + (tempMoment.imageUrl to imageFile.absolutePath) }
-        _moments.value = (listOf(tempMoment) + _moments.value).distinctBy { it.id }
-        onSuccess()
-
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 val imagePart = MultipartBody.Part.createFormData(
                     "imageFile",
@@ -174,22 +160,45 @@ class MomentViewModel @Inject constructor(
                     
                     _localPaths.update { it + (response.imageUrl to permanentFile.absolutePath) }
 
-                    // Thay thế ảnh tạm bằng ảnh thật
-                    val updatedList = _moments.value.map {
-                        if (it.id == tempId) response else it
-                    }.distinctBy { it.id }
+                    val updatedList = (listOf(response) + _moments.value).distinctBy { it.id }
                     
                     _moments.value = updatedList
                     saveMomentsToCache(updatedList)
+                    onSuccess()
                 }.onFailure {
                     Log.e("MomentVM", "Upload failed", it)
-                    // Revert if failed
-                    _moments.value = _moments.value.filter { m -> m.id != tempId }
                 }
             } catch (e: Exception) {
                 Log.e("MomentVM", "Error preparing upload", e)
-                _moments.value = _moments.value.filter { m -> m.id != tempId }
+            } finally {
+                _isLoading.value = false
             }
         }
+    }
+
+    fun deleteMoment(id: String) {
+        viewModelScope.launch {
+            repository.deleteMoment(id).onSuccess {
+                val updatedList = _moments.value.filter { it.id != id }
+                _moments.value = updatedList
+                saveMomentsToCache(updatedList)
+            }.onFailure {
+                Log.e("MomentVM", "Delete moment failed", it)
+            }
+        }
+    }
+
+    fun downloadMoment(imageUrl: String) {
+        viewModelScope.launch {
+            ImageUtils.downloadAndSaveImage(context, imageUrl)
+        }
+    }
+
+    fun shareMoment(context: Context, url: String) {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "Check out my moment: $url")
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Moment"))
     }
 }

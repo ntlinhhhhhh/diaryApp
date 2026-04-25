@@ -35,6 +35,9 @@ fun MomentHistoryScreen(
     localPaths: Map<String, String>,
     onNavigateToGallery: () -> Unit,
     onBackToCamera: () -> Unit,
+    onShare: (MomentResponse) -> Unit = {},
+    onDownload: (MomentResponse) -> Unit = {},
+    onDelete: (MomentResponse) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val sortedMoments = remember(moments) { moments.sortedByDescending { it.capturedAt } }
@@ -154,7 +157,12 @@ fun MomentHistoryScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showMenu = false }
+                            .clickable { 
+                                showMenu = false
+                                if (sortedMoments.isNotEmpty()) {
+                                    onShare(sortedMoments[feedPagerState.currentPage])
+                                }
+                            }
                             .padding(horizontal = 24.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -166,7 +174,12 @@ fun MomentHistoryScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showMenu = false }
+                            .clickable { 
+                                showMenu = false
+                                if (sortedMoments.isNotEmpty()) {
+                                    onDownload(sortedMoments[feedPagerState.currentPage])
+                                }
+                            }
                             .padding(horizontal = 24.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -178,7 +191,12 @@ fun MomentHistoryScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showMenu = false }
+                            .clickable { 
+                                showMenu = false
+                                if (sortedMoments.isNotEmpty()) {
+                                    onDelete(sortedMoments[feedPagerState.currentPage])
+                                }
+                            }
                             .padding(horizontal = 24.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

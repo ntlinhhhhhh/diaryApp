@@ -85,14 +85,17 @@ fun MomentUploadScreen(
     val focusRequester = remember { FocusRequester() }
     val onBgColor = MaterialTheme.colorScheme.onBackground
 
-    // Tự động focus và hiện bàn phím khi chuyển sang tag text
+    // Tự động focus và hiện bàn phím khi chuyển sang tag text, tự động xin quyền khi lướt sang location/weather
     LaunchedEffect(pagerState.currentPage) {
-        if (allTags[pagerState.currentPage].id == "text") {
+        val currentTag = allTags[pagerState.currentPage]
+        if (currentTag.id == "text") {
             focusRequester.requestFocus()
             keyboardController?.show()
         } else {
             focusManager.clearFocus()
             keyboardController?.hide()
+            if (currentTag.id == "location") onLocationClick()
+            if (currentTag.id == "weather") onWeatherClick()
         }
     }
 

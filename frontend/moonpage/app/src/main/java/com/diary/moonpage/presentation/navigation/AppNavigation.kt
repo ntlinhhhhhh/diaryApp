@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
 import com.diary.moonpage.presentation.screens.auth.*
 import com.diary.moonpage.presentation.screens.calendar.CalendarScreen
+import com.diary.moonpage.presentation.screens.calendar.DailyLogScreen
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
 import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
 import com.diary.moonpage.presentation.screens.profile.*
@@ -201,7 +202,9 @@ fun AppNavigation() {
                 ScreenWrapper(Screen.Calendar.route) {
                     CalendarScreen(
                         onNavigateToFilter = { navController.navigate(Screen.Filter.route) },
-                        onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                        onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                        onNavigateToDailyLog = { dateStr -> navController.navigate("daily_log_screen/$dateStr") },
+                        onNavigateToThemeCalendar = { navController.navigate(Screen.ThemeCalendar.route) }
                     )
                 }
             }
@@ -211,6 +214,17 @@ fun AppNavigation() {
                     FilterScreen(
                         onDismiss = { navController.popBackStack() },
                         onSeeResults = { navController.popBackStack() }
+                    )
+                }
+            }
+
+            composable(Screen.DailyLog.route) { backStackEntry ->
+                val dateStr = backStackEntry.arguments?.getString("date") ?: ""
+                ScreenWrapper(Screen.DailyLog.route) {
+                    DailyLogScreen(
+                        dateString = dateStr,
+                        onNavigateBack = { navController.popBackStack() },
+                        onDone = { navController.popBackStack() }
                     )
                 }
             }

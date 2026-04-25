@@ -1,5 +1,7 @@
 package com.diary.moonpage.presentation.components.calendar
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,6 +13,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +29,8 @@ import java.util.*
 @Composable
 fun CalendarTopBar(
     onFilterClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onThemeClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -74,15 +79,15 @@ fun CalendarTopBar(
             )
             Icon(
                 imageVector = Icons.Rounded.Palette,
-                contentDescription = null,
+                contentDescription = "Theme",
                 tint = Color(0xFFFFE082),
-                modifier = Modifier.size(28.dp).clickable { /* TODO */ }
+                modifier = Modifier.size(28.dp).clickable { onThemeClick() }
             )
             Icon(
                 imageVector = Icons.Rounded.Menu,
                 contentDescription = "Menu",
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(28.dp).clickable { /* TODO */ }
+                modifier = Modifier.size(28.dp).clickable { onSettingsClick() }
             )
         }
     }
@@ -114,6 +119,7 @@ fun DayItem(
     isSelected: Boolean,
     moodColor: Color?,
     moodIcon: ImageVector? = null,
+    isToday: Boolean = false,
     onClick: () -> Unit
 ) {
     val baseMoodColor = moodColor ?: Color(0xFFF0F4F8) // Light grey/blue for empty days
@@ -122,6 +128,12 @@ fun DayItem(
     } else {
         baseMoodColor
     }
+
+    val animatedBg by animateColorAsState(
+        targetValue = finalMoodColor,
+        animationSpec = tween(200),
+        label = "dayBg"
+    )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -135,11 +147,15 @@ fun DayItem(
                 .fillMaxWidth()
                 .clip(CircleShape)
                 .then(
-                    if (isSelected && moodColor == null) 
-                        Modifier.border(2.dp, Color(0xFF4CAF50), CircleShape) // Green border for selected empty day
-                    else Modifier
+                    when {
+                        isSelected && moodColor == null ->
+                            Modifier.border(2.dp, Color(0xFF4CAF50), CircleShape)
+                        isToday && moodColor == null ->
+                            Modifier.border(1.5.dp, Color(0xFF4CAF50).copy(alpha = 0.5f), CircleShape)
+                        else -> Modifier
+                    }
                 )
-                .background(finalMoodColor),
+                .background(animatedBg),
             contentAlignment = Alignment.Center
         ) {
             if (moodIcon != null) {
@@ -158,8 +174,12 @@ fun DayItem(
             Text(
                 text = day.toString(),
                 style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = if (isSelected && moodColor == null) Color(0xFF4CAF50) else Color.Gray
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                color = when {
+                    isSelected && moodColor == null -> Color(0xFF4CAF50)
+                    isToday -> Color(0xFF4CAF50)
+                    else -> Color.Gray
+                }
             )
         }
     }
@@ -200,9 +220,9 @@ fun DiaryEntryPreview(
                     modifier = Modifier.size(40.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column {
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
@@ -214,6 +234,148 @@ fun DiaryEntryPreview(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Bottom sheet card showing a summary of the selected day's log.
+ * Shows Share / Edit / Delete action buttons.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DayDetailBottomSheet(
+    date: LocalDate,
+    moodIcon: ImageVector,
+    moodColor: Color,
+    moodLabel: String,
+    noteSnippet: String?,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onShare: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .width(40.dp)
+                    .height(4.dp)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), CircleShape)
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 32.dp)
+        ) {
+            // Date label
+            Text(
+                text = "${date.dayOfMonth} ${date.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}, ${date.year}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Mood row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(moodColor.copy(alpha = 0.12f))
+                    .padding(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(moodColor.copy(alpha = 0.25f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = moodIcon,
+                        contentDescription = null,
+                        tint = moodColor,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = moodLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (!noteSnippet.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = noteSnippet,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Action buttons row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Share
+                OutlinedButton(
+                    onClick = onShare,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(Icons.Rounded.IosShare, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Share", fontSize = 13.sp)
+                }
+
+                // Edit
+                Button(
+                    onClick = onEdit,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Edit", color = Color.White, fontSize = 13.sp)
+                }
+
+                // Delete
+                OutlinedButton(
+                    onClick = onDelete,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Delete", fontSize = 13.sp)
                 }
             }
         }

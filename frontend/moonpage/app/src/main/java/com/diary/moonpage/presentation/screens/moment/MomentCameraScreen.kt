@@ -72,6 +72,7 @@ fun MomentCameraScreen(
         val moments by viewModel.moments.collectAsState()
         val localPaths by viewModel.localPaths.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
+        val context = LocalContext.current
         
         MomentCameraContent(
             moments = moments,
@@ -83,7 +84,10 @@ fun MomentCameraScreen(
                 viewModel.uploadMoment(file, caption, location, weather, rating, onSuccess = onSuccess)
             },
             onNavigateToGallery = onNavigateToGallery,
-            onNavigateToHistory = onNavigateToHistory
+            onNavigateToHistory = onNavigateToHistory,
+            onShare = { viewModel.shareMoment(context, it.imageUrl) },
+            onDownload = { viewModel.downloadMoment(it.imageUrl) },
+            onDelete = { viewModel.deleteMoment(it.id) }
         )
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -103,7 +107,10 @@ fun MomentCameraContent(
     locationPermissionState: com.google.accompanist.permissions.MultiplePermissionsState,
     onUpload: (File, String, String?, String?, Float?, () -> Unit) -> Unit,
     onNavigateToGallery: () -> Unit,
-    onNavigateToHistory: () -> Unit
+    onNavigateToHistory: () -> Unit,
+    onShare: (MomentResponse) -> Unit,
+    onDownload: (MomentResponse) -> Unit,
+    onDelete: (MomentResponse) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -220,7 +227,10 @@ fun MomentCameraContent(
                         onNavigateToGallery = onNavigateToGallery,
                         onBackToCamera = {
                             scope.launch { verticalPagerState.animateScrollToPage(0) }
-                        }
+                        },
+                        onShare = onShare,
+                        onDownload = onDownload,
+                        onDelete = onDelete
                     )
                 }
             }
@@ -265,7 +275,7 @@ fun MomentCameraContent(
 
             if (isSuccess) {
                 LaunchedEffect(Unit) {
-                    kotlinx.coroutines.delay(2000)
+                    kotlinx.coroutines.delay(500)
                     capturedImageUri = null
                     isSuccess = false
                     userMessage = ""

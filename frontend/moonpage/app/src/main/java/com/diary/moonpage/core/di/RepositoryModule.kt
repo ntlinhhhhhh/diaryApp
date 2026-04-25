@@ -8,6 +8,8 @@ import com.diary.moonpage.domain.repository.AuthRepository
 import com.diary.moonpage.domain.repository.MomentRepository
 import com.diary.moonpage.domain.repository.ThemeRepository
 import com.diary.moonpage.domain.repository.UserRepository
+import com.diary.moonpage.data.repository.DailyLogRepositoryImpl
+import com.diary.moonpage.domain.repository.DailyLogRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -42,4 +44,9 @@ abstract class RepositoryModule {
         momentRepositoryImpl: MomentRepositoryImpl
     ): MomentRepository
 
+    @Binds
+    @Singleton
+    abstract fun bindDailyLogRepository(
+        dailyLogRepositoryImpl: DailyLogRepositoryImpl
+    ): DailyLogRepository
 }

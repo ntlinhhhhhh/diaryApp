@@ -30,7 +30,11 @@ fun NavGraphBuilder.mainNavGraph(
             screenWrapper(Screen.Calendar.route) {
                 CalendarScreen(
                     onNavigateToFilter = { navController.navigate(Screen.Filter.route) },
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToDailyLog = { date ->
+                        navController.navigate("daily_log_screen/$date")
+                    },
+                    onNavigateToThemeCalendar = { navController.navigate(Screen.ThemeCalendar.route) }
                 )
             }
         }

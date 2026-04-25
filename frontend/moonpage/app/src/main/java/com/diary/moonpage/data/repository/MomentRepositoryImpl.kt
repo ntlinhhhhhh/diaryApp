@@ -23,6 +23,32 @@ class MomentRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getMoment(id: String): Result<MomentResponse> {
+        return try {
+            val response = api.getMoment(id)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch moment"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteMoment(id: String): Result<Unit> {
+        return try {
+            val response = api.deleteMoment(id)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to delete moment"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun uploadMoment(
         dailyLogId: RequestBody,
         imageFile: MultipartBody.Part,

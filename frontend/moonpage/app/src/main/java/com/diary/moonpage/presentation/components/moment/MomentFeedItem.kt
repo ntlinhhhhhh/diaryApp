@@ -8,7 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.StarHalf
+import androidx.compose.material.icons.automirrored.filled.StarHalf
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -86,66 +86,72 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
                     moment.caption == "Party Time!" -> MomentTag("party", null, "Party Time!", containerColor = Color(0xFF80FFE8), contentColor = Color.Black)
                     moment.caption == "OOTD" -> MomentTag("ootd", null, "OOTD", containerColor = Color.White, contentColor = Color.Black)
                     moment.caption == "Miss you" -> MomentTag("missyou", null, "Miss you", containerColor = Color(0xFFFF4B4B), contentColor = Color.White)
-                    else -> MomentTag("text", Icons.Rounded.TextFields, "Message", Color.White, Color.Black.copy(0.6f))
+                    else -> MomentTag("text", null, "Message", Color.White, Color.Black.copy(0.6f))
                 }
             }
 
             // Tags overlay like in UploadScreen
             Box(modifier = Modifier.fillMaxSize().padding(bottom = 4.dp), contentAlignment = Alignment.BottomCenter) {
-                Surface(
-                    color = inferredTag.containerColor ?: Color.Black.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier.wrapContentSize()
-                ) {
-                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (inferredTag.id != "review") {
-                            inferredTag.icon?.let { 
-                                Icon(it, null, tint = inferredTag.contentColor, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
-                        }
-                        
+                Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
                         val textToShow = when (inferredTag.id) {
                             "review" -> ""
                             "location" -> moment.location ?: moment.caption ?: ""
                             "weather" -> moment.weather ?: moment.caption ?: ""
                             else -> moment.caption ?: ""
                         }
+                        
+                        val shouldShow = inferredTag.id == "review" || textToShow.isNotEmpty() || inferredTag.icon != null
 
-                        if (inferredTag.id == "review") {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val parsedRating = if (moment.caption?.startsWith("Rating: ") == true) {
-                                    moment.caption.removePrefix("Rating: ").removeSuffix(" stars").toFloatOrNull() ?: 0f
-                                } else 0f
-                                val finalRating = if (moment.rating != null && moment.rating > 0) moment.rating else parsedRating
-
-                                repeat(5) { index ->
-                                    val starIndex = index + 1
-                                    val starIcon = when {
-                                        finalRating >= starIndex -> Icons.Default.Star
-                                        finalRating >= starIndex - 0.5f -> Icons.Default.StarHalf
-                                        else -> Icons.Default.StarBorder
+                        if (shouldShow) {
+                            Surface(
+                                color = inferredTag.containerColor ?: Color.Black.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(24.dp),
+                                modifier = Modifier.wrapContentSize()
+                            ) {
+                                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    if (inferredTag.id != "review") {
+                                        inferredTag.icon?.let { 
+                                            Icon(it, null, tint = inferredTag.contentColor, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
                                     }
-                                    Icon(
-                                        imageVector = starIcon,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFD700),
-                                        modifier = Modifier.size(28.dp)
-                                    )
+
+                                    if (inferredTag.id == "review") {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            val parsedRating = if (moment.caption?.startsWith("Rating: ") == true) {
+                                                moment.caption.removePrefix("Rating: ").removeSuffix(" stars").toFloatOrNull() ?: 0f
+                                            } else 0f
+                                            val finalRating = if (moment.rating != null && moment.rating > 0) moment.rating else parsedRating
+
+                                            repeat(5) { index ->
+                                                val starIndex = index + 1
+                                                val starIcon = when {
+                                                    finalRating >= starIndex -> Icons.Default.Star
+                                                    finalRating >= starIndex - 0.5f -> Icons.AutoMirrored.Filled.StarHalf
+                                                    else -> Icons.Default.StarBorder
+                                                }
+                                                Icon(
+                                                    imageVector = starIcon,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFFFD700),
+                                                    modifier = Modifier.size(28.dp)
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        if (textToShow.isNotEmpty()) {
+                                            Text(
+                                                text = textToShow,
+                                                color = inferredTag.contentColor,
+                                                fontWeight = FontWeight.Medium,
+                                                fontSize = 16.sp,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
                                 }
                             }
-                        } else {
-                            if (textToShow.isNotEmpty()) {
-                                Text(
-                                    text = textToShow,
-                                    color = inferredTag.contentColor,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 16.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
                         }
-                    }
                 }
             }
         }

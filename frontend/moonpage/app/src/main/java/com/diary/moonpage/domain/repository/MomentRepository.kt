@@ -6,6 +6,8 @@ import okhttp3.RequestBody
 
 interface MomentRepository {
     suspend fun getMyMoments(): Result<List<MomentResponse>>
+    suspend fun getMoment(id: String): Result<MomentResponse>
+    suspend fun deleteMoment(id: String): Result<Unit>
     suspend fun uploadMoment(
         dailyLogId: RequestBody,
         imageFile: MultipartBody.Part,

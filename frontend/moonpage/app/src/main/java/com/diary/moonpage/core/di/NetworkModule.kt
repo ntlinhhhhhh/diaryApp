@@ -6,6 +6,7 @@ import com.diary.moonpage.data.remote.api.AuthApi
 import com.diary.moonpage.data.remote.api.MomentApi
 import com.diary.moonpage.data.remote.api.ThemeApi
 import com.diary.moonpage.data.remote.api.UserApi
+import com.diary.moonpage.data.remote.api.DailyLogApi
 import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
@@ -42,7 +43,6 @@ object NetworkModule {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        // Cấu hình Cache cho OkHttp (50MB) - Giúp Coil cache ảnh trên đĩa
         val cacheSize = 50 * 1024 * 1024L // 50MB
         val cache = Cache(File(context.cacheDir, "http_cache"), cacheSize)
 
@@ -55,7 +55,6 @@ object NetworkModule {
             .writeTimeout(60, TimeUnit.SECONDS)
             .dns(object : Dns {
                 override fun lookup(hostname: String): List<InetAddress> {
-                    // Ưu tiên IPv4 để tránh lag 1 phút khi gặp lỗi IPv6
                     return Dns.SYSTEM.lookup(hostname).sortedBy {
                         if (it is Inet4Address) 0 else 1 
                     }
@@ -96,5 +95,11 @@ object NetworkModule {
     @Singleton
     fun provideMomentApi(retrofit: Retrofit): MomentApi {
         return retrofit.create(MomentApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDailyLogApi(retrofit: Retrofit): DailyLogApi {
+        return retrofit.create(DailyLogApi::class.java)
     }
 }

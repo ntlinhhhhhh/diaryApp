@@ -242,7 +242,7 @@ fun LoginScreenContent(
                                         val googleIdOption = GetGoogleIdOption.Builder()
                                             .setFilterByAuthorizedAccounts(false)
                                             .setServerClientId(googleWebClientId)
-                                            .setAutoSelectEnabled(true)
+                                            .setAutoSelectEnabled(false)
                                             .build()
 
                                         val request = GetCredentialRequest.Builder()
