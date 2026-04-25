@@ -32,12 +32,13 @@ import com.diary.moonpage.presentation.theme.MoonPageTheme
 @Composable
 fun GalleryScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToMomentDetail: (String) -> Unit = {},
     viewModel: MomentViewModel = hiltViewModel()
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val moments by viewModel.moments.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     // Sort moments by capturedAt descending (newest first)
     val sortedMoments = remember(moments) {
         moments.sortedByDescending { it.capturedAt }
@@ -90,20 +91,26 @@ fun GalleryScreen(
                         key = { it.id }
                     ) { moment ->
                         val localPaths by viewModel.localPaths.collectAsState()
-                        GalleryItem(url = moment.imageUrl, localPath = localPaths[moment.imageUrl])
+                        GalleryItem(
+                            url = moment.imageUrl,
+                            localPath = localPaths[moment.imageUrl],
+                            onClick = { onNavigateToMomentDetail(moment.id) }
+                        )
                     }
                 }
             }
-
-            // Removed whole screen loading indicator as requested
         }
     }
 }
 
 @Composable
-fun GalleryItem(url: String, localPath: String?) {
+fun GalleryItem(
+    url: String,
+    localPath: String?,
+    onClick: () -> Unit = {}
+) {
     val context = LocalContext.current
-    
+
     val imageData = if (localPath != null && java.io.File(localPath).exists()) {
         java.io.File(localPath)
     } else {
@@ -123,7 +130,7 @@ fun GalleryItem(url: String, localPath: String?) {
             .aspectRatio(1f)
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { /* TODO: image detail */ },
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         SubcomposeAsyncImage(

@@ -25,6 +25,7 @@ import com.diary.moonpage.presentation.screens.calendar.CalendarScreen
 import com.diary.moonpage.presentation.screens.calendar.DailyLogScreen
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
 import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
+import com.diary.moonpage.presentation.screens.moment.MomentDetailScreen
 import com.diary.moonpage.presentation.screens.profile.*
 import com.diary.moonpage.presentation.screens.store.StoreScreen
 import com.diary.moonpage.presentation.screens.store.StoreViewModel
@@ -320,7 +321,21 @@ fun AppNavigation() {
             composable(Screen.Gallery.route) {
                 ScreenWrapper(Screen.Gallery.route) {
                     GalleryScreen(
-                        onNavigateBack = { navController.popBackStack() }
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToMomentDetail = { momentId ->
+                            navController.navigate("moment_detail_screen/$momentId")
+                        }
+                    )
+                }
+            }
+
+            composable(Screen.MomentDetail.route) { backStackEntry ->
+                val momentId = backStackEntry.arguments?.getString("momentId") ?: ""
+                ScreenWrapper(Screen.MomentDetail.route) {
+                    MomentDetailScreen(
+                        momentId = momentId,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToGallery = { navController.popBackStack() }
                     )
                 }
             }

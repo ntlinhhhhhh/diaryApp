@@ -35,13 +35,19 @@ fun MomentHistoryScreen(
     localPaths: Map<String, String>,
     onNavigateToGallery: () -> Unit,
     onBackToCamera: () -> Unit,
+    initialMomentId: String? = null,
     onShare: (MomentResponse) -> Unit = {},
     onDownload: (MomentResponse) -> Unit = {},
     onDelete: (MomentResponse) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val sortedMoments = remember(moments) { moments.sortedByDescending { it.capturedAt } }
-    val feedPagerState = rememberPagerState(pageCount = { sortedMoments.size })
+    val initialPage = remember(initialMomentId, sortedMoments) {
+        if (initialMomentId != null) {
+            sortedMoments.indexOfFirst { it.id == initialMomentId }.coerceAtLeast(0)
+        } else 0
+    }
+    val feedPagerState = rememberPagerState(initialPage = initialPage, pageCount = { sortedMoments.size })
     val onBgColor = MaterialTheme.colorScheme.onBackground
     val bgColor = MaterialTheme.colorScheme.background
     val context = LocalContext.current

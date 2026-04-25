@@ -31,6 +31,9 @@ sealed class Screen (val route: String) {
     object Filter: Screen("filter_screen")
     object DailyLog: Screen("daily_log_screen/{date}")
 
+    // Moment Sub-screens
+    object MomentDetail: Screen("moment_detail_screen/{momentId}")
+
     // Store Sub-screens
     object ThemeDetail: Screen("theme_detail_screen")
 }
