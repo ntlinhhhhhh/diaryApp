@@ -119,25 +119,40 @@ class MomentViewModel @Inject constructor(
         isPublic: Boolean = true,
         onSuccess: () -> Unit = {}
     ) {
+        val tempId = "temp_${System.currentTimeMillis()}"
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        val capturedAtStr = sdf.format(Date())
+
+        val tempMoment = MomentResponse(
+            id = tempId,
+            imageUrl = imageFile.absolutePath, // Local path as URL
+            caption = caption,
+            capturedAt = capturedAtStr,
+            isPublic = isPublic,
+            location = location,
+            weather = weather,
+            rating = rating
+        )
+
+        // Optimistic UI: Cập nhật ngay lập tức
+        _localPaths.update { it + (tempMoment.imageUrl to imageFile.absolutePath) }
+        _moments.value = (listOf(tempMoment) + _moments.value).distinctBy { it.id }
+        onSuccess()
+
         viewModelScope.launch {
-            _isLoading.value = true
             try {
                 val imagePart = MultipartBody.Part.createFormData(
                     "imageFile",
                     imageFile.name,
-                    imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                    imageFile.asRequestBody("image/webp".toMediaTypeOrNull())
                 )
                 
                 val dailyLogIdBody = dailyLogId.toRequestBody("text/plain".toMediaTypeOrNull())
                 val captionBody = caption.toRequestBody("text/plain".toMediaTypeOrNull())
                 val isPublicBody = isPublic.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-                
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-                    timeZone = TimeZone.getTimeZone("UTC")
-                }
-                val capturedAtStr = sdf.format(Date())
                 val capturedAtBody = capturedAtStr.toRequestBody("text/plain".toMediaTypeOrNull())
-
                 val locationBody = location?.toRequestBody("text/plain".toMediaTypeOrNull())
                 val weatherBody = weather?.toRequestBody("text/plain".toMediaTypeOrNull())
                 val ratingBody = rating?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
@@ -152,26 +167,28 @@ class MomentViewModel @Inject constructor(
                     weatherBody,
                     ratingBody
                 ).onSuccess { response ->
-                    // Lưu local để load nhanh
-                    val fileName = "moment_${response.id}.jpg"
+                    val fileName = "moment_${response.id}.webp"
                     val permanentFile = File(context.filesDir, "moments/$fileName")
                     permanentFile.parentFile?.mkdirs()
                     imageFile.copyTo(permanentFile, overwrite = true)
                     
                     _localPaths.update { it + (response.imageUrl to permanentFile.absolutePath) }
 
-                    val updatedList = (listOf(response) + _moments.value).distinctBy { it.id }
-                    _moments.value = updatedList
+                    // Thay thế ảnh tạm bằng ảnh thật
+                    val updatedList = _moments.value.map {
+                        if (it.id == tempId) response else it
+                    }.distinctBy { it.id }
                     
-                    onSuccess()
-                    fetchMyMoments(forceRefresh = true)
+                    _moments.value = updatedList
+                    saveMomentsToCache(updatedList)
                 }.onFailure {
                     Log.e("MomentVM", "Upload failed", it)
+                    // Revert if failed
+                    _moments.value = _moments.value.filter { m -> m.id != tempId }
                 }
             } catch (e: Exception) {
                 Log.e("MomentVM", "Error preparing upload", e)
-            } finally {
-                _isLoading.value = false
+                _moments.value = _moments.value.filter { m -> m.id != tempId }
             }
         }
     }

@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.diary.moonpage.presentation.screens.auth.AuthViewModel
 import com.diary.moonpage.presentation.screens.calendar.CalendarScreen
+import com.diary.moonpage.presentation.screens.calendar.DailyLogScreen
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
 import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
 import com.diary.moonpage.presentation.screens.profile.*
@@ -39,6 +40,17 @@ fun NavGraphBuilder.mainNavGraph(
                 FilterScreen(
                     onDismiss = { navController.popBackStack() },
                     onSeeResults = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable(Screen.DailyLog.route) { backStackEntry ->
+            val dateStr = backStackEntry.arguments?.getString("date") ?: ""
+            screenWrapper(Screen.DailyLog.route) {
+                DailyLogScreen(
+                    dateString = dateStr,
+                    onNavigateBack = { navController.popBackStack() },
+                    onDone = { navController.popBackStack() }
                 )
             }
         }

@@ -25,11 +25,7 @@ import java.util.*
 
 @Composable
 fun CalendarTopBar(
-    currentMonth: String,
     onFilterClick: () -> Unit,
-    onPrevMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    onShareClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -39,34 +35,25 @@ fun CalendarTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left leaf icon
-        IconButton(
-            onClick = onFilterClick,
-            modifier = Modifier
-                .size(40.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Eco,
-                contentDescription = "Filter",
-                tint = Color(0xFF76BA99)
-            )
-        }
-
-        // Month selector
+        // Left leaf icon + dropdown
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { /* Show month picker */ }
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.clickable { onFilterClick() }
         ) {
-            Text(
-                text = currentMonth,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color(0xFFE8F5E9), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Eco,
+                    contentDescription = "App Icon",
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Rounded.KeyboardArrowDown,
                 contentDescription = null,
@@ -75,28 +62,28 @@ fun CalendarTopBar(
         }
 
         // Right icons
-        Row {
-            IconButton(onClick = { /* TODO */ }) {
-                Icon(
-                    imageVector = Icons.Rounded.NotificationsNone,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            IconButton(onClick = onShareClick) {
-                Icon(
-                    imageVector = Icons.Rounded.IosShare,
-                    contentDescription = "Share",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            IconButton(onClick = { /* TODO */ }) {
-                Icon(
-                    imageVector = Icons.Rounded.Menu,
-                    contentDescription = "Menu",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.BreakfastDining,
+                contentDescription = null,
+                tint = Color(0xFFFFCC80),
+                modifier = Modifier.size(28.dp).clickable { /* TODO */ }
+            )
+            Icon(
+                imageVector = Icons.Rounded.Palette,
+                contentDescription = null,
+                tint = Color(0xFFFFE082),
+                modifier = Modifier.size(28.dp).clickable { /* TODO */ }
+            )
+            Icon(
+                imageVector = Icons.Rounded.Menu,
+                contentDescription = "Menu",
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(28.dp).clickable { /* TODO */ }
+            )
         }
     }
 }
@@ -126,41 +113,53 @@ fun DayItem(
     day: Int?,
     isSelected: Boolean,
     moodColor: Color?,
+    moodIcon: ImageVector? = null,
     onClick: () -> Unit
 ) {
-    val baseMoodColor = moodColor ?: Color.Transparent
-    val finalMoodColor = if (isSelected) {
-        baseMoodColor
+    val baseMoodColor = moodColor ?: Color(0xFFF0F4F8) // Light grey/blue for empty days
+    val finalMoodColor = if (isSelected && moodColor == null) {
+        Color.Transparent
     } else {
-        baseMoodColor.copy(alpha = 0.3f)
+        baseMoodColor
     }
 
-    Box(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .aspectRatio(1f)
             .padding(4.dp)
-            .clip(CircleShape)
-            .then(
-                if (isSelected && moodColor == null) 
-                    Modifier.border(2.dp, Color(0xFF76BA99), CircleShape)
-                else if (isSelected)
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                else Modifier
-            )
-            .background(finalMoodColor)
-            .clickable(enabled = day != null) { onClick() },
-        contentAlignment = Alignment.Center
+            .clickable(enabled = day != null) { onClick() }
     ) {
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .fillMaxWidth()
+                .clip(CircleShape)
+                .then(
+                    if (isSelected && moodColor == null) 
+                        Modifier.border(2.dp, Color(0xFF4CAF50), CircleShape) // Green border for selected empty day
+                    else Modifier
+                )
+                .background(finalMoodColor),
+            contentAlignment = Alignment.Center
+        ) {
+            if (moodIcon != null) {
+                Icon(
+                    imageVector = moodIcon,
+                    contentDescription = null,
+                    tint = Color.Black.copy(alpha = 0.6f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
         if (day != null) {
             Text(
                 text = day.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (moodColor != null) {
-                    if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected && moodColor == null) Color(0xFF4CAF50) else Color.Gray
             )
         }
     }

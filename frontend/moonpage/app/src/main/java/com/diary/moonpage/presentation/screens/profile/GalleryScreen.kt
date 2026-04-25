@@ -89,31 +89,32 @@ fun GalleryScreen(
                         items = sortedMoments,
                         key = { it.id }
                     ) { moment ->
-                        GalleryItem(url = moment.imageUrl)
+                        val localPaths by viewModel.localPaths.collectAsState()
+                        GalleryItem(url = moment.imageUrl, localPath = localPaths[moment.imageUrl])
                     }
                 }
             }
 
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
+            // Removed whole screen loading indicator as requested
         }
     }
 }
 
 @Composable
-fun GalleryItem(url: String) {
+fun GalleryItem(url: String, localPath: String?) {
     val context = LocalContext.current
     
-    val imageRequest = remember(url) {
+    val imageData = if (localPath != null && java.io.File(localPath).exists()) {
+        java.io.File(localPath)
+    } else {
+        url
+    }
+
+    val imageRequest = remember(imageData) {
         ImageRequest.Builder(context)
-            .data(url)
+            .data(imageData)
             .crossfade(true)
             .crossfade(400)
-            .diskCacheKey(url)
-            .memoryCacheKey(url)
             .build()
     }
 

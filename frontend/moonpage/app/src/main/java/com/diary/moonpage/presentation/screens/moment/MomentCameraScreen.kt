@@ -251,8 +251,12 @@ fun MomentCameraContent(
                 isSuccess = isSuccess,
                 onCancel = { capturedImageUri = null },
                 onUpload = { file, caption ->
-                    // Caption được xử lý tại Screen, nhưng metadata khác truyền riêng biệt
-                    onUpload(file, caption, userLocation, userWeather, userRating) {
+                    val currentTag = allTags[uploadPagerState.currentPage]
+                    val ratingToUpload = if (currentTag.id == "review") userRating else null
+                    val locationToUpload = if (currentTag.id == "location") userLocation else null
+                    val weatherToUpload = if (currentTag.id == "weather") userWeather else null
+
+                    onUpload(file, caption, locationToUpload, weatherToUpload, ratingToUpload) {
                         isSuccess = true
                     }
                 },

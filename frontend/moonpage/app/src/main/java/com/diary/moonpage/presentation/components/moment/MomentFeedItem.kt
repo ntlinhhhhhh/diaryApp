@@ -6,11 +6,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.StarHalf
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +52,8 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Space for top header
-        Spacer(modifier = Modifier.height(72.dp))
+        Box(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp).height(56.dp))
+        Spacer(modifier = Modifier.height(60.dp))
 
         // Image Frame
         Box(
@@ -63,8 +69,6 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
                     .data(imageData)
                     .crossfade(true)
                     .crossfade(200)
-                    .diskCacheKey(moment.imageUrl)
-                    .memoryCacheKey(moment.imageUrl)
                     .precision(Precision.INEXACT)
                     .build(),
                 contentDescription = null,
@@ -72,86 +76,91 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
                 contentScale = ContentScale.Crop
             )
             
-            if (!moment.caption.isNullOrEmpty()) {
+            val inferredTag = remember(moment) {
+                when {
+                    moment.rating != null && moment.rating > 0 -> MomentTag("review", Icons.Rounded.Star, "Review", Color.White, Color.Yellow.copy(0.6f))
+                    moment.caption?.startsWith("Rating: ") == true -> MomentTag("review", Icons.Rounded.Star, "Review", Color.White, Color.Yellow.copy(0.6f))
+                    moment.location != null -> MomentTag("location", Icons.Rounded.LocationOn, "Location", Color.White, Color.Blue.copy(0.6f))
+                    moment.weather != null -> MomentTag("weather", Icons.Rounded.Cloud, "Weather", Color.White, Color.Cyan.copy(0.6f))
+                    moment.caption in listOf("Sunny ☀️", "Cloudy ☁️", "Rainy 🌧️", "Snowy ❄️", "Windy 💨") -> MomentTag("weather", Icons.Rounded.Cloud, "Weather", Color.White, Color.Cyan.copy(0.6f))
+                    moment.caption == "Party Time!" -> MomentTag("party", null, "Party Time!", containerColor = Color(0xFF80FFE8), contentColor = Color.Black)
+                    moment.caption == "OOTD" -> MomentTag("ootd", null, "OOTD", containerColor = Color.White, contentColor = Color.Black)
+                    moment.caption == "Miss you" -> MomentTag("missyou", null, "Miss you", containerColor = Color(0xFFFF4B4B), contentColor = Color.White)
+                    else -> MomentTag("text", Icons.Rounded.TextFields, "Message", Color.White, Color.Black.copy(0.6f))
+                }
+            }
+
+            // Tags overlay like in UploadScreen
+            Box(modifier = Modifier.fillMaxSize().padding(bottom = 4.dp), contentAlignment = Alignment.BottomCenter) {
                 Surface(
-                    color = Color.Black.copy(alpha = 0.45f),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.padding(bottom = 24.dp, start = 16.dp, end = 16.dp)
+                    color = inferredTag.containerColor ?: Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.wrapContentSize()
                 ) {
-                    Text(
-                        text = moment.caption,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
+                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (inferredTag.id != "review") {
+                            inferredTag.icon?.let { 
+                                Icon(it, null, tint = inferredTag.contentColor, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                        }
+                        
+                        val textToShow = when (inferredTag.id) {
+                            "review" -> ""
+                            "location" -> moment.location ?: moment.caption ?: ""
+                            "weather" -> moment.weather ?: moment.caption ?: ""
+                            else -> moment.caption ?: ""
+                        }
+
+                        if (inferredTag.id == "review") {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val parsedRating = if (moment.caption?.startsWith("Rating: ") == true) {
+                                    moment.caption.removePrefix("Rating: ").removeSuffix(" stars").toFloatOrNull() ?: 0f
+                                } else 0f
+                                val finalRating = if (moment.rating != null && moment.rating > 0) moment.rating else parsedRating
+
+                                repeat(5) { index ->
+                                    val starIndex = index + 1
+                                    val starIcon = when {
+                                        finalRating >= starIndex -> Icons.Default.Star
+                                        finalRating >= starIndex - 0.5f -> Icons.Default.StarHalf
+                                        else -> Icons.Default.StarBorder
+                                    }
+                                    Icon(
+                                        imageVector = starIcon,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD700),
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            if (textToShow.isNotEmpty()) {
+                                Text(
+                                    text = textToShow,
+                                    color = inferredTag.contentColor,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Meta Tags (Rating, Location, Weather)
-        FlowRow(
-            modifier = Modifier.padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            maxItemsInEachRow = 3
-        ) {
-            // Rating Tag
-            if (moment.rating != null && moment.rating > 0) {
-                TagChip(
-                    tag = MomentTag(
-                        id = "rating",
-                        icon = Icons.Rounded.Star,
-                        text = "${moment.rating}",
-                        containerColor = Color(0xFFFFD700).copy(alpha = 0.2f),
-                        contentColor = Color(0xFFFFA000)
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
-            // Location Tag
-            if (!moment.location.isNullOrEmpty()) {
-                TagChip(
-                    tag = MomentTag(
-                        id = "location",
-                        icon = Icons.Rounded.LocationOn,
-                        text = moment.location,
-                        containerColor = Color(0xFF2196F3).copy(alpha = 0.2f),
-                        contentColor = Color(0xFF1976D2)
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
-            // Weather Tag
-            if (!moment.weather.isNullOrEmpty()) {
-                TagChip(
-                    tag = MomentTag(
-                        id = "weather",
-                        icon = Icons.Rounded.WbSunny,
-                        text = moment.weather,
-                        containerColor = Color(0xFF00BCD4).copy(alpha = 0.2f),
-                        contentColor = Color(0xFF0097A7)
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            
-            // Time Tag
-            TagChip(
-                tag = MomentTag(
-                    id = "time",
-                    icon = Icons.Rounded.AccessTime,
-                    text = formatShortTime(moment.capturedAt),
-                    containerColor = onBgColor.copy(alpha = 0.1f),
-                    contentColor = onBgColor.copy(alpha = 0.6f)
-                )
+        TagChip(
+            tag = MomentTag(
+                id = "time",
+                icon = Icons.Rounded.AccessTime,
+                text = formatShortTime(moment.capturedAt),
+                containerColor = onBgColor.copy(alpha = 0.1f),
+                contentColor = onBgColor.copy(alpha = 0.6f)
             )
-        }
+        )
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -171,7 +180,7 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
             Text(
                 text = "Me",
                 color = onBgColor,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
             Spacer(modifier = Modifier.width(8.dp))

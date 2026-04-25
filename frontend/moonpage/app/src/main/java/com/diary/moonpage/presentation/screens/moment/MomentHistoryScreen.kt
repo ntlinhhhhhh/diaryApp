@@ -16,16 +16,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.diary.moonpage.core.theme.MoonPageTheme
 import com.diary.moonpage.data.remote.api.MomentResponse
 import com.diary.moonpage.presentation.components.moment.MomentFeedItem
+import com.diary.moonpage.presentation.components.moment.CaptureButton
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Close
 
 @Composable
 fun MomentHistoryScreen(
     moments: List<MomentResponse>,
-    localPaths: Map<String, String>, // Thêm mapping đường dẫn local
+    localPaths: Map<String, String>,
     onNavigateToGallery: () -> Unit,
     onBackToCamera: () -> Unit,
     modifier: Modifier = Modifier
@@ -35,6 +42,7 @@ fun MomentHistoryScreen(
     val onBgColor = MaterialTheme.colorScheme.onBackground
     val bgColor = MaterialTheme.colorScheme.background
     val context = LocalContext.current
+    var showMenu by remember { mutableStateOf(false) }
 
     // Pre-fetch images
     LaunchedEffect(sortedMoments) {
@@ -73,7 +81,7 @@ fun MomentHistoryScreen(
             }
         }
 
-        // Top Header (Giữ nguyên giao diện cũ)
+        // Header (Chỉ còn icon bên trái)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -90,7 +98,7 @@ fun MomentHistoryScreen(
             )
         }
 
-        // Bottom Bar (Giữ nguyên giao diện cũ)
+        // Bottom Bar (Nút Menu được chuyển xuống đây)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,6 +108,7 @@ fun MomentHistoryScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Nút Gallery
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -111,23 +120,86 @@ fun MomentHistoryScreen(
                 Icon(Icons.Rounded.GridView, null, tint = onBgColor, modifier = Modifier.size(28.dp))
             }
 
-            Box(
-                modifier = Modifier
-                    .size(76.dp)
-                    .clip(CircleShape)
-                    .background(onBgColor.copy(alpha = 0.2f))
-                    .clickable { onBackToCamera() },
-                contentAlignment = Alignment.Center
-            ) {
+            // Nút Capture (Back to Camera)
+            CaptureButton(onClick = onBackToCamera)
+
+            // Nút Menu (Đổi thành MoreHoriz)
+            if (sortedMoments.isNotEmpty()) {
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
+                        .size(52.dp)
                         .clip(CircleShape)
-                        .background(onBgColor)
-                )
+                        .background(onBgColor.copy(alpha = 0.1f))
+                        .clickable { showMenu = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.MoreHoriz, null, tint = onBgColor, modifier = Modifier.size(28.dp))
+                }
+            } else {
+                Spacer(modifier = Modifier.size(52.dp))
             }
+        }
 
-            Spacer(modifier = Modifier.size(52.dp))
+        if (showMenu) {
+            @OptIn(ExperimentalMaterial3Api::class)
+            ModalBottomSheet(
+                onDismissRequest = { showMenu = false }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp, top = 8.dp)
+                ) {
+                    // Share
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showMenu = false }
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.Share, null, tint = onBgColor)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Share", color = onBgColor, fontSize = 16.sp)
+                    }
+                    // Download
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showMenu = false }
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.Download, null, tint = onBgColor)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Download", color = onBgColor, fontSize = 16.sp)
+                    }
+                    // Delete
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showMenu = false }
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Delete", color = MaterialTheme.colorScheme.error, fontSize = 16.sp)
+                    }
+                    // Cancel
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showMenu = false }
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.Close, null, tint = onBgColor)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Cancel", color = onBgColor, fontSize = 16.sp)
+                    }
+                }
+            }
         }
     }
 }

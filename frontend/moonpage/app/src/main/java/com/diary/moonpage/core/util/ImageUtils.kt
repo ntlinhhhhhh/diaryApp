@@ -81,9 +81,15 @@ object ImageUtils {
             }
 
             // 4. Save with high compression
-            val compressedFile = File(context.cacheDir, "up_${System.currentTimeMillis()}.jpg")
+            val compressedFile = File(context.cacheDir, "up_${System.currentTimeMillis()}.webp")
             FileOutputStream(compressedFile).use { out ->
-                finalBitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+                val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    Bitmap.CompressFormat.WEBP_LOSSY
+                } else {
+                    @Suppress("DEPRECATION")
+                    Bitmap.CompressFormat.WEBP
+                }
+                finalBitmap.compress(format, quality, out)
             }
 
             // Cleanup RAM
