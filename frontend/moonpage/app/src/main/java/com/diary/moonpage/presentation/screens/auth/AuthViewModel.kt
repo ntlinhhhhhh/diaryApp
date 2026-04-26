@@ -96,6 +96,7 @@ class AuthViewModel @Inject constructor (
                 result.onSuccess { user ->
                     tokenManager.saveToken(user.token)
                     tokenManager.saveUserId(user.userId)
+                    tokenManager.saveUserName(user.name)
                     val isOnboarded = onboardingPrefsManager.checkOnboardingCompleted(user.userId)
                     _uiState.update { it.copy(isLoading = false) }
                     _uiEvent.send(AuthUiEvent.LoginSuccess(user.token, user.userId, isNewUser = !isOnboarded))
@@ -175,6 +176,7 @@ class AuthViewModel @Inject constructor (
                 result.onSuccess { user ->
                     tokenManager.saveToken(user.token)
                     tokenManager.saveUserId(user.userId)
+                    tokenManager.saveUserName(user.name)
                     val isOnboarded = onboardingPrefsManager.checkOnboardingCompleted(user.userId)
                     _uiState.update { it.copy(isLoading = false) }
                     _uiEvent.send(AuthUiEvent.LoginSuccess(user.token, user.userId, isNewUser = !isOnboarded))

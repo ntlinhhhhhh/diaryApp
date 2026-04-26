@@ -19,8 +19,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class TokenManager @Inject constructor(@ApplicationContext private val context: Context) {
 
     companion object {
-        private val TOKEN_KEY   = stringPreferencesKey("jwt_token")
-        private val USER_ID_KEY = stringPreferencesKey("user_id")
+        private val TOKEN_KEY     = stringPreferencesKey("jwt_token")
+        private val USER_ID_KEY   = stringPreferencesKey("user_id")
+        private val USER_NAME_KEY = stringPreferencesKey("user_name")
     }
 
     suspend fun saveToken(token: String) {
@@ -35,6 +36,12 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         }
     }
 
+    suspend fun saveUserName(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[USER_NAME_KEY] = name
+        }
+    }
+
     fun getToken(): Flow<String?> {
         return context.dataStore.data.map { preferences ->
             preferences[TOKEN_KEY]
@@ -44,6 +51,12 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
     suspend fun getUserId(): String? {
         return context.dataStore.data.map { preferences ->
             preferences[USER_ID_KEY]
+        }.first()
+    }
+
+    suspend fun getUserName(): String? {
+        return context.dataStore.data.map { preferences ->
+            preferences[USER_NAME_KEY]
         }.first()
     }
 

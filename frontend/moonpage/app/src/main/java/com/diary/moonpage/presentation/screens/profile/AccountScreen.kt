@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
@@ -379,11 +380,11 @@ fun AccountScreenContent(
                     color = if (isUsernameEmpty) colorScheme.onBackground.copy(alpha = 0.5f) else colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                // Circular edit button – chỉ bao quanh icon, giống nút edit avatar
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .background(colorScheme.surfaceVariant, CircleShape)
+                        .clip(CircleShape)
+                        .background(Color.Transparent, CircleShape)
                         .clickable { onUsernameEditClick() },
                     contentAlignment = Alignment.Center
                 ) {

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.moonpage.data.remote.dto.auth.UpdateProfileRequestDto
 import com.diary.moonpage.domain.repository.UserRepository
 import com.diary.moonpage.core.util.OnboardingPrefsManager
+import com.diary.moonpage.core.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +22,8 @@ data class OnboardingUiState(
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val onboardingPrefsManager: OnboardingPrefsManager
+    private val onboardingPrefsManager: OnboardingPrefsManager,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -39,8 +41,9 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            // Get current user name (needed for updateProfile which requires name)
-            val currentName = userRepository.currentUser.value?.name
+            // Lấy name từ TokenManager (đã lưu tại login) thay vì currentUser
+            // để tránh dùng nhầm tên của tài khoản cũ đang cache trong singleton
+            val currentName = tokenManager.getUserName()
                 ?: userRepository.getCurrentUser().getOrNull()?.name
                 ?: ""
 
