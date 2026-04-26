@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.BrokenImage
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -79,7 +80,29 @@ fun GalleryScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (sortedMoments.isEmpty() && !isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Chưa có ảnh nào", color = colorScheme.onBackground.copy(alpha = 0.6f))
+                    androidx.compose.foundation.layout.Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.PhotoLibrary,
+                            contentDescription = null,
+                            tint = colorScheme.onBackground.copy(alpha = 0.25f),
+                            modifier = androidx.compose.ui.Modifier.then(
+                                androidx.compose.ui.Modifier.size(72.dp)
+                            )
+                        )
+                        Text(
+                            "No photos yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colorScheme.onBackground.copy(alpha = 0.55f)
+                        )
+                        Text(
+                            "Capture your first moment to see it here",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colorScheme.onBackground.copy(alpha = 0.35f)
+                        )
+                    }
                 }
             } else {
                 LazyVerticalGrid(

@@ -3,6 +3,7 @@ package com.diary.moonpage.presentation.components.moment
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -11,6 +12,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +59,8 @@ fun CameraMainUI(
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     val imageCapture = remember { ImageCapture.Builder().build() }
     val previewView = remember { PreviewView(context) }
+    var camera by remember { mutableStateOf<Camera?>(null) }
+    var currentZoomRatio by remember { mutableFloatStateOf(1f) }
 
     val currentUser by if (userRepository != null) {
         userRepository.currentUser.collectAsState()
@@ -65,23 +72,23 @@ fun CameraMainUI(
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build()
-            val cameraSelector = CameraSelector.Builder()
-                .requireLensFacing(lensFacing)
-                .build()
+                val preview = Preview.Builder().build()
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(lensFacing)
+                    .build()
 
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    cameraSelector,
-                    preview,
-                    imageCapture
-                )
-                preview.setSurfaceProvider(previewView.surfaceProvider)
-            } catch (e: Exception) {
-                Log.e("CameraMainUI", "Camera binding failed", e)
-            }
+                try {
+                    cameraProvider.unbindAll()
+                    camera = cameraProvider.bindToLifecycle(
+                        lifecycleOwner,
+                        cameraSelector,
+                        preview,
+                        imageCapture
+                    )
+                    preview.setSurfaceProvider(previewView.surfaceProvider)
+                } catch (e: Exception) {
+                    Log.e("CameraMainUI", "Camera binding failed", e)
+                }
         }, mainExecutor)
     }
 
@@ -129,13 +136,26 @@ fun CameraMainUI(
 
         Spacer(modifier = Modifier.height(60.dp))
 
-        // Camera Preview
+        // Camera Preview with pinch-to-zoom
+        val zoomTransformState = rememberTransformableState { zoomChange, _, _ ->
+            val maxRatio = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 4f
+            currentZoomRatio = (currentZoomRatio * zoomChange).coerceIn(1f, maxRatio)
+            camera?.cameraControl?.setZoomRatio(currentZoomRatio)
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(32.dp))
-                .background(Color.Black),
+                .background(Color.Black)
+                .transformable(state = zoomTransformState)
+                .pointerInput(Unit) {
+                    detectTapGestures(onDoubleTap = {
+                        currentZoomRatio = 1f
+                        camera?.cameraControl?.setZoomRatio(1f)
+                    })
+                },
             contentAlignment = Alignment.Center
         ) {
             AndroidView(

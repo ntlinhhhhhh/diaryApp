@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -126,14 +128,44 @@ fun MomentUploadScreen(
         Spacer(modifier = Modifier.height(60.dp))
 
         // Image Box
+        // Pinch-to-zoom state
+        var scale by remember { mutableFloatStateOf(1f) }
+        var offsetX by remember { mutableFloatStateOf(0f) }
+        var offsetY by remember { mutableFloatStateOf(0f) }
+        val transformState = rememberTransformableState { zoomChange, panChange, _ ->
+            scale = (scale * zoomChange).coerceIn(1f, 4f)
+            // Giới hạn pan theo tỉ lệ zoom để không khỏi ra ngoài ảnh
+            val maxOffset = 500f * (scale - 1f)
+            offsetX = (offsetX + panChange.x).coerceIn(-maxOffset, maxOffset)
+            offsetY = (offsetY + panChange.y).coerceIn(-maxOffset, maxOffset)
+        }
+
         Box(
-            modifier = Modifier.fillMaxWidth(0.9f).aspectRatio(1f).clip(RoundedCornerShape(32.dp)).background(Color.Black),
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(32.dp))
+                .background(Color.Black)
+                // Double-tap để reset zoom
+                .pointerInput(Unit) {
+                    detectTapGestures(onDoubleTap = {
+                        scale = 1f; offsetX = 0f; offsetY = 0f
+                    })
+                },
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
                 model = capturedImageUri,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = if (capturedLensFacing == CameraSelector.LENS_FACING_FRONT) -1f else 1f),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale * if (capturedLensFacing == CameraSelector.LENS_FACING_FRONT) -1f else 1f,
+                        scaleY = scale,
+                        translationX = offsetX,
+                        translationY = offsetY
+                    )
+                    .transformable(state = transformState),
                 contentScale = ContentScale.Crop
             )
 

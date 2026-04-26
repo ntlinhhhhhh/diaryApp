@@ -2,9 +2,12 @@ package com.diary.moonpage.presentation.screens.moment
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.location.Geocoder
 import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -17,16 +20,19 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.data.remote.api.MomentResponse
 import com.diary.moonpage.presentation.components.moment.CameraMainUI
@@ -170,10 +176,40 @@ fun MomentCameraContent(
         }
     }
 
+    // Helper: kiểm tra GPS có được bật không
+    fun isGpsEnabled(ctx: android.content.Context): Boolean {
+        val lm = ctx.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
+        return lm.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+               lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    var showGpsDialog by remember { mutableStateOf(false) }
+
+    // GPS enable dialog
+    if (showGpsDialog) {
+        AlertDialog(
+            onDismissRequest = { showGpsDialog = false },
+            title = { Text("Location Services Off") },
+            text = { Text("Please enable Location Services to add your location.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showGpsDialog = false
+                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                }) { Text("Open Settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGpsDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     // Chiến thuật Hybrid: Thử lastLocation trước, nếu hụt mới getCurrentLocation
     val fetchLocationFast = {
         if (locationPermissionState.allPermissionsGranted) {
-            if (userLocation.isEmpty() || userLocation == "Location error") {
+            if (!isGpsEnabled(context)) {
+                // GPS tắt – hiện dialog yêu cầu bật
+                showGpsDialog = true
+            } else if (userLocation.isEmpty() || userLocation == "Location error") {
                 userLocation = "Locating..."
                 fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
                     if (loc != null) {
@@ -192,20 +228,20 @@ fun MomentCameraContent(
                     }
                 }
             }
+        } else {
+            locationPermissionState.launchMultiplePermissionRequest()
         }
     }
 
-    // Tự động lấy vị trí ngay khi ảnh được chụp xong (Pre-fetching)
-    LaunchedEffect(capturedImageUri) {
-        if (capturedImageUri != null) {
-            fetchLocationFast()
-        }
-    }
+    // pendingLocationRequest: được bật lên khi user vào tag location nhưng chưa có quyền
+    // Khi quyền được cấp xong mới tự động fetch
+    var pendingLocationRequest by remember { mutableStateOf(false) }
 
-    // Tự động lấy lại nếu vừa cấp quyền xong
     LaunchedEffect(locationPermissionState.allPermissionsGranted) {
-        if (locationPermissionState.allPermissionsGranted && capturedImageUri != null) {
-            fetchLocationFast()
+        if (locationPermissionState.allPermissionsGranted && pendingLocationRequest) {
+            pendingLocationRequest = false
+            if (!isGpsEnabled(context)) showGpsDialog = true
+            else fetchLocationFast()
         }
     }
 
@@ -254,10 +290,16 @@ fun MomentCameraContent(
                 onUserRatingChange = { userRating = it },
                 userLocation = userLocation,
                 onLocationClick = {
-                    if (locationPermissionState.allPermissionsGranted) {
-                        fetchLocationFast()
-                    } else {
+                    // Chỉ xử lý location khi user chủ động vào tag location
+                    if (!locationPermissionState.allPermissionsGranted) {
+                        // Chưa có quyền – đánh dấu pending rồi hỏi quyền
+                        pendingLocationRequest = true
                         locationPermissionState.launchMultiplePermissionRequest()
+                    } else if (!isGpsEnabled(context)) {
+                        // Có quyền nhưng GPS tắt – hiện dialog
+                        showGpsDialog = true
+                    } else {
+                        fetchLocationFast()
                     }
                 },
                 userWeather = userWeather,
