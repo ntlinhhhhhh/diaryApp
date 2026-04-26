@@ -1,6 +1,7 @@
 package com.diary.moonpage.presentation.screens.profile
 
 import android.content.res.Configuration
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -23,8 +25,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
+import coil.size.Scale
+import coil.size.Size
 import com.diary.moonpage.presentation.screens.moment.MomentViewModel
 import com.diary.moonpage.presentation.theme.MoonPageTheme
 
@@ -111,59 +116,66 @@ fun GalleryItem(
 ) {
     val context = LocalContext.current
 
-    val imageData = if (localPath != null && java.io.File(localPath).exists()) {
-        java.io.File(localPath)
-    } else {
-        url
+    // remember để tránh File.exists() chạy lại mỗi recomposition (disk IO trên main thread)
+    val imageData = remember(localPath, url) {
+        if (localPath != null && java.io.File(localPath).exists()) java.io.File(localPath) else url
     }
+
+    val isLocalFile = imageData is java.io.File
 
     val imageRequest = remember(imageData) {
         ImageRequest.Builder(context)
             .data(imageData)
-            .crossfade(true)
-            .crossfade(400)
+            .size(Size(600, 600))               // decode ngay không chờ layout
+            .scale(Scale.FILL)                  // khớp ContentScale.Crop
+            .crossfade(200)
+            .memoryCacheKey(imageData.toString())
+            // File local đã có sẵn trên disk – không cần ghi lại vào Coil disk cache
+            // chỉ dùng memory cache để truy cập nhanh khi scroll qua lại
+            .diskCachePolicy(if (isLocalFile) CachePolicy.DISABLED else CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
             .build()
     }
+
+    var isLoaded by remember { mutableStateOf(false) }
+    var isError by remember { mutableStateOf(false) }
+
+    val shimmerAlpha by rememberInfiniteTransition(label = "shimmer").animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmerAlpha"
+    )
 
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(
+                if (isLoaded) Color.Transparent
+                else if (isError) MaterialTheme.colorScheme.surfaceVariant
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = shimmerAlpha)
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        SubcomposeAsyncImage(
+        AsyncImage(
             model = imageRequest,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
-            loading = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                    )
-                }
-            },
-            error = {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.BrokenImage,
-                        contentDescription = "Error",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                    )
-                }
-            }
+            onSuccess = { isLoaded = true },
+            onError = { isError = true }
         )
+        if (isError) {
+            Icon(
+                imageVector = Icons.Rounded.BrokenImage,
+                contentDescription = "Error",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            )
+        }
     }
 }

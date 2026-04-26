@@ -1,5 +1,10 @@
 package com.diary.moonpage.presentation.components.moment
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,9 +32,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.size.Precision
+import coil.size.Scale
+import coil.size.Size
 import com.diary.moonpage.data.remote.api.MomentResponse
 import java.io.File
 import java.text.SimpleDateFormat
@@ -41,12 +52,39 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
     val onBgColor = MaterialTheme.colorScheme.onBackground
     val context = LocalContext.current
     
-    val imageData = if (localPath != null && File(localPath).exists()) {
-        File(localPath)
-    } else {
-        moment.imageUrl
+    // remember để tránh File.exists() chạy lại mỗi recomposition (disk IO trên main thread)
+    val imageData = remember(localPath, moment.imageUrl) {
+        if (localPath != null && File(localPath).exists()) File(localPath) else moment.imageUrl
     }
-    
+
+    val isLocalFile = imageData is File
+
+    val imageRequest = remember(imageData) {
+        ImageRequest.Builder(context)
+            .data(imageData)
+            .size(Size(1080, 1080))             // decode ngay không chờ layout
+            .scale(Scale.FILL)                  // khớp ContentScale.Crop
+            .precision(Precision.INEXACT)       // dùng ảnh gần đúng size từ cache
+            .crossfade(200)
+            .memoryCacheKey(imageData.toString())
+            // File local không cần Coil disk cache (đã có trên disk rồi)
+            .diskCachePolicy(if (isLocalFile) CachePolicy.DISABLED else CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .build()
+    }
+
+    var isLoaded by remember { mutableStateOf(false) }
+
+    val shimmerAlpha by rememberInfiniteTransition(label = "shimmer").animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmerAlpha"
+    )
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -61,19 +99,15 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
                 .fillMaxWidth(0.9f)
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(32.dp))
-                .background(onBgColor.copy(alpha = 0.1f)),
+                .background(if (isLoaded) Color.Transparent else onBgColor.copy(alpha = shimmerAlpha)),
             contentAlignment = Alignment.BottomCenter
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(imageData)
-                    .crossfade(true)
-                    .crossfade(200)
-                    .precision(Precision.INEXACT)
-                    .build(),
+                model = imageRequest,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                onSuccess = { isLoaded = true }
             )
             
             val inferredTag = remember(moment) {

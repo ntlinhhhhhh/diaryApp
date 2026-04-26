@@ -7,6 +7,9 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import coil.request.CachePolicy
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 
 @HiltAndroidApp
 class MoonPageApplication : Application(), ImageLoaderFactory {
@@ -14,17 +17,27 @@ class MoonPageApplication : Application(), ImageLoaderFactory {
         return ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
+                    .maxSizePercent(0.35)       // 35% RAM dành cho cache ảnh
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.1) // Khoảng 10% disk space hoặc maxBytes
+                    .maxSizeBytes(150L * 1024 * 1024) // 150 MB disk cache cố định
                     .build()
             }
-            // Mặc định cho phép network cache
-            .respectCacheHeaders(false) // Bỏ qua cache header từ server để bắt buộc cache
+            .okHttpClient {
+                OkHttpClient.Builder()
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .build()
+            }
+            // Theo docs: explicit policy giúp Coil bỏ qua check header = ít overhead hơn
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .respectCacheHeaders(false)  // Bỏ qua server cache header, luôn dùng disk cache
+            .crossfade(true)             // Crossfade mặc định toàn app
+            .allowHardware(true)         // Hardware bitmap – render trực tiếp trên GPU
             .build()
     }
 }
