@@ -56,7 +56,7 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
     onNavigateToLoginGoogle: () -> Unit,
-    onLoginSuccess: (String) -> Unit
+    onLoginSuccess: (String, Boolean) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -87,7 +87,7 @@ fun LoginScreenContent(
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
     onNavigateToLoginGoogle:() -> Unit,
-    onLoginSuccess: (String) -> Unit
+    onLoginSuccess: (String, Boolean) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -105,7 +105,7 @@ fun LoginScreenContent(
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
             when (event) {
-                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token)
+                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token, event.isNewUser)
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
                         snackBarHostState.currentSnackbarData?.dismiss()
@@ -309,7 +309,7 @@ fun LoginScreenPreview() {
             onNavigateToRegister = {},
             onNavigateToForgotPassword = {},
             onNavigateToLoginGoogle = {},
-            onLoginSuccess = {}
+            onLoginSuccess = { _, _ -> },
         )
     }
 }

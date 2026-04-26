@@ -26,6 +26,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.profile.*
 import com.diary.moonpage.presentation.theme.MoonPageTheme
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.launch
 
 /**
@@ -316,9 +320,14 @@ fun AccountScreenContent(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val isUsernameEmpty = username.trim().isEmpty()
+    val clipboardManager = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { 
@@ -361,7 +370,7 @@ fun AccountScreenContent(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { onUsernameEditClick() }
+                horizontalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = if (isUsernameEmpty) "Set Username" else username,
@@ -369,13 +378,22 @@ fun AccountScreenContent(
                     fontWeight = FontWeight.SemiBold,
                     color = if (isUsernameEmpty) colorScheme.onBackground.copy(alpha = 0.5f) else colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.Rounded.Edit, 
-                    contentDescription = "Edit Username",
-                    tint = colorScheme.onBackground.copy(alpha = 0.4f), 
-                    modifier = Modifier.size(16.dp)
-                )
+                Spacer(modifier = Modifier.width(10.dp))
+                // Circular edit button – chỉ bao quanh icon, giống nút edit avatar
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(colorScheme.surfaceVariant, CircleShape)
+                        .clickable { onUsernameEditClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Edit,
+                        contentDescription = "Edit Username",
+                        tint = colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -386,7 +404,13 @@ fun AccountScreenContent(
                 actionText = "Copy",
                 icon = Icons.Rounded.Person,
                 isColumnValue = true,
-                onClick = {}
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    clipboardManager.setText(AnnotatedString(userIdFull))
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("User ID copied!")
+                    }
+                }
             )
 
             AccountInfoRow(

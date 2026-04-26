@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,7 +19,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class TokenManager @Inject constructor(@ApplicationContext private val context: Context) {
 
     companion object {
-        private val TOKEN_KEY = stringPreferencesKey("jwt_token")
+        private val TOKEN_KEY   = stringPreferencesKey("jwt_token")
+        private val USER_ID_KEY = stringPreferencesKey("user_id")
     }
 
     suspend fun saveToken(token: String) {
@@ -27,10 +29,22 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         }
     }
 
+    suspend fun saveUserId(userId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[USER_ID_KEY] = userId
+        }
+    }
+
     fun getToken(): Flow<String?> {
         return context.dataStore.data.map { preferences ->
             preferences[TOKEN_KEY]
         }
+    }
+
+    suspend fun getUserId(): String? {
+        return context.dataStore.data.map { preferences ->
+            preferences[USER_ID_KEY]
+        }.first()
     }
 
     suspend fun clearToken() {

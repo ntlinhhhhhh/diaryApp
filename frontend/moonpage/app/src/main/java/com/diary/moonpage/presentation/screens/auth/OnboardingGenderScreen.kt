@@ -38,7 +38,6 @@ private val GENDER_OPTIONS = listOf(
 fun OnboardingGenderScreen(
     viewModel: OnboardingViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onSkip: () -> Unit,
     onFinish: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -82,13 +81,7 @@ fun OnboardingGenderScreen(
                     trackColor = colorScheme.primary.copy(alpha = 0.2f),
                     strokeCap = StrokeCap.Round
                 )
-                TextButton(onClick = onSkip) {
-                    Text(
-                        "Skip",
-                        color = colorScheme.onBackground.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                Spacer(modifier = Modifier.width(48.dp)) // Căn phải thay cho nút Skip
             }
 
             // ── Content ──────────────────────────────────────────────────────

@@ -2,12 +2,15 @@ package com.diary.moonpage.presentation.screens.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.diary.moonpage.core.util.ActivityPreferencesManager
 import com.diary.moonpage.data.remote.api.DailyLogResponse
 import com.diary.moonpage.domain.repository.DailyLogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -15,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DailyLogViewModel @Inject constructor(
-    private val repository: DailyLogRepository
+    private val repository: DailyLogRepository,
+    private val activityPreferencesManager: ActivityPreferencesManager
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -23,6 +27,14 @@ class DailyLogViewModel @Inject constructor(
 
     private val _existingLog = MutableStateFlow<DailyLogResponse?>(null)
     val existingLog: StateFlow<DailyLogResponse?> = _existingLog.asStateFlow()
+
+    // Enabled activity categories from DataStore
+    val enabledCategories: StateFlow<Set<String>> = activityPreferencesManager.enabledCategories
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = ActivityPreferencesManager.DEFAULT_ENABLED
+        )
 
     fun fetchLogForDate(date: String) {
         viewModelScope.launch {
@@ -52,9 +64,6 @@ class DailyLogViewModel @Inject constructor(
             val noteBody = note?.toRequestBody("text/plain".toMediaTypeOrNull())
             val sleepHoursBody = sleepHours?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
             val isMenstruationBody = isMenstruation.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-            
-            // Sending activityIds as an array of parts is not strictly supported easily with Retrofit @Part List<MultipartBody.Part>
-            // We'll create MultipartBody.Part for each activity ID
             val activityParts = activityIds.map { id ->
                 okhttp3.MultipartBody.Part.createFormData("ActivityIds", id.toString())
             }
@@ -65,9 +74,9 @@ class DailyLogViewModel @Inject constructor(
                 noteBody,
                 sleepHoursBody,
                 isMenstruationBody,
-                null, // menstruationPhase
+                null,
                 activityParts,
-                null // dailyPhotos
+                null
             ).onSuccess {
                 onSuccess()
             }.onFailure {

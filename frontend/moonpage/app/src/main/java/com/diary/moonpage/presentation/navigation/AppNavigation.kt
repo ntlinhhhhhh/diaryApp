@@ -1,7 +1,7 @@
 package com.diary.moonpage.presentation.navigation
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.diary.moonpage.presentation.screens.auth.ActivityCategorySelectionScreen
+import com.diary.moonpage.presentation.screens.auth.ActivityCategoryViewModel
 import com.diary.moonpage.presentation.screens.auth.OnboardingBirthdayScreen
 import com.diary.moonpage.presentation.screens.auth.OnboardingGenderScreen
 import com.diary.moonpage.presentation.screens.auth.OnboardingViewModel
@@ -42,6 +44,7 @@ fun AppNavigation() {
 
     val authViewModel: AuthViewModel = hiltViewModel()
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+    val activityCategoryViewModel: ActivityCategoryViewModel = hiltViewModel()
 
     val mainAppRoutes = listOf(
         Screen.Calendar.route,
@@ -91,18 +94,18 @@ fun AppNavigation() {
             navController = navController,
             startDestination = Screen.Loading.route,
             modifier = Modifier,
-            enterTransition = {
-                fadeIn(animationSpec = tween(300))
-            },
-            exitTransition = {
-                fadeOut(animationSpec = tween(300))
-            }
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None }
         ) {
             composable(Screen.Loading.route) {
                 ScreenWrapper(Screen.Loading.route) {
                     LoadingScreen(
-                        onFinished = { isLoggedIn ->
-                            val nextDestination = if (isLoggedIn) Screen.Calendar.route else Screen.Landing.route
+                        onFinished = { isLoggedIn, needsOnboarding ->
+                            val nextDestination = when {
+                                !isLoggedIn      -> Screen.Landing.route
+                                needsOnboarding  -> Screen.OnboardingBirthday.route
+                                else             -> Screen.Calendar.route
+                            }
                             navController.navigate(nextDestination) {
                                 popUpTo(Screen.Loading.route) { inclusive = true }
                             }
@@ -132,9 +135,15 @@ fun AppNavigation() {
                         },
                         onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
                         onNavigateToLoginGoogle = { /* TODO */ },
-                        onLoginSuccess = { _ ->
-                            navController.navigate(Screen.OnboardingBirthday.route) {
-                                popUpTo(0) { inclusive = true }
+                        onLoginSuccess = { _, isNewUser ->
+                            if (isNewUser) {
+                                navController.navigate(Screen.OnboardingBirthday.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(Screen.Calendar.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             }
                         }
                     )
@@ -157,9 +166,15 @@ fun AppNavigation() {
                                 popUpTo(Screen.Register.route) { inclusive = true }
                             }
                         },
-                        onLoginSuccess = { _ ->
-                            navController.navigate(Screen.OnboardingBirthday.route) {
-                                popUpTo(0) { inclusive = true }
+                        onLoginSuccess = { _, isNewUser ->
+                            if (isNewUser) {
+                                navController.navigate(Screen.OnboardingBirthday.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(Screen.Calendar.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             }
                         }
                     )
@@ -208,11 +223,6 @@ fun AppNavigation() {
                     OnboardingBirthdayScreen(
                         viewModel = onboardingViewModel,
                         onNavigateBack = { navController.popBackStack() },
-                        onSkip = {
-                            navController.navigate(Screen.Calendar.route) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        },
                         onNext = { navController.navigate(Screen.OnboardingGender.route) }
                     )
                 }
@@ -223,15 +233,22 @@ fun AppNavigation() {
                     OnboardingGenderScreen(
                         viewModel = onboardingViewModel,
                         onNavigateBack = { navController.popBackStack() },
-                        onSkip = {
-                            navController.navigate(Screen.Calendar.route) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        },
                         onFinish = {
-                            navController.navigate(Screen.Calendar.route) {
-                                popUpTo(0) { inclusive = true }
-                            }
+                            navController.navigate(Screen.ActivityCategorySelection.route)
+                        }
+                    )
+                }
+            }
+
+            composable(Screen.ActivityCategorySelection.route) {
+                ScreenWrapper(Screen.ActivityCategorySelection.route) {
+                    ActivityCategorySelectionScreen(
+                        viewModel = activityCategoryViewModel,
+                        onNext = {
+                            navController.navigate(Screen.Calendar.route) { popUpTo(0) { inclusive = true } }
+                        },
+                        onSkip = {
+                            navController.navigate(Screen.Calendar.route) { popUpTo(0) { inclusive = true } }
                         }
                     )
                 }

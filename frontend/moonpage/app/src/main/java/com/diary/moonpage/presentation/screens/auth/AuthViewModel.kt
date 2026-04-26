@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.moonpage.R
 import com.diary.moonpage.core.util.TokenManager
 import com.diary.moonpage.core.util.UiText
+import com.diary.moonpage.core.util.OnboardingPrefsManager
 import com.diary.moonpage.data.remote.dto.auth.LoginRequestDTO
 import com.diary.moonpage.data.remote.dto.auth.RegisterRequestDTO
 import com.diary.moonpage.domain.model.User
@@ -29,7 +30,8 @@ class AuthViewModel @Inject constructor (
     private val validateEmail: ValidateEmail,
     private val validatePassword: ValidatePassword,
     private val validateUsername: ValidateUsername,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val onboardingPrefsManager: OnboardingPrefsManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -39,6 +41,12 @@ class AuthViewModel @Inject constructor (
     val uiEvent = _uiEvent.receiveAsFlow()
 
     val tokenFlow = tokenManager.getToken()
+
+    /** Dùng bởi LoadingScreen: kiểm tra user hiện tại đã hoàn thành onboarding chưa */
+    suspend fun checkOnboardingForCurrentUser(): Boolean {
+        val userId = tokenManager.getUserId() ?: return false
+        return onboardingPrefsManager.checkOnboardingCompleted(userId)
+    }
 
     fun onEmailChange(email: String) {
         _uiState.update { it.copy(emailInput = email)}
@@ -87,8 +95,10 @@ class AuthViewModel @Inject constructor (
 
                 result.onSuccess { user ->
                     tokenManager.saveToken(user.token)
+                    tokenManager.saveUserId(user.userId)
+                    val isOnboarded = onboardingPrefsManager.checkOnboardingCompleted(user.userId)
                     _uiState.update { it.copy(isLoading = false) }
-                    _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
+                    _uiEvent.send(AuthUiEvent.LoginSuccess(user.token, user.userId, isNewUser = !isOnboarded))
                 }.onFailure { exception ->
                     _uiState.update { it.copy(isLoading = false) }
                     handleAuthError(exception.message)
@@ -164,8 +174,10 @@ class AuthViewModel @Inject constructor (
 
                 result.onSuccess { user ->
                     tokenManager.saveToken(user.token)
+                    tokenManager.saveUserId(user.userId)
+                    val isOnboarded = onboardingPrefsManager.checkOnboardingCompleted(user.userId)
                     _uiState.update { it.copy(isLoading = false) }
-                    _uiEvent.send(AuthUiEvent.LoginSuccess(user.token))
+                    _uiEvent.send(AuthUiEvent.LoginSuccess(user.token, user.userId, isNewUser = !isOnboarded))
                 }.onFailure { exception ->
                     _uiState.update { it.copy(isLoading = false) }
                     _uiEvent.send(AuthUiEvent.ShowSnackBar(UiText.DynamicString(exception.message ?: "Google login failed.")))

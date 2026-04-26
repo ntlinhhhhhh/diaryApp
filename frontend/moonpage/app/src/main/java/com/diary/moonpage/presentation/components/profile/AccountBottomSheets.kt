@@ -1,12 +1,10 @@
 package com.diary.moonpage.presentation.components.profile
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,11 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.*
+import java.time.YearMonth
+
+private const val INFINITE_MULTIPLIER = 1000
+
+private val MONTH_NAMES = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+private val YEAR_LIST = (1950..2024).map { it.toString() }
 
 @Composable
 fun BottomSheetHeader(title: String, onClose: () -> Unit) {
@@ -80,6 +83,10 @@ fun UsernameBottomSheetContent(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = colorScheme.primary,
                 unfocusedBorderColor = colorScheme.onSurface.copy(alpha = 0.1f),
+                focusedTextColor = colorScheme.onSurface,
+                unfocusedTextColor = colorScheme.onSurface,
+                focusedContainerColor = colorScheme.surface,
+                unfocusedContainerColor = colorScheme.surface
             ),
             singleLine = true
         )
@@ -91,7 +98,7 @@ fun UsernameBottomSheetContent(
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             style = MaterialTheme.typography.bodySmall,
             color = colorScheme.onSurface.copy(alpha = 0.4f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.End
+            textAlign = TextAlign.End
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -127,41 +134,38 @@ fun GenderBottomSheetContent(
     onClose: () -> Unit
 ) {
     val options = listOf("Female", "Male", "Other")
-    var selectedOption by remember { mutableStateOf(currentGender) }
+    var selectedOption by remember { mutableStateOf(if (currentGender.isBlank()) "Female" else currentGender) }
     val colorScheme = MaterialTheme.colorScheme
-    val isChanged = !selectedOption.equals(currentGender, ignoreCase = true)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(colorScheme.surface)
             .padding(bottom = 32.dp)
     ) {
         BottomSheetHeader(title = "Gender", onClose = onClose)
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         options.forEach { text ->
             val isSelected = text.equals(selectedOption, ignoreCase = true)
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        if (isSelected) colorScheme.surfaceVariant
+                        else colorScheme.surface
+                    )
                     .clickable { selectedOption = text }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
                 Text(
                     text = text,
-                    color = if (isSelected) colorScheme.onSurface else colorScheme.onSurface.copy(alpha = 0.6f),
+                    color = if (isSelected) colorScheme.onSurface else colorScheme.onSurface.copy(alpha = 0.45f),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
-                
-                RadioButton(
-                    selected = isSelected,
-                    onClick = { selectedOption = text },
-                    colors = RadioButtonDefaults.colors(selectedColor = colorScheme.primary)
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                 )
             }
         }
@@ -170,24 +174,21 @@ fun GenderBottomSheetContent(
 
         Button(
             onClick = {
-                if (isChanged) {
-                    onGenderSelected(selectedOption)
-                    onClose()
-                }
+                onGenderSelected(selectedOption)
+                onClose()
             },
-            enabled = isChanged,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .height(54.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = colorScheme.primary,
-                disabledContainerColor = colorScheme.primary.copy(alpha = 0.3f)
+                contentColor = colorScheme.onPrimary
             ),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(28.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
-            Text("Change", color = if (isChanged) colorScheme.onPrimary else colorScheme.onPrimary.copy(alpha = 0.6f), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Done", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
@@ -199,90 +200,198 @@ fun BirthdayBottomSheetContent(
     onClose: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    
-    // Parse current birthday to initialize wheel pickers
-    val initialDay: String
-    val initialMonth: String
-    val initialYear: String
-    
+
+    // Parse current birthday
     val parts = currentBirthday.split("/", "-")
-    if (parts.size == 3) {
-        // Handle DD/MM/YYYY or YYYY-MM-DD
-        if (parts[0].length == 4) { // YYYY-MM-DD
-            initialYear = parts[0]
-            initialMonth = parts[1]
-            initialDay = parts[2]
-        } else { // DD/MM/YYYY
-            initialDay = parts[0]
-            initialMonth = parts[1]
-            initialYear = parts[2]
+    val (initDay, initMonth, initYear) = if (parts.size == 3) {
+        if (parts[0].length == 4) Triple(parts[2], parts[1], parts[0])
+        else Triple(parts[0], parts[1], parts[2])
+    } else Triple("01", "01", "2000")
+
+    var selectedYearIndex  by remember { mutableIntStateOf(YEAR_LIST.indexOf(initYear).coerceAtLeast(0)) }
+    var selectedMonthIndex by remember { mutableIntStateOf((initMonth.toIntOrNull() ?: 1) - 1) }
+    var selectedDayIndex   by remember { mutableIntStateOf((initDay.toIntOrNull() ?: 1) - 1) }
+
+    val daysInMonth by remember {
+        derivedStateOf {
+            val year = YEAR_LIST.getOrElse(selectedYearIndex) { "2000" }.toIntOrNull() ?: 2000
+            val month = selectedMonthIndex + 1
+            YearMonth.of(year, month).lengthOfMonth()
         }
-    } else {
-        initialDay = "01"
-        initialMonth = "01"
-        initialYear = "2000"
+    }
+    LaunchedEffect(daysInMonth) {
+        if (selectedDayIndex >= daysInMonth) selectedDayIndex = daysInMonth - 1
     }
 
-    val years = (1950..2024).map { it.toString() }
-    val months = (1..12).map { it.toString().padStart(2, '0') }
-    val days = (1..31).map { it.toString().padStart(2, '0') }
+    val dayList = remember(daysInMonth) { (1..daysInMonth).map { it.toString() } }
 
-    var selectedYear by remember { mutableStateOf(initialYear) }
-    var selectedMonth by remember { mutableStateOf(initialMonth) }
-    var selectedDay by remember { mutableStateOf(initialDay) }
-
-    val formattedNewDate = "$selectedDay/$selectedMonth/$selectedYear"
-    val isChanged = formattedNewDate != currentBirthday && 
-                    formattedNewDate != currentBirthday.replace("-", "/")
+    val formattedDay   = (selectedDayIndex + 1).toString().padStart(2, '0')
+    val formattedMonth = (selectedMonthIndex + 1).toString().padStart(2, '0')
+    val formattedYear  = YEAR_LIST.getOrElse(selectedYearIndex) { "2000" }
+    val formattedNewDate = "$formattedDay/$formattedMonth/$formattedYear"
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(colorScheme.surface)
             .padding(bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         BottomSheetHeader(title = "Birthday", onClose = onClose)
 
-        Row(
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // ── Wheel picker: Month | Day | Year with divider lines ───────────────
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
                 .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            contentAlignment = Alignment.Center
         ) {
-            WheelPicker(items = days, initialValue = selectedDay, onItemSelected = { selectedDay = it }, modifier = Modifier.weight(1f))
-            WheelPicker(items = months, initialValue = selectedMonth, onItemSelected = { selectedMonth = it }, modifier = Modifier.weight(1f))
-            WheelPicker(items = years, initialValue = selectedYear, onItemSelected = { selectedYear = it }, modifier = Modifier.weight(1f))
+            // Divider lines above and below center row
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(44.dp)
+            ) {
+                HorizontalDivider(color = colorScheme.onSurface.copy(alpha = 0.12f), thickness = 1.dp)
+                HorizontalDivider(color = colorScheme.onSurface.copy(alpha = 0.12f), thickness = 1.dp)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Month – circular, full names
+                BirthdayWheelCircular(
+                    items = MONTH_NAMES,
+                    initialIndex = selectedMonthIndex,
+                    onIndexChange = { selectedMonthIndex = it },
+                    modifier = Modifier.weight(1.2f)
+                )
+                // Day – circular
+                BirthdayWheelCircular(
+                    items = dayList,
+                    initialIndex = selectedDayIndex.coerceAtMost(daysInMonth - 1),
+                    onIndexChange = { selectedDayIndex = it },
+                    modifier = Modifier.weight(1f)
+                )
+                // Year – linear
+                BirthdayWheelLinear(
+                    items = YEAR_LIST,
+                    initialIndex = selectedYearIndex,
+                    onIndexChange = { selectedYearIndex = it },
+                    modifier = Modifier.weight(1.2f)
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         Button(
             onClick = {
-                if (isChanged) {
-                    onBirthdaySelected(formattedNewDate)
-                    onClose()
-                }
+                onBirthdaySelected(formattedNewDate)
+                onClose()
             },
-            enabled = isChanged,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .height(54.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = colorScheme.primary,
-                disabledContainerColor = colorScheme.primary.copy(alpha = 0.3f)
+                contentColor = colorScheme.onPrimary
             ),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(28.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
-            Text("Change", color = if (isChanged) colorScheme.onPrimary else colorScheme.onPrimary.copy(alpha = 0.6f), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Done", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BirthdayWheelCircular(
+    items: List<String>,
+    initialIndex: Int,
+    onIndexChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    itemHeight: androidx.compose.ui.unit.Dp = 44.dp
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val count = items.size
+    val startIndex = INFINITE_MULTIPLIER / 2 * count + initialIndex
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
+    val snapFling = rememberSnapFlingBehavior(lazyListState = listState)
+
+    val selectedRealIndex by remember { derivedStateOf { listState.firstVisibleItemIndex % count } }
+
+    LaunchedEffect(selectedRealIndex) { onIndexChange(selectedRealIndex) }
+
+    Box(modifier = modifier.height(itemHeight * 3), contentAlignment = Alignment.Center) {
+        LazyColumn(
+            state = listState,
+            flingBehavior = snapFling,
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(vertical = itemHeight)
+        ) {
+            items(INFINITE_MULTIPLIER * count) { flatIndex ->
+                val ri = flatIndex % count
+                val isSel = ri == selectedRealIndex
+                Box(Modifier.height(itemHeight).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = items[ri],
+                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = if (isSel) 17.sp else 13.sp,
+                        color = if (isSel) colorScheme.onSurface else colorScheme.onSurface.copy(alpha = 0.3f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BirthdayWheelLinear(
+    items: List<String>,
+    initialIndex: Int,
+    onIndexChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    itemHeight: androidx.compose.ui.unit.Dp = 44.dp
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+    val snapFling = rememberSnapFlingBehavior(lazyListState = listState)
+    val selectedIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+
+    LaunchedEffect(selectedIndex) { onIndexChange(selectedIndex.coerceIn(0, items.lastIndex)) }
+
+    Box(modifier = modifier.height(itemHeight * 3), contentAlignment = Alignment.Center) {
+        LazyColumn(
+            state = listState,
+            flingBehavior = snapFling,
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(vertical = itemHeight)
+        ) {
+            items(items.size) { index ->
+                val isSel = index == selectedIndex
+                Box(Modifier.height(itemHeight).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = items[index],
+                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = if (isSel) 17.sp else 13.sp,
+                        color = if (isSel) colorScheme.onSurface else colorScheme.onSurface.copy(alpha = 0.3f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Keep WheelPicker for backwards compatibility (not used in birthday anymore)
 @Composable
 fun WheelPicker(
     items: List<String>,
@@ -291,7 +400,6 @@ fun WheelPicker(
     modifier: Modifier = Modifier
 ) {
     val itemHeight = 40.dp
-    val visibleItemsCount = 5
     val startIndex = items.indexOf(initialValue).coerceAtLeast(0)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
     val snapFlingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
@@ -305,7 +413,7 @@ fun WheelPicker(
 
     Box(
         modifier = modifier
-            .height(itemHeight * visibleItemsCount)
+            .height(itemHeight * 5)
             .fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
@@ -315,7 +423,6 @@ fun WheelPicker(
                 .height(itemHeight)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
         )
-
         LazyColumn(
             state = listState,
             flingBehavior = snapFlingBehavior,
@@ -323,7 +430,7 @@ fun WheelPicker(
             contentPadding = PaddingValues(vertical = itemHeight * 2),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            itemsIndexed(items) { index, item ->
+            items(items.size) { index ->
                 val isSelected = listState.firstVisibleItemIndex == index
                 Box(
                     modifier = Modifier
@@ -332,7 +439,7 @@ fun WheelPicker(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = item,
+                        text = items[index],
                         style = if (isSelected) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
                         color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal

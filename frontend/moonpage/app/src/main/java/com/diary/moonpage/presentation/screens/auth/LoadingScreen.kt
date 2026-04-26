@@ -30,15 +30,20 @@ import kotlinx.coroutines.flow.first
 @Composable
 fun LoadingScreen(
     viewModel: AuthViewModel = hiltViewModel(),
-    onFinished: (Boolean) -> Unit
+    onFinished: (isLoggedIn: Boolean, needsOnboarding: Boolean) -> Unit
 ) {
     LaunchedEffect(Unit) {
-        // Kiểm tra xem đã có token chưa
         val token = viewModel.tokenFlow.first()
         val isLoggedIn = !token.isNullOrBlank()
-        
-        delay(1500) // Giữ splash screen tối thiểu 1.5s
-        onFinished(isLoggedIn)
+
+        delay(1500)
+
+        if (isLoggedIn) {
+            val onboardingDone = viewModel.checkOnboardingForCurrentUser()
+            onFinished(true, !onboardingDone)
+        } else {
+            onFinished(false, false)
+        }
     }
 
     val isDarkTheme = isSystemInDarkTheme()
@@ -90,7 +95,7 @@ fun LoadingScreen(
 @Composable
 fun LoadingScreenLightPreview() {
     MoonPageTheme {
-        LoadingScreen(onFinished = {})
+        LoadingScreen(onFinished = { _, _ -> })
     }
 }
 
@@ -98,6 +103,6 @@ fun LoadingScreenLightPreview() {
 @Composable
 fun LoadingScreenDarkPreview() {
     MoonPageTheme {
-        LoadingScreen(onFinished = {})
+        LoadingScreen(onFinished = { _, _ -> })
     }
 }

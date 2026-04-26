@@ -31,6 +31,8 @@ import com.diary.moonpage.domain.model.ThemeType
 import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
 import com.diary.moonpage.presentation.screens.store.components.*
 import com.diary.moonpage.presentation.theme.*
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +56,7 @@ fun ThemeDetailScreen(
     val onBackground = MaterialTheme.colorScheme.onBackground
 
     val shakeOffset = remember { Animatable(0f) }
+    val haptic = LocalHapticFeedback.current
     LaunchedEffect(uiState.showPurchaseSuccessDialog) {
         if (uiState.showPurchaseSuccessDialog) {
             repeat(6) {
@@ -170,6 +173,7 @@ fun ThemeDetailScreen(
             MoonPrimaryButton(
                 text = if (theme.isOwned) "Activate" else "Buy for ${theme.price} $",
                 onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (theme.isOwned) {
                         viewModel.activateTheme(theme.id)
                     } else {

@@ -58,7 +58,7 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToLoginGoogle: () -> Unit,
     onRegisterSuccess: () -> Unit,
-    onLoginSuccess: (String) -> Unit
+    onLoginSuccess: (String, Boolean) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -93,7 +93,7 @@ fun RegisterScreenContent(
     onNavigateToLogin: () -> Unit,
     onNavigateToLoginGoogle: () -> Unit,
     onRegisterSuccess: () -> Unit,
-    onLoginSuccess: (String) -> Unit
+    onLoginSuccess: (String, Boolean) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -110,7 +110,7 @@ fun RegisterScreenContent(
         uiEvent.collect { event ->
             when (event) {
                 is AuthUiEvent.RegisterSuccess -> onRegisterSuccess()
-                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token)
+                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token, event.isNewUser)
                 is AuthUiEvent.ShowSnackBar -> {
                     launch {
                         snackBarHostState.currentSnackbarData?.dismiss()
@@ -361,7 +361,7 @@ fun RegisterScreenPreview() {
             onNavigateToLogin = {},
             onNavigateToLoginGoogle = {},
             onRegisterSuccess = {},
-            onLoginSuccess = {}
+            onLoginSuccess = { _, _ -> }
         )
     }
 }

@@ -22,6 +22,14 @@ fun TagChip(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
+    // When no explicit containerColor, use surfaceVariant → content should be onSurfaceVariant
+    val effectiveContentColor = if (tag.containerColor == null) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        tag.contentColor
+    }
+    val resolvedTag = tag.copy(contentColor = effectiveContentColor)
+
     if (onClick != null) {
         Surface(
             onClick = onClick,
@@ -29,7 +37,7 @@ fun TagChip(
             shape = RoundedCornerShape(24.dp),
             modifier = modifier
         ) {
-            TagChipContent(tag)
+            TagChipContent(resolvedTag)
         }
     } else {
         Surface(
@@ -37,7 +45,7 @@ fun TagChip(
             shape = RoundedCornerShape(24.dp),
             modifier = modifier
         ) {
-            TagChipContent(tag)
+            TagChipContent(resolvedTag)
         }
     }
 }
@@ -64,3 +72,4 @@ private fun TagChipContent(tag: MomentTag) {
         )
     }
 }
+

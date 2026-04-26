@@ -3,6 +3,7 @@ package com.diary.moonpage.presentation.screens.auth
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -21,27 +22,44 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import java.time.YearMonth
 
 private val MONTHS = listOf(
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 )
-private val DAYS = (1..31).map { it.toString() }
 private val YEARS = (1950..2015).map { it.toString() }
+
+// Large multiplier for infinite circular effect
+private const val INFINITE_MULTIPLIER = 1000
 
 @Composable
 fun OnboardingBirthdayScreen(
     viewModel: OnboardingViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onSkip: () -> Unit,
     onNext: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
 
     // Default: 15th April 2000
-    var selectedMonthIndex by remember { mutableIntStateOf(3) }   // April
-    var selectedDayIndex   by remember { mutableIntStateOf(14) }  // 15
-    var selectedYearIndex  by remember { mutableIntStateOf(50) }  // 2000
+    var selectedMonthIndex by remember { mutableIntStateOf(3) }   // April (0-based)
+    var selectedDayIndex   by remember { mutableIntStateOf(14) }  // 15 (0-based)
+    var selectedYearIndex  by remember { mutableIntStateOf(50) }  // 2000 (index in YEARS)
+
+    // Auto-clamp days when month/year changes
+    val daysInMonth by remember {
+        derivedStateOf {
+            val year = YEARS.getOrElse(selectedYearIndex) { "2000" }.toIntOrNull() ?: 2000
+            val month = selectedMonthIndex + 1
+            YearMonth.of(year, month).lengthOfMonth()
+        }
+    }
+    // If current day exceeds days in selected month, clamp it
+    LaunchedEffect(daysInMonth) {
+        if (selectedDayIndex >= daysInMonth) {
+            selectedDayIndex = daysInMonth - 1
+        }
+    }
 
     val progressAnim by animateFloatAsState(
         targetValue = 0.5f,
@@ -79,13 +97,7 @@ fun OnboardingBirthdayScreen(
                     trackColor = colorScheme.primary.copy(alpha = 0.2f),
                     strokeCap = StrokeCap.Round
                 )
-                TextButton(onClick = onSkip) {
-                    Text(
-                        "Skip",
-                        color = colorScheme.onBackground.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                Spacer(modifier = Modifier.width(48.dp)) // Căn phải thay cho nút Skip
             }
 
             // ── Content ──────────────────────────────────────────────────────
@@ -133,49 +145,56 @@ fun OnboardingBirthdayScreen(
                 Spacer(modifier = Modifier.height(28.dp))
 
                 // ── Date picker ───────────────────────────────────────────────
+                val DAYS = remember(daysInMonth) { (1..daysInMonth).map { it.toString() } }
+
                 Box(modifier = Modifier.fillMaxWidth()) {
                     // Center selection highlight
                     Box(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(48.dp)
                             .background(
                                 colorScheme.primary.copy(alpha = 0.08f),
                                 RoundedCornerShape(12.dp)
                             )
                     )
-                    // Top + bottom fade dividers
                     HorizontalDivider(
-                        modifier = Modifier.align(Alignment.Center).offset(y = (-26).dp),
+                        modifier = Modifier.align(Alignment.Center).offset(y = (-24).dp),
                         color = colorScheme.primary.copy(alpha = 0.25f)
                     )
                     HorizontalDivider(
-                        modifier = Modifier.align(Alignment.Center).offset(y = 26.dp),
+                        modifier = Modifier.align(Alignment.Center).offset(y = 24.dp),
                         color = colorScheme.primary.copy(alpha = 0.25f)
                     )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        WheelColumn(
+                        // Month – circular
+                        CircularWheelColumn(
                             items = MONTHS,
                             initialIndex = selectedMonthIndex,
                             onIndexChange = { selectedMonthIndex = it },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.width(80.dp)
                         )
-                        WheelColumn(
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // Day – circular, respects daysInMonth
+                        CircularWheelColumn(
                             items = DAYS,
-                            initialIndex = selectedDayIndex,
+                            initialIndex = selectedDayIndex.coerceAtMost(daysInMonth - 1),
                             onIndexChange = { selectedDayIndex = it },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.width(64.dp)
                         )
-                        WheelColumn(
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // Year – NOT circular, just scrollable
+                        LinearWheelColumn(
                             items = YEARS,
                             initialIndex = selectedYearIndex,
                             onIndexChange = { selectedYearIndex = it },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.width(80.dp)
                         )
                     }
                 }
@@ -186,7 +205,7 @@ fun OnboardingBirthdayScreen(
             // ── Next Button ───────────────────────────────────────────────────
             Button(
                 onClick = {
-                    val day   = DAYS[selectedDayIndex].padStart(2, '0')
+                    val day   = (selectedDayIndex + 1).toString().padStart(2, '0')
                     val month = (selectedMonthIndex + 1).toString().padStart(2, '0')
                     val year  = YEARS[selectedYearIndex]
                     viewModel.setBirthday("$day/$month/$year")
@@ -213,48 +232,43 @@ fun OnboardingBirthdayScreen(
     }
 }
 
-// ── Reusable Wheel Picker Column ────────────────────────────────────────────
+// ── Circular Wheel (month, day) ──────────────────────────────────────────────
 
 @Composable
-fun WheelColumn(
+fun CircularWheelColumn(
     items: List<String>,
     initialIndex: Int,
     onIndexChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    itemHeight: Dp = 52.dp
+    itemHeight: Dp = 48.dp
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val coroutineScope = rememberCoroutineScope()
+    val count = items.size
 
-    // 1 phantom item above & below so first/last items can be centered
-    val paddedItems = listOf("") + items + listOf("")
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+    // Start in the middle of the infinite list so we can scroll both directions
+    val startIndex = INFINITE_MULTIPLIER / 2 * count + initialIndex
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
+    val snapFling = rememberSnapFlingBehavior(lazyListState = listState)
 
-    val selectedIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
-
-    // Report selection changes upstream
-    LaunchedEffect(selectedIndex) {
-        onIndexChange(selectedIndex.coerceIn(0, items.lastIndex))
+    val selectedRealIndex by remember {
+        derivedStateOf { listState.firstVisibleItemIndex % count }
     }
 
-    // Snap to nearest integer position when scroll stops
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (!listState.isScrollInProgress) {
-            coroutineScope.launch {
-                listState.animateScrollToItem(listState.firstVisibleItemIndex)
-            }
-        }
+    LaunchedEffect(selectedRealIndex) {
+        onIndexChange(selectedRealIndex)
     }
 
     LazyColumn(
         state = listState,
-        modifier = modifier.height(itemHeight * 3), // 3 visible items
+        flingBehavior = snapFling,
+        modifier = modifier.height(itemHeight * 3),
         horizontalAlignment = Alignment.CenterHorizontally,
-        userScrollEnabled = true
+        contentPadding = PaddingValues(vertical = itemHeight)
     ) {
-        items(paddedItems.size) { index ->
-            val realIndex = index - 1 // offset by 1 phantom
-            val isSelected = realIndex == selectedIndex
+        items(INFINITE_MULTIPLIER * count) { flatIndex ->
+            val realIndex = flatIndex % count
+            val isSelected = realIndex == selectedRealIndex
 
             Box(
                 modifier = Modifier
@@ -262,18 +276,66 @@ fun WheelColumn(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                if (paddedItems[index].isNotEmpty()) {
-                    Text(
-                        text = paddedItems[index],
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = if (isSelected) 18.sp else 14.sp,
-                        color = if (isSelected)
-                            colorScheme.onBackground
-                        else
-                            colorScheme.onBackground.copy(alpha = 0.32f),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    text = items[realIndex],
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    fontSize = if (isSelected) 17.sp else 13.sp,
+                    color = if (isSelected)
+                        colorScheme.onBackground
+                    else
+                        colorScheme.onBackground.copy(alpha = 0.32f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+// ── Linear Wheel (year) ──────────────────────────────────────────────────────
+
+@Composable
+fun LinearWheelColumn(
+    items: List<String>,
+    initialIndex: Int,
+    onIndexChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    itemHeight: Dp = 48.dp
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+    val snapFling = rememberSnapFlingBehavior(lazyListState = listState)
+
+    val selectedIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+
+    LaunchedEffect(selectedIndex) {
+        onIndexChange(selectedIndex.coerceIn(0, items.lastIndex))
+    }
+
+    LazyColumn(
+        state = listState,
+        flingBehavior = snapFling,
+        modifier = modifier.height(itemHeight * 3),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        contentPadding = PaddingValues(vertical = itemHeight)
+    ) {
+        items(items.size) { index ->
+            val isSelected = index == selectedIndex
+            Box(
+                modifier = Modifier
+                    .height(itemHeight)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = items[index],
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    fontSize = if (isSelected) 17.sp else 13.sp,
+                    color = if (isSelected)
+                        colorScheme.onBackground
+                    else
+                        colorScheme.onBackground.copy(alpha = 0.32f),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

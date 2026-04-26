@@ -37,6 +37,12 @@ class CalendarViewModel @Inject constructor(
         fetchLogsForMonth(newMonth)
     }
 
+    fun setYearMonth(year: Int, month: Int) {
+        val newMonth = YearMonth.of(year, month)
+        _currentYearMonth.value = newMonth
+        fetchLogsForMonth(newMonth)
+    }
+
     private fun fetchLogsForMonth(yearMonth: YearMonth) {
         viewModelScope.launch {
             _isLoading.value = true

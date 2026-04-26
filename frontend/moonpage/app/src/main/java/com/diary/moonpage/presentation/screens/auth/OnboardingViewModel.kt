@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.moonpage.data.remote.dto.auth.UpdateProfileRequestDto
 import com.diary.moonpage.domain.repository.UserRepository
+import com.diary.moonpage.core.util.OnboardingPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +20,8 @@ data class OnboardingUiState(
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val onboardingPrefsManager: OnboardingPrefsManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())

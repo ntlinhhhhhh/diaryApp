@@ -37,9 +37,15 @@ fun NavGraphBuilder.authNavGraph(
                     },
                     onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
                     onNavigateToLoginGoogle = { /* TODO */ },
-                    onLoginSuccess = { _ ->
-                        navController.navigate("main_graph") {
-                            popUpTo("auth_graph") { inclusive = true }
+                    onLoginSuccess = { _, isNewUser ->
+                        if (isNewUser) {
+                            navController.navigate(Screen.OnboardingBirthday.route) {
+                                popUpTo("auth_graph") { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate("main_graph") {
+                                popUpTo("auth_graph") { inclusive = true }
+                            }
                         }
                     }
                 )
@@ -62,9 +68,15 @@ fun NavGraphBuilder.authNavGraph(
                             popUpTo(Screen.Register.route) { inclusive = true }
                         }
                     },
-                    onLoginSuccess = { _ ->
-                        navController.navigate("main_graph") {
-                            popUpTo("auth_graph") { inclusive = true }
+                    onLoginSuccess = { _, isNewUser ->
+                        if (isNewUser) {
+                            navController.navigate(Screen.OnboardingBirthday.route) {
+                                popUpTo("auth_graph") { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate("main_graph") {
+                                popUpTo("auth_graph") { inclusive = true }
+                            }
                         }
                     }
                 )

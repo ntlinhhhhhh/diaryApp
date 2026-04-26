@@ -99,15 +99,16 @@ fun CalendarHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
         daysOfWeek.forEach { day ->
             Text(
                 text = day,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
         }
     }
@@ -122,15 +123,32 @@ fun DayItem(
     isToday: Boolean = false,
     onClick: () -> Unit
 ) {
-    val baseMoodColor = moodColor ?: Color(0xFFF0F4F8) // Light grey/blue for empty days
-    val finalMoodColor = if (isSelected && moodColor == null) {
-        Color.Transparent
-    } else {
-        baseMoodColor
+    val colorScheme = MaterialTheme.colorScheme
+
+    // Empty offset cell – just blank space, no circle
+    if (day == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp, vertical = 4.dp)
+        ) {
+            // Invisible placeholder có cùng chiều cao để grid thẳng hàng
+            Box(modifier = Modifier.size(42.dp).align(Alignment.Center))
+            Spacer(modifier = Modifier.height(2.dp + 14.dp)) // circle + number area
+        }
+        return
+    }
+
+    val emptyDayBg = colorScheme.surfaceVariant.copy(alpha = 0.7f)
+
+    val circleBg = when {
+        moodColor != null -> moodColor
+        isSelected        -> Color.Transparent
+        else              -> emptyDayBg
     }
 
     val animatedBg by animateColorAsState(
-        targetValue = finalMoodColor,
+        targetValue = circleBg,
         animationSpec = tween(200),
         label = "dayBg"
     )
@@ -138,20 +156,21 @@ fun DayItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(4.dp)
-            .clickable(enabled = day != null) { onClick() }
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 2.dp, vertical = 4.dp)
     ) {
+        // ── Circle cố định 42dp ──────────────────────────────────────────────
         Box(
             modifier = Modifier
-                .aspectRatio(1f)
-                .fillMaxWidth()
+                .size(42.dp)
                 .clip(CircleShape)
                 .then(
                     when {
                         isSelected && moodColor == null ->
-                            Modifier.border(2.dp, Color(0xFF4CAF50), CircleShape)
+                            Modifier.border(2.dp, colorScheme.primary, CircleShape)
                         isToday && moodColor == null ->
-                            Modifier.border(1.5.dp, Color(0xFF4CAF50).copy(alpha = 0.5f), CircleShape)
+                            Modifier.border(2.dp, colorScheme.primary, CircleShape)
                         else -> Modifier
                     }
                 )
@@ -162,28 +181,34 @@ fun DayItem(
                 Icon(
                     imageVector = moodIcon,
                     contentDescription = null,
-                    tint = Color.Black.copy(alpha = 0.6f),
-                    modifier = Modifier.size(24.dp)
+                    tint = Color.Black.copy(alpha = 0.55f),
+                    modifier = Modifier.fillMaxSize(0.52f)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        // ── Số ngày bên dưới ─────────────────────────────────────────────────
+        Spacer(modifier = Modifier.height(2.dp))
 
-        if (day != null) {
-            Text(
-                text = day.toString(),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
-                color = when {
-                    isSelected && moodColor == null -> Color(0xFF4CAF50)
-                    isToday -> Color(0xFF4CAF50)
-                    else -> Color.Gray
-                }
-            )
-        }
+        Text(
+            text = day.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = when {
+                isToday    -> FontWeight.ExtraBold
+                isSelected -> FontWeight.Bold
+                else       -> FontWeight.Normal
+            },
+            color = when {
+                isSelected && moodColor == null -> colorScheme.primary
+                isToday                         -> colorScheme.primary
+                else                            -> colorScheme.onSurface.copy(alpha = 0.6f)
+            }
+        )
     }
 }
+
+
+
 
 @Composable
 fun DiaryEntryPreview(

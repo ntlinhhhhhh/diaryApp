@@ -35,17 +35,13 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Refresh data when entering the screen
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
         viewModel.loadMyThemes()
     }
 
     if (uiState.isLoading && uiState.user == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else {
@@ -53,7 +49,7 @@ fun ProfileScreen(
             userId = uiState.user?.id?.take(8) ?: "",
             userName = uiState.user?.name ?: "User",
             avatarUrl = uiState.user?.avatarUrl,
-            recordedDays = "8", // Can be updated if API provides it
+            recordedDays = "8",
             photoCount = uiState.myThemes.size.toString(),
             onNotificationClick = onNavigateToNotifications,
             onSettingsClick = onNavigateToSettings,
@@ -103,8 +99,6 @@ fun ProfileScreenContent(
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-
-            // 2. Account Section
             SectionTitle("Account")
             UserInfoCard(
                 userId = if (userId.isNotEmpty()) "#$userId" else "",
@@ -113,50 +107,26 @@ fun ProfileScreenContent(
                 onClick = onAccountClick
             )
 
-            // 3. My Records Section
             SectionTitle("My records")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                StatCard(
-                    title = "Recorded days",
-                    value = recordedDays,
-                    modifier = Modifier.weight(1f)
-                )
-
-                ActionCard(
-                    title = "My Photos",
-                    value = photoCount,
-                    modifier = Modifier.weight(1f),
-                    onClick = onPhotosClick
-                )
+                StatCard(title = "Recorded days", value = recordedDays, modifier = Modifier.weight(1f))
+                ActionCard(title = "My Photos", value = photoCount, modifier = Modifier.weight(1f), onClick = onPhotosClick)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            ProfileMenuItem(
-                title = "Theme Calendar",
-                icon = Icons.Rounded.CalendarMonth,
-                onClick = onThemeCalendarClick
-            )
+            ProfileMenuItem(title = "Theme Calendar", icon = Icons.Rounded.CalendarMonth, onClick = onThemeCalendarClick)
 
-            // 4. More Section
             SectionTitle("More")
 
-            ProfileMenuItem(
-                title = "Widgets",
-                icon = Icons.Rounded.Widgets,
-                onClick = onWidgetsClick
-            )
+            ProfileMenuItem(title = "Widgets", icon = Icons.Rounded.Widgets, onClick = onWidgetsClick)
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            ProfileMenuItem(
-                title = "Invite a Friend",
-                icon = Icons.Rounded.PersonAdd,
-                onClick = onInviteFriendClick
-            )
+            ProfileMenuItem(title = "Invite a Friend", icon = Icons.Rounded.PersonAdd, onClick = onInviteFriendClick)
 
             Spacer(modifier = Modifier.height(32.dp))
         }

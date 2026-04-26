@@ -141,7 +141,7 @@ fun MomentCameraContent(
 
     val weatherIcons = listOf("Sunny ☀️", "Cloudy ☁️", "Rainy 🌧️", "Snowy ❄️", "Windy 💨")
 
-    // Hàm helper để xử lý tọa độ thành địa chỉ
+    // Hàm helper để xử lý tọa độ thành địa chỉ dạng "Quận/Thành Phố"
     val reverseGeocode = { location: Location ->
         scope.launch(Dispatchers.IO) {
             try {
@@ -149,7 +149,15 @@ fun MomentCameraContent(
                 val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                 if (!addresses.isNullOrEmpty()) {
                     val address = addresses[0]
-                    val locationName = address.locality ?: address.subAdminArea ?: address.adminArea ?: "Somewhere"
+                    val district = address.subLocality
+                        ?: address.locality
+                        ?: address.subAdminArea
+                    val city = address.adminArea ?: address.locality ?: "Unknown"
+                    val locationName = if (district != null && district != city) {
+                        "$district/$city"
+                    } else {
+                        city
+                    }
                     withContext(Dispatchers.Main) {
                         userLocation = locationName
                     }
