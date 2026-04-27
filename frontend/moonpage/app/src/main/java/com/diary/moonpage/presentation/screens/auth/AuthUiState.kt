@@ -20,5 +20,6 @@ data class AuthUiState (
     val otpCodeError: UiText? = null,
 
     val isLoading: Boolean = false,
+    val loadingProgress: Float = 0f,
     val generalError: UiText? = null
 )

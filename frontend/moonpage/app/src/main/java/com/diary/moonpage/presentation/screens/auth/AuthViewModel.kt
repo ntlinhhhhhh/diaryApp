@@ -14,9 +14,13 @@ import com.diary.moonpage.domain.usecase.validation.ValidateEmail
 import com.diary.moonpage.domain.usecase.validation.ValidatePassword
 import com.diary.moonpage.domain.usecase.validation.ValidateUsername
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.diary.moonpage.domain.repository.UserRepository
+import com.diary.moonpage.domain.repository.ActivityRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,7 +35,9 @@ class AuthViewModel @Inject constructor (
     private val validatePassword: ValidatePassword,
     private val validateUsername: ValidateUsername,
     private val tokenManager: TokenManager,
-    private val onboardingPrefsManager: OnboardingPrefsManager
+    private val onboardingPrefsManager: OnboardingPrefsManager,
+    private val userRepository: UserRepository,
+    private val activityRepository: ActivityRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -46,6 +52,30 @@ class AuthViewModel @Inject constructor (
     suspend fun checkOnboardingForCurrentUser(): Boolean {
         val userId = tokenManager.getUserId() ?: return false
         return onboardingPrefsManager.checkOnboardingCompleted(userId)
+    }
+
+    fun loadInitialAppResources(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(loadingProgress = 0f) }
+            
+            // Tải dữ liệu song song hoặc tuần tự
+            val jobs = listOf(
+                async { userRepository.getCurrentUser() },
+                async { userRepository.getMyThemes() },
+                async { activityRepository.syncActivities() }
+            )
+
+            // Mỗi khi 1 job xong, tăng progress
+            val step = 1f / jobs.size
+            jobs.forEach { job ->
+                job.await()
+                _uiState.update { it.copy(loadingProgress = it.loadingProgress + step) }
+            }
+
+            // Đảm bảo là 1f
+            _uiState.update { it.copy(loadingProgress = 1f) }
+            onComplete()
+        }
     }
 
     fun onEmailChange(email: String) {

@@ -10,6 +10,8 @@ import com.diary.moonpage.domain.repository.ThemeRepository
 import com.diary.moonpage.domain.repository.UserRepository
 import com.diary.moonpage.data.repository.DailyLogRepositoryImpl
 import com.diary.moonpage.domain.repository.DailyLogRepository
+import com.diary.moonpage.data.repository.ActivityRepositoryImpl
+import com.diary.moonpage.domain.repository.ActivityRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -49,4 +51,10 @@ abstract class RepositoryModule {
     abstract fun bindDailyLogRepository(
         dailyLogRepositoryImpl: DailyLogRepositoryImpl
     ): DailyLogRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindActivityRepository(
+        activityRepositoryImpl: ActivityRepositoryImpl
+    ): ActivityRepository
 }

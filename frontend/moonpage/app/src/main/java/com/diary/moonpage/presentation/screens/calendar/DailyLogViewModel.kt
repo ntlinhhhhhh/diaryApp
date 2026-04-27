@@ -35,6 +35,13 @@ class DailyLogViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = ActivityPreferencesManager.DEFAULT_ENABLED
         )
+        
+    val dynamicActivities = activityPreferencesManager.activities
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     fun fetchLogForDate(date: String) {
         viewModelScope.launch {
@@ -54,7 +61,7 @@ class DailyLogViewModel @Inject constructor(
         note: String?,
         sleepHours: Double?,
         isMenstruation: Boolean,
-        activityIds: List<Int>,
+        activityIds: List<String>,
         onSuccess: () -> Unit
     ) {
         viewModelScope.launch {

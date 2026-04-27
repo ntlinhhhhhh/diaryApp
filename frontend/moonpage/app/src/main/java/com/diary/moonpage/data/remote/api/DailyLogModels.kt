@@ -11,7 +11,7 @@ data class DailyLogResponse(
     @SerializedName("isMenstruation") val isMenstruation: Boolean,
     @SerializedName("menstruationPhase") val menstruationPhase: String?,
     @SerializedName("dailyPhotos") val dailyPhotos: List<String>?,
-    @SerializedName("activityIds") val activityIds: List<Int>?
+    @SerializedName("activityIds") val activityIds: List<String>?
 )
 
 // Use RequestBody and Multipart parts for the POST request

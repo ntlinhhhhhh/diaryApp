@@ -24,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.collectAsState
 import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
 import com.diary.moonpage.presentation.screens.auth.*
 import com.diary.moonpage.presentation.screens.calendar.CalendarScreen
@@ -254,9 +255,14 @@ fun AppNavigation() {
                 }
             }
 
-            composable(Screen.Calendar.route) {
+            composable(Screen.Calendar.route) { backStackEntry ->
+                val savedStateHandle = backStackEntry.savedStateHandle
+                val createdLogDate by savedStateHandle.getStateFlow<String?>("created_log_date", null).collectAsState()
+
                 ScreenWrapper(Screen.Calendar.route) {
                     CalendarScreen(
+                        createdLogDate = createdLogDate,
+                        onLogDateHandled = { savedStateHandle.set("created_log_date", null) },
                         onNavigateToFilter = { navController.navigate(Screen.Filter.route) },
                         onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                         onNavigateToDailyLog = { dateStr -> navController.navigate("daily_log_screen/$dateStr") },
@@ -280,7 +286,10 @@ fun AppNavigation() {
                     DailyLogScreen(
                         dateString = dateStr,
                         onNavigateBack = { navController.popBackStack() },
-                        onDone = { navController.popBackStack() }
+                        onDone = {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("created_log_date", dateStr)
+                            navController.popBackStack()
+                        }
                     )
                 }
             }

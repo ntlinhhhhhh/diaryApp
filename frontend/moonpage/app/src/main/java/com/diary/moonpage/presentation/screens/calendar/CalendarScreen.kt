@@ -33,22 +33,27 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
 
+import com.diary.moonpage.core.util.MoonIcons
+
 // Mood helper data
-private data class MoodVisual(val color: Color, val icon: androidx.compose.ui.graphics.vector.ImageVector, val label: String)
+private data class MoodVisual(val color: Color, val icon: androidx.compose.ui.graphics.vector.ImageVector? = null, val drawableRes: Int? = null, val label: String)
 
 private fun moodVisualFor(baseMoodId: Int?): MoodVisual {
-    return when (baseMoodId) {
-        1 -> MoodVisual(Color(0xFFFFEB3B), Icons.Rounded.SentimentSatisfiedAlt, "Happy")
-        2 -> MoodVisual(Color(0xFFAED581), Icons.Rounded.SentimentSatisfied, "Good")
-        3 -> MoodVisual(Color(0xFF66BB6A), Icons.Rounded.SentimentNeutral, "Neutral")
-        4 -> MoodVisual(Color(0xFF78909C), Icons.Rounded.SentimentVeryDissatisfied, "Sad")
-        5 -> MoodVisual(Color(0xFF546E7A), Icons.Rounded.SentimentVeryDissatisfied, "Tired")
-        else -> MoodVisual(Color(0xFFAED581), Icons.Rounded.SentimentSatisfied, "Good")
+    val moodIcon = when (baseMoodId) {
+        1 -> MoonIcons.Moods.Happy
+        2 -> MoonIcons.Moods.Good
+        3 -> MoonIcons.Moods.Neutral
+        4 -> MoonIcons.Moods.Sad
+        5 -> MoonIcons.Moods.Angry
+        else -> MoonIcons.Moods.Good
     }
+    return MoodVisual(moodIcon.color, moodIcon.vector, moodIcon.drawableRes, moodIcon.name)
 }
 
 @Composable
 fun CalendarScreen(
+    createdLogDate: String? = null,
+    onLogDateHandled: () -> Unit = {},
     onNavigateToFilter: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToDailyLog: (String) -> Unit,
@@ -68,6 +73,15 @@ fun CalendarScreen(
 
     // Month picker dialog
     var showMonthPicker by remember { mutableStateOf(false) }
+
+    LaunchedEffect(createdLogDate) {
+        if (createdLogDate != null) {
+            viewModel.refreshLogs()
+            detailDate = LocalDate.parse(createdLogDate)
+            showDayDetail = true
+            onLogDateHandled()
+        }
+    }
 
     CalendarContent(
         currentMonthName = currentMonthName,
@@ -99,6 +113,7 @@ fun CalendarScreen(
             DayDetailBottomSheet(
                 date = detailDate,
                 moodIcon = mv.icon,
+                moodDrawable = mv.drawableRes,
                 moodColor = mv.color,
                 moodLabel = mv.label,
                 noteSnippet = log.note,
@@ -249,6 +264,7 @@ fun CalendarContent(
                             isSelected = isSelected,
                             moodColor = mv?.color,
                             moodIcon = mv?.icon,
+                            moodDrawable = mv?.drawableRes,
                             isToday = isToday,
                             onClick = { onDateSelected(date) }
                         )

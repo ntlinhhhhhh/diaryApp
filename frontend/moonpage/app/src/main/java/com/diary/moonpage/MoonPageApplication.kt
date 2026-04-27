@@ -17,7 +17,7 @@ class MoonPageApplication : Application(), ImageLoaderFactory {
         return ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.35)       // 35% RAM dành cho cache ảnh
+                    .maxSizePercent(0.35)
                     .build()
             }
             .diskCache {

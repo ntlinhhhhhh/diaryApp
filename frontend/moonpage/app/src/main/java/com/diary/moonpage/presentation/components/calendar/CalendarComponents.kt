@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import java.time.LocalDate
 import java.util.*
 
@@ -120,6 +122,7 @@ fun DayItem(
     isSelected: Boolean,
     moodColor: Color?,
     moodIcon: ImageVector? = null,
+    moodDrawable: Int? = null,
     isToday: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -177,7 +180,13 @@ fun DayItem(
                 .background(animatedBg),
             contentAlignment = Alignment.Center
         ) {
-            if (moodIcon != null) {
+            if (moodDrawable != null) {
+                Image(
+                    painter = painterResource(id = moodDrawable),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(0.75f)
+                )
+            } else if (moodIcon != null) {
                 Icon(
                     imageVector = moodIcon,
                     contentDescription = null,
@@ -213,7 +222,8 @@ fun DayItem(
 @Composable
 fun DiaryEntryPreview(
     date: String,
-    moodIcon: ImageVector,
+    moodIcon: ImageVector? = null,
+    moodDrawable: Int? = null,
     moodColor: Color,
     modifier: Modifier = Modifier
 ) {
@@ -238,12 +248,20 @@ fun DiaryEntryPreview(
                     .background(moodColor.copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = moodIcon,
-                    contentDescription = null,
-                    tint = moodColor,
-                    modifier = Modifier.size(40.dp)
-                )
+                if (moodDrawable != null) {
+                    Image(
+                        painter = painterResource(id = moodDrawable),
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp)
+                    )
+                } else if (moodIcon != null) {
+                    Icon(
+                        imageVector = moodIcon,
+                        contentDescription = null,
+                        tint = moodColor,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -273,7 +291,8 @@ fun DiaryEntryPreview(
 @Composable
 fun DayDetailBottomSheet(
     date: LocalDate,
-    moodIcon: ImageVector,
+    moodIcon: ImageVector? = null,
+    moodDrawable: Int? = null,
     moodColor: Color,
     moodLabel: String,
     noteSnippet: String?,
@@ -325,12 +344,20 @@ fun DayDetailBottomSheet(
                         .background(moodColor.copy(alpha = 0.25f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = moodIcon,
-                        contentDescription = null,
-                        tint = moodColor,
-                        modifier = Modifier.size(36.dp)
-                    )
+                    if (moodDrawable != null) {
+                        Image(
+                            painter = painterResource(id = moodDrawable),
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    } else if (moodIcon != null) {
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = null,
+                            tint = moodColor,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {

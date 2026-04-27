@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.core.util.MoonIcon
 import com.diary.moonpage.core.util.MoonIcons
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 // ── Category data ─────────────────────────────────────────────────────────────
 
@@ -241,12 +243,20 @@ private fun ActivityCategoryCard(
                             .background(moonIcon.color.copy(alpha = 0.15f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = moonIcon.vector,
-                            contentDescription = null,
-                            tint = moonIcon.color,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        if (moonIcon.drawableRes != null) {
+                            Image(
+                                painter = painterResource(id = moonIcon.drawableRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else if (moonIcon.vector != null) {
+                            Icon(
+                                imageVector = moonIcon.vector,
+                                contentDescription = null,
+                                tint = moonIcon.color,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

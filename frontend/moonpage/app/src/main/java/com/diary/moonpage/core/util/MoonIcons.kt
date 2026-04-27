@@ -23,20 +23,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.DrawableRes
+import com.diary.moonpage.R
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 /**
  * Data class đại diện cho một Icon có màu đi kèm.
  */
 data class MoonIcon(
-    val vector: ImageVector,
+    val vector: ImageVector? = null,
     val color: Color,
-    val name: String = ""
+    val name: String = "",
+    @DrawableRes val drawableRes: Int? = null
 )
 
 /**
  * Tập hợp các Icon được phân loại cho ứng dụng Moon Page với màu sắc phù hợp (Daily Bean style).
  */
 object MoonIcons {
+
+    // 0. Core Moods (DailyBean style)
+    object Moods {
+        val Happy = MoonIcon(null, Color(0xFFFFD54F), "Happy", R.drawable.very_happy) // Yellow
+        val Good = MoonIcon(null, Color(0xFFAED581), "Good", R.drawable.happy) // Light Green
+        val Neutral = MoonIcon(null, Color(0xFFE0E0E0), "Neutral", R.drawable.neutral) // Grey
+        val Sad = MoonIcon(null, Color(0xFF64B5F6), "Sad", R.drawable.sad) // Blue
+        val Angry = MoonIcon(null, Color(0xFFE57373), "Angry", R.drawable.very_sad) // Red
+    }
 
     // 1. Hobbies (Sở thích)
     object Hobbies {
@@ -183,6 +197,7 @@ object MoonIcons {
 
     fun getAllCategories(): Map<String, List<MoonIcon>> {
         return mapOf(
+            "Moods" to listOf(Moods.Happy, Moods.Good, Moods.Neutral, Moods.Sad, Moods.Angry),
             "Hobbies" to listOf(Hobbies.Exercise, Hobbies.TvContent, Hobbies.Movie, Hobbies.Gaming, Hobbies.Reading, Hobbies.Walk, Hobbies.Music, Hobbies.Drawing),
             "Emotions" to listOf(Emotions.Excited, Emotions.Relaxed, Emotions.Proud, Emotions.Hopeful, Emotions.Happy, Emotions.Enthusiastic, Emotions.PitAPat, Emotions.Refreshed, Emotions.Calm, Emotions.Grateful, Emotions.Depressed, Emotions.Lonely, Emotions.Anxious, Emotions.Sad, Emotions.Angry, Emotions.Pressured, Emotions.Annoyed, Emotions.Tired, Emotions.Stressed, Emotions.Bored),
             "Meals" to listOf(Meals.Breakfast, Meals.Lunch, Meals.Dinner, Meals.NightSnack),
@@ -201,6 +216,12 @@ object MoonIcons {
     }
 
     fun getAllIcons(): List<MoonIcon> = getAllCategories().values.flatten()
+
+    fun getIconForActivity(activityName: String): MoonIcon {
+        return getAllIcons().find { it.name.equals(activityName, ignoreCase = true) }
+            ?: getAllIcons().find { it.name.replace(" ", "").equals(activityName.replace(" ", ""), ignoreCase = true) }
+            ?: Other.Coffee // Fallback
+    }
 }
 
 @Preview(showBackground = true)
@@ -239,12 +260,20 @@ fun MoonIconsPreview() {
                                 .background(icon.color.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = icon.vector,
-                                contentDescription = icon.name,
-                                tint = icon.color,
-                                modifier = Modifier.size(28.dp)
-                            )
+                            if (icon.drawableRes != null) {
+                                Image(
+                                    painter = painterResource(id = icon.drawableRes),
+                                    contentDescription = icon.name,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            } else if (icon.vector != null) {
+                                Icon(
+                                    imageVector = icon.vector,
+                                    contentDescription = icon.name,
+                                    tint = icon.color,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(

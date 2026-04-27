@@ -7,6 +7,7 @@ import com.diary.moonpage.data.remote.api.MomentApi
 import com.diary.moonpage.data.remote.api.ThemeApi
 import com.diary.moonpage.data.remote.api.UserApi
 import com.diary.moonpage.data.remote.api.DailyLogApi
+import com.diary.moonpage.data.remote.api.ActivityApi
 import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
@@ -101,5 +102,11 @@ object NetworkModule {
     @Singleton
     fun provideDailyLogApi(retrofit: Retrofit): DailyLogApi {
         return retrofit.create(DailyLogApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideActivityApi(retrofit: Retrofit): ActivityApi {
+        return retrofit.create(ActivityApi::class.java)
     }
 }

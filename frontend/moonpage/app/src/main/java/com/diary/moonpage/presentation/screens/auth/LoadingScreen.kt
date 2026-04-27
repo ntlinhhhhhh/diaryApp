@@ -21,27 +21,44 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.theme.MoonPageTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import androidx.lifecycle.viewModelScope
 
 @Composable
 fun LoadingScreen(
     viewModel: AuthViewModel = hiltViewModel(),
     onFinished: (isLoggedIn: Boolean, needsOnboarding: Boolean) -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     LaunchedEffect(Unit) {
         val token = viewModel.tokenFlow.first()
         val isLoggedIn = !token.isNullOrBlank()
 
-        delay(1500)
-
         if (isLoggedIn) {
-            val onboardingDone = viewModel.checkOnboardingForCurrentUser()
-            onFinished(true, !onboardingDone)
+            viewModel.loadInitialAppResources {
+                // Ensure UI has a moment to render 100% progress
+                viewModel.viewModelScope.launch {
+                    delay(300)
+                    val onboardingDone = viewModel.checkOnboardingForCurrentUser()
+                    onFinished(true, !onboardingDone)
+                }
+            }
         } else {
+            delay(1500)
             onFinished(false, false)
         }
     }
@@ -81,6 +98,23 @@ fun LoadingScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            val animatedProgress by animateFloatAsState(
+                targetValue = uiState.loadingProgress,
+                label = "loadingProgress"
+            )
+
+            LinearProgressIndicator(
+                progress = animatedProgress,
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Loading your feelings...",

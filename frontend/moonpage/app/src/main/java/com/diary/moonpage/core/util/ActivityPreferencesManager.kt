@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.diary.moonpage.domain.model.Activity
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -21,6 +24,7 @@ class ActivityPreferencesManager @Inject constructor(
 ) {
     companion object {
         private val ENABLED_CATEGORIES_KEY = stringPreferencesKey("enabled_categories")
+        private val ACTIVITIES_JSON_KEY = stringPreferencesKey("activities_json")
 
         val DEFAULT_ENABLED = setOf("Hobbies", "Emotions", "Meals", "SelfCare")
 
@@ -40,6 +44,22 @@ class ActivityPreferencesManager @Inject constructor(
     suspend fun saveEnabledCategories(categories: Set<String>) {
         context.activityDataStore.edit { prefs ->
             prefs[ENABLED_CATEGORIES_KEY] = categories.joinToString(",")
+        }
+    }
+
+    val activities: Flow<List<Activity>> = context.activityDataStore.data.map { prefs ->
+        val json = prefs[ACTIVITIES_JSON_KEY] ?: DefaultActivities.json
+        val type = object : TypeToken<List<Activity>>() {}.type
+        try {
+            Gson().fromJson(json, type) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun saveActivities(json: String) {
+        context.activityDataStore.edit { prefs ->
+            prefs[ACTIVITIES_JSON_KEY] = json
         }
     }
 }
