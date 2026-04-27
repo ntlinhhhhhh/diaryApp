@@ -2,6 +2,7 @@ package com.diary.moonpage.presentation.screens.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -12,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -19,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,6 +38,8 @@ import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
 
 import com.diary.moonpage.core.util.MoonIcons
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 // Mood helper data
 private data class MoodVisual(val color: Color, val icon: androidx.compose.ui.graphics.vector.ImageVector? = null, val drawableRes: Int? = null, val label: String)
@@ -54,6 +60,8 @@ private fun moodVisualFor(baseMoodId: Int?): MoodVisual {
 fun CalendarScreen(
     createdLogDate: String? = null,
     onLogDateHandled: () -> Unit = {},
+    logSavedMessage: String? = null,
+    onMessageShown: () -> Unit = {},
     onNavigateToFilter: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToDailyLog: (String) -> Unit,
@@ -102,7 +110,10 @@ fun CalendarScreen(
         onShareClick = { /* TODO */ },
         onThemeClick = onNavigateToThemeCalendar,
         onMonthClick = { showMonthPicker = true },
-        onNavigateToDailyLog = onNavigateToDailyLog
+        onMonthChanged = { newMonth -> viewModel.setYearMonth(newMonth.year, newMonth.monthValue) },
+        onNavigateToDailyLog = onNavigateToDailyLog,
+        logSavedMessage = logSavedMessage,
+        onMessageShown = onMessageShown
     )
 
     // Day detail bottom sheet
@@ -117,6 +128,7 @@ fun CalendarScreen(
                 moodColor = mv.color,
                 moodLabel = mv.label,
                 noteSnippet = log.note,
+                activityNames = log.activityIds ?: emptyList(),
                 onDismiss = { showDayDetail = false },
                 onEdit = {
                     showDayDetail = false
@@ -158,16 +170,58 @@ fun CalendarContent(
     onShareClick: () -> Unit,
     onThemeClick: () -> Unit = {},
     onMonthClick: () -> Unit = {},
-    onNavigateToDailyLog: (String) -> Unit
+    onMonthChanged: (YearMonth) -> Unit = {},
+    onNavigateToDailyLog: (String) -> Unit,
+    logSavedMessage: String? = null,
+    onMessageShown: () -> Unit = {}
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(logSavedMessage) {
+        if (!logSavedMessage.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(logSavedMessage)
+            onMessageShown()
+        }
+    }
+
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Row(
+                    modifier = Modifier
+                        .padding(bottom = 64.dp)
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                        .background(Color(0xFF333333), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle, 
+                        contentDescription = null, 
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = data.visuals.message, 
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNavigateToDailyLog(LocalDate.now().toString()) },
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = MoonIcons.Moods.getMoodColor(1), // Main theme tone
                 shape = CircleShape
             ) {
-                Text("😊", fontSize = 24.sp)
+                Image(
+                    painter = painterResource(id = MoonIcons.Moods.Good.drawableRes!!),
+                    contentDescription = "New Log",
+                    modifier = Modifier.size(32.dp)
+                )
             }
         },
         floatingActionButtonPosition = FabPosition.End,
@@ -186,16 +240,14 @@ fun CalendarContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Month Year header & Share
-            Row(
+            // Month Year header – centered, share pinned right
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Spacer(modifier = Modifier.size(24.dp))
-
+                // Centered month/year clickable
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -215,8 +267,11 @@ fun CalendarContent(
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
-
-                IconButton(onClick = onShareClick) {
+                // Share button pinned to right
+                IconButton(
+                    onClick = onShareClick,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
                     Icon(
                         imageVector = Icons.Rounded.IosShare,
                         contentDescription = "Share",
@@ -235,39 +290,69 @@ fun CalendarContent(
             ) {
                 CalendarHeader()
 
-                val daysInMonth = (1..currentYearMonth.lengthOfMonth()).toList()
-                val firstDayOfMonth = currentYearMonth.atDay(1)
-                val firstDayOffset = if (firstDayOfMonth.dayOfWeek == DayOfWeek.SUNDAY) 0 else firstDayOfMonth.dayOfWeek.value
-                val today = LocalDate.now()
+                val baseYearMonth = remember { currentYearMonth }
+                val initialPage = 500 * 12 // 500 years
+                val pagerState = rememberPagerState(
+                    initialPage = initialPage,
+                    pageCount = { initialPage * 2 }
+                )
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(7),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(firstDayOffset) {
-                        DayItem(day = null, isSelected = false, moodColor = null, onClick = {})
+                LaunchedEffect(pagerState.currentPage) {
+                    val offset = pagerState.currentPage - initialPage
+                    val targetMonth = baseYearMonth.plusMonths(offset.toLong())
+                    if (targetMonth != currentYearMonth) {
+                        onMonthChanged(targetMonth)
                     }
+                }
 
-                    items(daysInMonth) { day ->
-                        val date = currentYearMonth.atDay(day)
-                        val isSelected = date == selectedDate
-                        val isToday = date == today
-                        val logForDay = dailyLogs[date]
+                LaunchedEffect(currentYearMonth) {
+                    val targetOffset = java.time.temporal.ChronoUnit.MONTHS.between(baseYearMonth, currentYearMonth).toInt()
+                    val targetPage = initialPage + targetOffset
+                    if (pagerState.currentPage != targetPage) {
+                        pagerState.animateScrollToPage(targetPage)
+                    }
+                }
 
-                        val mv = if (logForDay != null) moodVisualFor(logForDay.baseMoodId) else null
+                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+                    val offset = page - initialPage
+                    val pageYearMonth = baseYearMonth.plusMonths(offset.toLong())
+                    val daysInMonth = (1..pageYearMonth.lengthOfMonth()).toList()
+                    val firstDayOfMonth = pageYearMonth.atDay(1)
+                    val firstDayOffset = if (firstDayOfMonth.dayOfWeek == DayOfWeek.SUNDAY) 0 else firstDayOfMonth.dayOfWeek.value
+                    val today = LocalDate.now()
 
-                        DayItem(
-                            day = day,
-                            isSelected = isSelected,
-                            moodColor = mv?.color,
-                            moodIcon = mv?.icon,
-                            moodDrawable = mv?.drawableRes,
-                            isToday = isToday,
-                            onClick = { onDateSelected(date) }
-                        )
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(7),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(firstDayOffset) {
+                            DayItem(day = null, isSelected = false, moodColor = null, onClick = {})
+                        }
+
+                        items(daysInMonth) { day ->
+                            val date = pageYearMonth.atDay(day)
+                            val isSelected = date == selectedDate
+                            val isToday = date == today
+                            val logForDay = dailyLogs[date]
+
+                            val mv = if (logForDay != null) moodVisualFor(logForDay.baseMoodId) else null
+                            // Dimmed = log.date is in the past (catch-up log)
+                            val isLoggedToday = logForDay?.date == today.toString()
+
+                            DayItem(
+                                day = day,
+                                isSelected = isSelected,
+                                moodColor = mv?.color,
+                                moodIcon = mv?.icon,
+                                moodDrawable = mv?.drawableRes,
+                                isToday = isToday,
+                                isDimmed = logForDay != null && !isLoggedToday,
+                                onClick = { onDateSelected(date) }
+                            )
+                        }
                     }
                 }
             }

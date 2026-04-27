@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -51,13 +52,15 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             val yearMonthStr = "${yearMonth.year}-${yearMonth.monthValue.toString().padStart(2, '0')}"
-            repository.getDailyLogsByMonth(yearMonthStr).onSuccess { logs ->
+            
+            repository.getDailyLogsByMonth(yearMonthStr).collect { logs ->
                 val logsMap = logs.associateBy { LocalDate.parse(it.date) }
-                _dailyLogs.value = logsMap
-            }.onFailure {
-                // Ignore or handle error
+                val currentMap = _dailyLogs.value.toMutableMap()
+                currentMap.keys.removeAll { YearMonth.from(it) == yearMonth }
+                currentMap.putAll(logsMap)
+                _dailyLogs.value = currentMap
+                _isLoading.value = false // Stop loading once we have at least cache
             }
-            _isLoading.value = false
         }
     }
 }

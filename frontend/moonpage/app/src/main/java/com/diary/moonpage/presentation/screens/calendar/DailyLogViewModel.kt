@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import com.diary.moonpage.domain.model.Activity
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 
@@ -30,18 +31,8 @@ class DailyLogViewModel @Inject constructor(
 
     // Enabled activity categories from DataStore
     val enabledCategories: StateFlow<Set<String>> = activityPreferencesManager.enabledCategories
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ActivityPreferencesManager.DEFAULT_ENABLED
-        )
         
-    val dynamicActivities = activityPreferencesManager.activities
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    val dynamicActivities: StateFlow<List<Activity>> = activityPreferencesManager.activities
 
     fun fetchLogForDate(date: String) {
         viewModelScope.launch {
@@ -62,7 +53,8 @@ class DailyLogViewModel @Inject constructor(
         sleepHours: Double?,
         isMenstruation: Boolean,
         activityIds: List<String>,
-        onSuccess: () -> Unit
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -76,6 +68,7 @@ class DailyLogViewModel @Inject constructor(
             }
 
             repository.createDailyLog(
+                date,
                 baseMoodIdBody,
                 dateBody,
                 noteBody,
@@ -87,7 +80,7 @@ class DailyLogViewModel @Inject constructor(
             ).onSuccess {
                 onSuccess()
             }.onFailure {
-                // handle error
+                onFailure(it.message ?: "Failed to save log")
             }
             _isLoading.value = false
         }

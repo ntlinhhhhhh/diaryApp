@@ -1,6 +1,10 @@
 package com.diary.moonpage.presentation.screens.calendar
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,8 +17,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +31,8 @@ import com.diary.moonpage.core.util.MoonIcons
 import com.diary.moonpage.core.util.ActivityPreferencesManager
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 data class DailyActivity(val id: String, val label: String, val icon: MoonIcon)
 
@@ -31,7 +40,7 @@ data class DailyActivity(val id: String, val label: String, val icon: MoonIcon)
 fun DailyLogScreen(
     dateString: String,
     onNavigateBack: () -> Unit,
-    onDone: () -> Unit,
+    onDone: (String) -> Unit,
     viewModel: DailyLogViewModel = hiltViewModel()
 ) {
     LaunchedEffect(dateString) { viewModel.fetchLogForDate(dateString) }
@@ -63,27 +72,64 @@ fun DailyLogScreen(
 
     // Unsaved Changes Dialog – theme-aware
     if (showExitDialog) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { showExitDialog = false },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = colorScheme.surface,
-            title = {
-                Text("Unsaved Changes", color = colorScheme.onSurface, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            },
-            text = {
-                Text("Changes have not been saved. Are you sure you want to exit?", color = colorScheme.onSurface.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
-            },
-            confirmButton = {
-                TextButton(onClick = { showExitDialog = false; onNavigateBack() }) {
-                    Text("Exit", color = colorScheme.error, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExitDialog = false }) {
-                    Text("Cancel", color = colorScheme.onSurface.copy(alpha = 0.6f))
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = colorScheme.surface,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Changes have not been saved.",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onSurface,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Are you sure you want to exit?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Button(
+                            onClick = { showExitDialog = false },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colorScheme.surfaceVariant,
+                                contentColor = colorScheme.onSurfaceVariant
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                        Button(
+                            onClick = { showExitDialog = false; onNavigateBack() },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colorScheme.primary,
+                                contentColor = colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Exit", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 
     // ── Activity data definitions ─────────────────────────────────────────────
@@ -112,9 +158,13 @@ fun DailyLogScreen(
         if (selectedActivities.contains(id)) selectedActivities.remove(id) else selectedActivities.add(id)
     }
 
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     // ── Scaffold ──────────────────────────────────────────────────────────────
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
@@ -134,24 +184,51 @@ fun DailyLogScreen(
             }
         },
         bottomBar = {
-            Button(
-                onClick = {
-                    val moodId = selectedMood ?: 3
-                    viewModel.saveDailyLog(
-                        date = dateString,
-                        baseMoodId = moodId,
-                        note = noteText.takeIf { it.isNotBlank() },
-                        sleepHours = sleepHours.toDouble(),
-                        isMenstruation = false,
-                        activityIds = selectedActivities.toList(),
-                        onSuccess = onDone
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text("Done", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onPrimary)
+            var showSuccess by remember { mutableStateOf(false) }
+
+            Box {
+                Button(
+                    onClick = {
+                        if (selectedMood == null) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Please select a mood first!")
+                            }
+                            return@Button
+                        }
+                        
+                        viewModel.saveDailyLog(
+                            date = dateString,
+                            baseMoodId = selectedMood!!,
+                            note = noteText.takeIf { it.isNotBlank() },
+                            sleepHours = sleepHours.toDouble(),
+                            isMenstruation = false,
+                            activityIds = selectedActivities.toList(),
+                            onSuccess = {
+                                showSuccess = true
+                                scope.launch {
+                                    delay(1000)
+                                    val msg = if (existingLog != null) "Record edited!" else "Day recorded!"
+                                    onDone(msg)
+                                }
+                            },
+                            onFailure = { errorMsg ->
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(errorMsg)
+                                }
+                            }
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    AnimatedVisibility(visible = showSuccess, enter = scaleIn() + fadeIn(), exit = fadeOut()) {
+                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                    }
+                    AnimatedVisibility(visible = !showSuccess, enter = fadeIn(), exit = fadeOut()) {
+                        Text("Done", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onPrimary)
+                    }
+                }
             }
         },
         containerColor = colorScheme.background
@@ -168,26 +245,30 @@ fun DailyLogScreen(
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             moods.forEach { (id, moodIcon) ->
                                 val isSelected = selectedMood == id
+                                val moodColor = MoonIcons.Moods.getMoodColor(id)
                                 Box(
-                                    modifier = Modifier.size(56.dp).clip(CircleShape)
-                                        .background(if (isSelected) colorScheme.primaryContainer else colorScheme.surfaceVariant)
+                                    modifier = Modifier.size(48.dp).clip(CircleShape)
+                                        .background(
+                                            if (isSelected) moodColor 
+                                            else moodColor.copy(alpha = 0.2f)
+                                        )
                                         .clickable { selectedMood = id },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (moodIcon.drawableRes != null) {
-                                        Image(
-                                            painter = painterResource(id = moodIcon.drawableRes),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(if (isSelected) 40.dp else 36.dp)
-                                        )
-                                    } else if (moodIcon.vector != null) {
-                                        Icon(
-                                            moodIcon.vector, contentDescription = null,
-                                            tint = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                    }
-                                }
+                                     contentAlignment = Alignment.Center
+                                 ) {
+                                     if (moodIcon.drawableRes != null) {
+                                         Image(
+                                             painter = painterResource(id = moodIcon.drawableRes),
+                                             contentDescription = null,
+                                             modifier = Modifier.size(if (isSelected) 32.dp else 28.dp)
+                                         )
+                                     } else if (moodIcon.vector != null) {
+                                         Icon(
+                                             moodIcon.vector, contentDescription = null,
+                                             tint = if (isSelected) Color.White else moodColor,
+                                             modifier = Modifier.size(24.dp)
+                                         )
+                                     }
+                                 }
                             }
                         }
                     }
@@ -343,31 +424,46 @@ fun DailyLogGrid(
     ) {
         items.forEach { item ->
             val isSelected = selectedIds.contains(item.id)
+            val iconColor = item.icon.color
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.width(72.dp).clickable { onItemClick(item.id) }
             ) {
                 Box(
-                    modifier = Modifier.size(56.dp).clip(CircleShape)
-                        .background(if (isSelected) colorScheme.primaryContainer else colorScheme.surfaceVariant),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) iconColor.copy(alpha = 0.18f)
+                            else colorScheme.onSurface.copy(alpha = 0.08f)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (item.icon.drawableRes != null) {
                         Image(
                             painter = painterResource(id = item.icon.drawableRes),
                             contentDescription = null,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier
+                                .size(32.dp)
+                                .alpha(if (isSelected) 1f else 0.4f)
                         )
                     } else if (item.icon.vector != null) {
                         Icon(
                             item.icon.vector, contentDescription = null,
-                            tint = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant,
+                            tint = if (isSelected) iconColor else colorScheme.onSurface.copy(alpha = 0.35f),
                             modifier = Modifier.size(28.dp)
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(item.label, color = colorScheme.onBackground, style = MaterialTheme.typography.bodySmall, fontSize = 12.sp, maxLines = 1)
+                Text(
+                    item.label,
+                    color = if (isSelected) iconColor else colorScheme.onBackground.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                )
             }
         }
     }

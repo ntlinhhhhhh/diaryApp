@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -124,6 +125,7 @@ fun DayItem(
     moodIcon: ImageVector? = null,
     moodDrawable: Int? = null,
     isToday: Boolean = false,
+    isDimmed: Boolean = false,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -184,16 +186,21 @@ fun DayItem(
                 Image(
                     painter = painterResource(id = moodDrawable),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize(0.75f)
+                    modifier = Modifier
+                        .fillMaxSize(0.75f)
+                        .then(if (isDimmed) Modifier.alpha(0.55f) else Modifier)
                 )
             } else if (moodIcon != null) {
                 Icon(
                     imageVector = moodIcon,
                     contentDescription = null,
-                    tint = Color.Black.copy(alpha = 0.55f),
+                    tint = Color.Black.copy(alpha = if (isDimmed) 0.3f else 0.55f),
                     modifier = Modifier.fillMaxSize(0.52f)
                 )
             }
+
+            // Small catch-up indicator (e.g. clock or history icon)
+
         }
 
         // ── Số ngày bên dưới ─────────────────────────────────────────────────
@@ -284,10 +291,10 @@ fun DiaryEntryPreview(
 }
 
 /**
- * Bottom sheet card showing a summary of the selected day's log.
- * Shows Share / Edit / Delete action buttons.
+ * Bottom sheet showing a diary "post card" for the selected day.
+ * Shows: mood icon, date, full note, recorded activities, and Edit/Delete/Share actions.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DayDetailBottomSheet(
     date: LocalDate,
@@ -296,138 +303,204 @@ fun DayDetailBottomSheet(
     moodColor: Color,
     moodLabel: String,
     noteSnippet: String?,
+    activityNames: List<String> = emptyList(),
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onShare: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = cs.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = {
             Box(
                 modifier = Modifier
                     .padding(top = 12.dp)
                     .width(40.dp)
                     .height(4.dp)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), CircleShape)
+                    .background(cs.onSurface.copy(alpha = 0.15f), CircleShape)
             )
         }
     ) {
-        Column(
+        androidx.compose.foundation.lazy.LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(top = 8.dp, bottom = 32.dp)
+                .padding(top = 8.dp, bottom = 40.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Date label
-            Text(
-                text = "${date.dayOfMonth} ${date.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}, ${date.year}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            // Mood row
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(moodColor.copy(alpha = 0.12f))
-                    .padding(16.dp)
-            ) {
-                Box(
+            // ── Header: mood + date ──────────────────────────────────────────
+            item {
+                Row(
                     modifier = Modifier
-                        .size(56.dp)
-                        .background(moodColor.copy(alpha = 0.25f), CircleShape),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(moodColor.copy(alpha = 0.10f))
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (moodDrawable != null) {
-                        Image(
-                            painter = painterResource(id = moodDrawable),
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    } else if (moodIcon != null) {
-                        Icon(
-                            imageVector = moodIcon,
-                            contentDescription = null,
-                            tint = moodColor,
-                            modifier = Modifier.size(36.dp)
-                        )
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(moodColor.copy(alpha = 0.22f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (moodDrawable != null) {
+                            Image(
+                                painter = painterResource(id = moodDrawable),
+                                contentDescription = null,
+                                modifier = Modifier.size(42.dp)
+                            )
+                        } else if (moodIcon != null) {
+                            Icon(
+                                imageVector = moodIcon,
+                                contentDescription = null,
+                                tint = moodColor,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
                     }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = moodLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    if (!noteSnippet.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
                         Text(
-                            text = noteSnippet,
+                            text = moodLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = cs.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}, ${date.dayOfMonth} ${date.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }} ${date.year}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            maxLines = 2
+                            color = cs.onSurface.copy(alpha = 0.55f)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Action buttons row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Share
-                OutlinedButton(
-                    onClick = onShare,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                ) {
-                    Icon(Icons.Rounded.IosShare, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Share", fontSize = 13.sp)
+            // ── Activities ──────────────────────────────────────────────────
+            if (activityNames.isNotEmpty()) {
+                item {
+                    Column {
+                        Text(
+                            "Activities",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cs.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 10.dp)
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            activityNames.forEach { name ->
+                                val icon = com.diary.moonpage.core.util.MoonIcons.getIconForActivity(name)
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = icon.color.copy(alpha = 0.12f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        if (icon.drawableRes != null) {
+                                            Image(
+                                                painter = painterResource(id = icon.drawableRes),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        } else if (icon.vector != null) {
+                                            Icon(
+                                                imageVector = icon.vector,
+                                                contentDescription = null,
+                                                tint = icon.color,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = name,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Medium,
+                                            color = icon.color
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+            }
 
-                // Edit
-                Button(
-                    onClick = onEdit,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                ) {
-                    Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Edit", color = Color.White, fontSize = 13.sp)
+            // ── Note ─────────────────────────────────────────────────────────
+            if (!noteSnippet.isNullOrBlank()) {
+                item {
+                    Column {
+                        Text(
+                            "Note",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cs.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = cs.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                text = noteSnippet,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = cs.onSurface.copy(alpha = 0.85f),
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        }
+                    }
                 }
+            }
 
-                // Delete
-                OutlinedButton(
-                    onClick = onDelete,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                    )
+            // ── Action buttons ───────────────────────────────────────────────
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Delete", fontSize = 13.sp)
+                    // Share
+                    OutlinedButton(
+                        onClick = onShare,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.onSurface)
+                    ) {
+                        Icon(Icons.Rounded.IosShare, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Share", fontSize = 13.sp)
+                    }
+                    // Edit
+                    Button(
+                        onClick = onEdit,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
+                    ) {
+                        Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = cs.onPrimary)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit", color = cs.onPrimary, fontSize = 13.sp)
+                    }
+                    // Delete
+                    OutlinedButton(
+                        onClick = onDelete,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.error),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, cs.error.copy(alpha = 0.5f))
+                    ) {
+                        Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Delete", fontSize = 13.sp)
+                    }
                 }
             }
         }

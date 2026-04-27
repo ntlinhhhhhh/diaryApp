@@ -18,7 +18,7 @@ interface DailyLogApi {
         @Part("MenstruationPhase") menstruationPhase: RequestBody?,
         @Part activityIds: List<MultipartBody.Part>?, // For sending array of ints as form data
         @Part dailyPhotos: List<MultipartBody.Part>? // If photos are files
-    ): Response<DailyLogResponse>
+    ): Response<Unit>
 
     @GET("api/dailylogs/date/{date}")
     suspend fun getDailyLogByDate(@Path("date") date: String): Response<DailyLogResponse>

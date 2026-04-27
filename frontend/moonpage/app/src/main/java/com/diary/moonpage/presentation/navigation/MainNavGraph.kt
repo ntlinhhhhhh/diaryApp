@@ -26,9 +26,15 @@ fun NavGraphBuilder.mainNavGraph(
         startDestination = Screen.Calendar.route,
         route = "main_graph"
     ) {
-        composable(Screen.Calendar.route) {
+        composable(Screen.Calendar.route) { backStackEntry ->
+            val logSavedMessage = backStackEntry.savedStateHandle.get<String>("log_saved_message")
+
             screenWrapper(Screen.Calendar.route) {
                 CalendarScreen(
+                    logSavedMessage = logSavedMessage,
+                    onMessageShown = {
+                        backStackEntry.savedStateHandle.remove<String>("log_saved_message")
+                    },
                     onNavigateToFilter = { navController.navigate(Screen.Filter.route) },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onNavigateToDailyLog = { date ->
@@ -54,7 +60,10 @@ fun NavGraphBuilder.mainNavGraph(
                 DailyLogScreen(
                     dateString = dateStr,
                     onNavigateBack = { navController.popBackStack() },
-                    onDone = { navController.popBackStack() }
+                    onDone = { msg ->
+                        navController.previousBackStackEntry?.savedStateHandle?.set("log_saved_message", msg)
+                        navController.popBackStack() 
+                    }
                 )
             }
         }

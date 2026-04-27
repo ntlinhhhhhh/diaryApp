@@ -6,6 +6,7 @@ import okhttp3.RequestBody
 
 interface DailyLogRepository {
     suspend fun createDailyLog(
+        dateStr: String,
         baseMoodId: RequestBody,
         date: RequestBody,
         note: RequestBody?,
@@ -14,11 +15,11 @@ interface DailyLogRepository {
         menstruationPhase: RequestBody?,
         activityIds: List<MultipartBody.Part>?,
         dailyPhotos: List<MultipartBody.Part>?
-    ): Result<DailyLogResponse>
+    ): Result<Unit>
 
     suspend fun getDailyLogByDate(date: String): Result<DailyLogResponse>
     
     suspend fun deleteDailyLog(date: String): Result<Unit>
     
-    suspend fun getDailyLogsByMonth(yearMonth: String): Result<List<DailyLogResponse>>
+    fun getDailyLogsByMonth(yearMonth: String): kotlinx.coroutines.flow.Flow<List<DailyLogResponse>>
 }

@@ -27,6 +27,11 @@ import androidx.annotation.DrawableRes
 import com.diary.moonpage.R
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import com.diary.moonpage.presentation.theme.MoonMoodAngry
+import com.diary.moonpage.presentation.theme.MoonMoodGood
+import com.diary.moonpage.presentation.theme.MoonMoodHappy
+import com.diary.moonpage.presentation.theme.MoonMoodNeutral
+import com.diary.moonpage.presentation.theme.MoonMoodSad
 
 /**
  * Data class đại diện cho một Icon có màu đi kèm.
@@ -45,11 +50,24 @@ object MoonIcons {
 
     // 0. Core Moods (DailyBean style)
     object Moods {
-        val Happy = MoonIcon(null, Color(0xFFFFD54F), "Happy", R.drawable.very_happy) // Yellow
-        val Good = MoonIcon(null, Color(0xFFAED581), "Good", R.drawable.happy) // Light Green
-        val Neutral = MoonIcon(null, Color(0xFFE0E0E0), "Neutral", R.drawable.neutral) // Grey
-        val Sad = MoonIcon(null, Color(0xFF64B5F6), "Sad", R.drawable.sad) // Blue
-        val Angry = MoonIcon(null, Color(0xFFE57373), "Angry", R.drawable.very_sad) // Red
+        val Happy = MoonIcon(null, MoonMoodHappy, "Happy", R.drawable.very_happy)
+        val Good = MoonIcon(null, MoonMoodGood, "Good", R.drawable.happy) 
+        val Neutral = MoonIcon(null, MoonMoodNeutral, "Neutral", R.drawable.neutral) 
+        val Sad = MoonIcon(null, MoonMoodSad, "Sad", R.drawable.sad) 
+        val Angry = MoonIcon(null, MoonMoodAngry, "Angry", R.drawable.very_sad)
+
+        @Composable
+        fun getMoodColor(level: Int): Color {
+            return when (level) {
+                1 -> MoonMoodHappy
+                2 -> MoonMoodGood
+                3 -> MoonMoodNeutral
+                4 -> MoonMoodSad
+                5 -> MoonMoodAngry
+                else -> MoonMoodNeutral
+            }
+        }
+
     }
 
     // 1. Hobbies (Sở thích)
@@ -83,7 +101,7 @@ object MoonIcons {
         val Angry = MoonIcon(Icons.Rounded.PriorityHigh, Color(0xFFEF5350), "Angry")
         val Pressured = MoonIcon(Icons.Rounded.Timer, Color(0xFFFF8A65), "Pressured")
         val Annoyed = MoonIcon(Icons.Rounded.ErrorOutline, Color(0xFFFFAB91), "Annoyed")
-        val Tired = MoonIcon(Icons.Rounded.Face, Color(0xFFA1887F), "Tired")
+        val Tired = MoonIcon(Icons.Rounded.Battery0Bar, Color(0xFFA1887F), "Tired")
         val Stressed = MoonIcon(Icons.Rounded.Psychology, Color(0xFF7986CB), "Stressed")
         val Bored = MoonIcon(Icons.Rounded.SentimentNeutral, Color(0xFFCFD8DC), "Bored")
     }
@@ -100,7 +118,7 @@ object MoonIcons {
     object SelfCare {
         val Shower = MoonIcon(Icons.Rounded.Shower, Color(0xFF4FC3F7), "Shower")
         val BrushTeeth = MoonIcon(Icons.Rounded.CleanHands, Color(0xFF81D4FA), "Brush Teeth")
-        val WashFace = MoonIcon(Icons.Rounded.Face, Color(0xFFB3E5FC), "Wash Face")
+        val WashFace = MoonIcon(Icons.Rounded.WaterDrop, Color(0xFFB3E5FC), "Wash Face")
         val DrinkWater = MoonIcon(Icons.Rounded.LocalDrink, Color(0xFF29B6F6), "Drink Water")
     }
 
@@ -109,7 +127,7 @@ object MoonIcons {
         val Cleaning = MoonIcon(Icons.Rounded.CleaningServices, Color(0xFFAED581), "Cleaning")
         val Cooking = MoonIcon(Icons.Rounded.Restaurant, Color(0xFFFFB74D), "Cooking")
         val Laundry = MoonIcon(Icons.Rounded.LocalLaundryService, Color(0xFF64B5F6), "Laundry")
-        val Dishes = MoonIcon(Icons.Rounded.Kitchen, Color(0xFF4DB6AC), "Dishes")
+        val Dishes = MoonIcon(Icons.Rounded.Countertops, Color(0xFF4DB6AC), "Dishes")
     }
 
     // 6. Events (Sự kiện)
@@ -136,7 +154,7 @@ object MoonIcons {
     object Beauty {
         val Hair = MoonIcon(Icons.Rounded.ContentCut, Color(0xFFCE93D8), "Hair")
         val Nails = MoonIcon(Icons.Rounded.Palette, Color(0xFFF48FB1), "Nails")
-        val Skincare = MoonIcon(Icons.Rounded.Face, Color(0xFFF8BBD0), "Skincare")
+        val Skincare = MoonIcon(Icons.Rounded.FaceRetouchingNatural, Color(0xFFF8BBD0), "Skincare")
         val Makeup = MoonIcon(Icons.Rounded.AutoFixHigh, Color(0xFFE1BEE7), "Makeup")
     }
 
@@ -148,8 +166,8 @@ object MoonIcons {
         val Snowy = MoonIcon(Icons.Rounded.AcUnit, Color(0xFFE1F5FE), "Snowy")
         val Windy = MoonIcon(Icons.Rounded.Air, Color(0xFF90A4AE), "Windy")
         val Stormy = MoonIcon(Icons.Rounded.Thunderstorm, Color(0xFF78909C), "Stormy")
-        val Hot = MoonIcon(Icons.Rounded.WbSunny, Color(0xFFFF7043), "Hot")
-        val Cold = MoonIcon(Icons.Rounded.AcUnit, Color(0xFF0288D1), "Cold")
+        val Hot = MoonIcon(Icons.Rounded.Thermostat, Color(0xFFFF7043), "Hot")
+        val Cold = MoonIcon(Icons.Rounded.SevereCold, Color(0xFF0288D1), "Cold")
     }
 
     // 10. Health (Sức khỏe)
@@ -191,7 +209,7 @@ object MoonIcons {
         val Date = MoonIcon(Icons.Rounded.Favorite, Color(0xFFF06292), "Date")
         val Anniversary = MoonIcon(Icons.Rounded.Cake, Color(0xFFFF8A65), "Anniversary")
         val Gift = MoonIcon(Icons.Rounded.CardGiftcard, Color(0xFFFFD54F), "Gift")
-        val Conflict = MoonIcon(Icons.Rounded.Gavel, Color(0xFF78909C), "Conflict")
+        val Conflict = MoonIcon(Icons.Rounded.FlashOn, Color(0xFF78909C), "Conflict")
         val Sex = MoonIcon(Icons.Rounded.BedroomParent, Color(0xFFBA68C8), "Sex")
     }
 
@@ -215,12 +233,22 @@ object MoonIcons {
         )
     }
 
-    fun getAllIcons(): List<MoonIcon> = getAllCategories().values.flatten()
+    // 1. Lưu cache danh sách List để không phải flatten lại nhiều lần
+    val allIconsList: List<MoonIcon> by lazy { 
+        getAllCategories().values.flatten() 
+    }
 
+    // 2. Tạo một Map siêu tốc (O(1)) để tìm kiếm Icon theo tên
+    private val iconMapByName: Map<String, MoonIcon> by lazy {
+        allIconsList.associateBy { it.name.replace(" ", "").lowercase() }
+    }
+
+    fun getAllIcons(): List<MoonIcon> = allIconsList
+
+    // 3. Hàm tìm kiếm giờ đây chạy nhanh gấp 100 lần
     fun getIconForActivity(activityName: String): MoonIcon {
-        return getAllIcons().find { it.name.equals(activityName, ignoreCase = true) }
-            ?: getAllIcons().find { it.name.replace(" ", "").equals(activityName.replace(" ", ""), ignoreCase = true) }
-            ?: Other.Coffee // Fallback
+        val searchKey = activityName.replace(" ", "").lowercase()
+        return iconMapByName[searchKey] ?: Other.Coffee // Fallback nếu không tìm thấy
     }
 }
 
