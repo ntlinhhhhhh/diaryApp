@@ -7,7 +7,7 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,28 +17,45 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.diary.moonpage.core.theme.MoonPageTheme
-import com.diary.moonpage.data.remote.api.MomentResponse
+import com.diary.moonpage.domain.model.Moment
 import com.diary.moonpage.presentation.components.moment.MomentFeedItem
 import com.diary.moonpage.presentation.components.moment.CaptureButton
-import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Close
+
+@Composable
+fun MomentHistoryRoute(
+    onBackToCamera: () -> Unit,
+    onNavigateToGallery: () -> Unit,
+    onNavigateToDetail: (String) -> Unit,
+    viewModel: MomentViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    MomentHistoryScreen(
+        moments = uiState.moments,
+        localPaths = uiState.localPaths,
+        onNavigateToGallery = onNavigateToGallery,
+        onBackToCamera = onBackToCamera,
+        onShare = { moment -> viewModel.onEvent(MomentUiEvent.ShareMoment(moment.imageUrl)) },
+        onDownload = { moment -> viewModel.onEvent(MomentUiEvent.DownloadMoment(moment.imageUrl)) },
+        onDelete = { moment -> viewModel.onEvent(MomentUiEvent.DeleteMoment(moment.id)) }
+    )
+}
 
 @Composable
 fun MomentHistoryScreen(
-    moments: List<MomentResponse>,
+    moments: List<Moment>,
     localPaths: Map<String, String>,
     onNavigateToGallery: () -> Unit,
     onBackToCamera: () -> Unit,
     initialMomentId: String? = null,
-    onShare: (MomentResponse) -> Unit = {},
-    onDownload: (MomentResponse) -> Unit = {},
-    onDelete: (MomentResponse) -> Unit = {},
+    onShare: (Moment) -> Unit = {},
+    onDownload: (Moment) -> Unit = {},
+    onDelete: (Moment) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val sortedMoments = remember(moments) { moments.sortedByDescending { it.capturedAt } }
@@ -90,7 +107,7 @@ fun MomentHistoryScreen(
             }
         }
 
-        // Header (Chỉ còn icon bên trái)
+        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -107,7 +124,7 @@ fun MomentHistoryScreen(
             )
         }
 
-        // Bottom Bar (Nút Menu được chuyển xuống đây)
+        // Bottom Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -117,7 +134,6 @@ fun MomentHistoryScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Nút Gallery
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -129,10 +145,8 @@ fun MomentHistoryScreen(
                 Icon(Icons.Rounded.GridView, null, tint = onBgColor, modifier = Modifier.size(28.dp))
             }
 
-            // Nút Capture (Back to Camera)
             CaptureButton(onClick = onBackToCamera)
 
-            // Nút Menu (Đổi thành MoreHoriz)
             if (sortedMoments.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -159,7 +173,6 @@ fun MomentHistoryScreen(
                         .fillMaxWidth()
                         .padding(bottom = 32.dp, top = 8.dp)
                 ) {
-                    // Share
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -176,7 +189,6 @@ fun MomentHistoryScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Text("Share", color = onBgColor, fontSize = 16.sp)
                     }
-                    // Download
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -193,7 +205,6 @@ fun MomentHistoryScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Text("Download", color = onBgColor, fontSize = 16.sp)
                     }
-                    // Delete
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -210,7 +221,6 @@ fun MomentHistoryScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Text("Delete", color = MaterialTheme.colorScheme.error, fontSize = 16.sp)
                     }
-                    // Cancel
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -232,25 +242,11 @@ fun MomentHistoryScreen(
 @Composable
 fun MomentHistoryScreenPreview() {
     val sampleMoments = listOf(
-        MomentResponse(
+        Moment(
             id = "1",
             imageUrl = "https://picsum.photos/1000",
             caption = "Chuyến đi Đà Lạt tuyệt vời! 🌲✨",
             capturedAt = "2024-04-26T10:00:00.000Z",
-            isPublic = true
-        ),
-        MomentResponse(
-            id = "2",
-            imageUrl = "https://picsum.photos/1001",
-            caption = "Cà phê sáng cùng bạn bè ☕",
-            capturedAt = "2024-04-26T08:00:00.000Z",
-            isPublic = true
-        ),
-        MomentResponse(
-            id = "3",
-            imageUrl = "https://picsum.photos/1002",
-            caption = "Làm việc chăm chỉ nào! 💻",
-            capturedAt = "2024-04-25T14:00:00.000Z",
             isPublic = true
         )
     )
@@ -258,19 +254,6 @@ fun MomentHistoryScreenPreview() {
     MoonPageTheme {
         MomentHistoryScreen(
             moments = sampleMoments,
-            localPaths = emptyMap(),
-            onNavigateToGallery = {},
-            onBackToCamera = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true, name = "History Empty State")
-@Composable
-fun MomentHistoryScreenEmptyPreview() {
-    MoonPageTheme {
-        MomentHistoryScreen(
-            moments = emptyList(),
             localPaths = emptyMap(),
             onNavigateToGallery = {},
             onBackToCamera = {}

@@ -1,6 +1,7 @@
 package com.diary.moonpage.presentation.screens.moment
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -10,21 +11,21 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.imageLoader
-import coil.request.ImageRequest
-import com.diary.moonpage.data.remote.api.MomentResponse
-import com.diary.moonpage.domain.repository.MomentRepository
+import com.diary.moonpage.R
+import com.diary.moonpage.core.util.ImageUtils
+import com.diary.moonpage.core.util.UiText
+import com.diary.moonpage.domain.model.Moment
+import com.diary.moonpage.domain.usecase.moment.*
 import com.diary.moonpage.presentation.components.moment.MomentTag
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import android.content.Intent
-import com.diary.moonpage.core.util.ImageUtils
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
@@ -36,19 +37,19 @@ private val Context.momentDataStore by preferencesDataStore(name = "moment_cache
 
 @HiltViewModel
 class MomentViewModel @Inject constructor(
-    private val repository: MomentRepository,
+    private val getMyMomentsUseCase: GetMyMomentsUseCase,
+    private val getMomentUseCase: GetMomentUseCase,
+    private val uploadMomentUseCase: UploadMomentUseCase,
+    private val deleteMomentUseCase: DeleteMomentUseCase,
     private val gson: Gson,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _moments = MutableStateFlow<List<MomentResponse>>(emptyList())
-    val moments: StateFlow<List<MomentResponse>> = _moments.asStateFlow()
+    private val _uiState = MutableStateFlow(MomentUiState())
+    val uiState: StateFlow<MomentUiState> = _uiState.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _localPaths = MutableStateFlow<Map<String, String>>(emptyMap())
-    val localPaths: StateFlow<Map<String, String>> = _localPaths.asStateFlow()
+    private val _uiEvent = Channel<MomentUiEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
 
     private val MOMENT_LIST_KEY = stringPreferencesKey("cached_moments")
 
@@ -65,7 +66,29 @@ class MomentViewModel @Inject constructor(
 
     init {
         loadCachedMoments()
-        fetchMyMoments()
+        onEvent(MomentUiEvent.LoadMoments)
+    }
+
+    fun onEvent(event: MomentUiEvent) {
+        when (event) {
+            is MomentUiEvent.LoadMoments -> fetchMyMoments()
+            is MomentUiEvent.LoadMomentDetail -> fetchMomentDetail(event.id)
+            is MomentUiEvent.UploadMoment -> uploadMoment(
+                event.imageFile,
+                event.caption,
+                event.location,
+                event.weather,
+                event.rating,
+                event.dailyLogId,
+                event.isPublic,
+                event.onSuccess
+            )
+            is MomentUiEvent.DeleteMoment -> deleteMoment(event.id)
+            is MomentUiEvent.DownloadMoment -> downloadMoment(event.imageUrl)
+            is MomentUiEvent.ShareMoment -> shareMoment(event.url)
+            MomentUiEvent.DismissMessage -> _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+            is MomentUiEvent.ShowSnackBar -> viewModelScope.launch { _uiEvent.send(event) }
+        }
     }
 
     private fun loadCachedMoments() {
@@ -74,9 +97,9 @@ class MomentViewModel @Inject constructor(
                 val preferences = context.momentDataStore.data.first()
                 val json = preferences[MOMENT_LIST_KEY]
                 if (!json.isNullOrEmpty()) {
-                    val type = object : TypeToken<List<MomentResponse>>() {}.type
-                    val cachedList: List<MomentResponse> = gson.fromJson(json, type)
-                    _moments.value = cachedList
+                    val type = object : TypeToken<List<Moment>>() {}.type
+                    val cachedList: List<Moment> = gson.fromJson(json, type)
+                    _uiState.update { it.copy(moments = cachedList) }
                 }
             } catch (e: Exception) {
                 Log.e("MomentVM", "Error loading cache", e)
@@ -84,7 +107,7 @@ class MomentViewModel @Inject constructor(
         }
     }
 
-    private fun saveMomentsToCache(list: List<MomentResponse>) {
+    private fun saveMomentsToCache(list: List<Moment>) {
         viewModelScope.launch {
             try {
                 val json = gson.toJson(list)
@@ -97,29 +120,38 @@ class MomentViewModel @Inject constructor(
         }
     }
 
-    fun fetchMyMoments(forceRefresh: Boolean = false) {
+    private fun fetchMyMoments() {
         viewModelScope.launch {
-            if (_moments.value.isEmpty()) _isLoading.value = true
-            
-            repository.getMyMoments().onSuccess { newList ->
-                _moments.value = newList
+            _uiState.update { it.copy(isLoading = true) }
+            getMyMomentsUseCase().onSuccess { newList ->
+                _uiState.update { it.copy(isLoading = false, moments = newList) }
                 saveMomentsToCache(newList)
-            }.onFailure {
-                Log.e("MomentVM", "Fetch moments failed", it)
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = UiText.DynamicString(error.message ?: "Unknown error")) }
             }
-            _isLoading.value = false
         }
     }
 
-    fun uploadMoment(
+    private fun fetchMomentDetail(id: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            getMomentUseCase(id).onSuccess { moment ->
+                _uiState.update { it.copy(isLoading = false, selectedMoment = moment) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = UiText.DynamicString(error.message ?: "Unknown error")) }
+            }
+        }
+    }
+
+    private fun uploadMoment(
         imageFile: File,
         caption: String,
-        location: String? = null,
-        weather: String? = null,
-        rating: Float? = null,
-        dailyLogId: String = "default_log_id",
-        isPublic: Boolean = true,
-        onSuccess: () -> Unit = {}
+        location: String?,
+        weather: String?,
+        rating: Float?,
+        dailyLogId: String,
+        isPublic: Boolean,
+        onSuccess: () -> Unit
     ) {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
@@ -127,7 +159,7 @@ class MomentViewModel @Inject constructor(
         val capturedAtStr = sdf.format(Date())
 
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isUploading = true) }
             try {
                 val imagePart = MultipartBody.Part.createFormData(
                     "imageFile",
@@ -143,7 +175,7 @@ class MomentViewModel @Inject constructor(
                 val weatherBody = weather?.toRequestBody("text/plain".toMediaTypeOrNull())
                 val ratingBody = rating?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                repository.uploadMoment(
+                uploadMomentUseCase(
                     dailyLogIdBody,
                     imagePart,
                     captionBody,
@@ -158,47 +190,56 @@ class MomentViewModel @Inject constructor(
                     permanentFile.parentFile?.mkdirs()
                     imageFile.copyTo(permanentFile, overwrite = true)
                     
-                    _localPaths.update { it + (response.imageUrl to permanentFile.absolutePath) }
-
-                    val updatedList = (listOf(response) + _moments.value).distinctBy { it.id }
-                    
-                    _moments.value = updatedList
-                    saveMomentsToCache(updatedList)
+                    _uiState.update { state ->
+                        val updatedPaths = state.localPaths + (response.imageUrl to permanentFile.absolutePath)
+                        val updatedList = (listOf(response) + state.moments).distinctBy { it.id }
+                        state.copy(
+                            isUploading = false,
+                            localPaths = updatedPaths,
+                            moments = updatedList,
+                            successMessage = UiText.StringResource(R.string.moment_upload_success)
+                        )
+                    }
+                    saveMomentsToCache(_uiState.value.moments)
                     onSuccess()
-                }.onFailure {
-                    Log.e("MomentVM", "Upload failed", it)
+                }.onFailure { error ->
+                    _uiState.update { it.copy(isUploading = false, errorMessage = UiText.DynamicString(error.message ?: "Upload failed")) }
                 }
             } catch (e: Exception) {
-                Log.e("MomentVM", "Error preparing upload", e)
-            } finally {
-                _isLoading.value = false
+                _uiState.update { it.copy(isUploading = false, errorMessage = UiText.DynamicString(e.message ?: "Error preparing upload")) }
             }
         }
     }
 
-    fun deleteMoment(id: String) {
+    private fun deleteMoment(id: String) {
         viewModelScope.launch {
-            repository.deleteMoment(id).onSuccess {
-                val updatedList = _moments.value.filter { it.id != id }
-                _moments.value = updatedList
-                saveMomentsToCache(updatedList)
-            }.onFailure {
-                Log.e("MomentVM", "Delete moment failed", it)
+            _uiState.update { it.copy(isLoading = true) }
+            deleteMomentUseCase(id).onSuccess {
+                _uiState.update { state ->
+                    val updatedList = state.moments.filter { it.id != id }
+                    state.copy(isLoading = false, moments = updatedList, successMessage = UiText.StringResource(R.string.moment_deleted))
+                }
+                saveMomentsToCache(_uiState.value.moments)
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = UiText.DynamicString(error.message ?: "Delete failed")) }
             }
         }
     }
 
-    fun downloadMoment(imageUrl: String) {
+    private fun downloadMoment(imageUrl: String) {
         viewModelScope.launch {
             ImageUtils.downloadAndSaveImage(context, imageUrl)
         }
     }
 
-    fun shareMoment(context: Context, url: String) {
+    private fun shareMoment(url: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, "Check out my moment: $url")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-        context.startActivity(Intent.createChooser(intent, "Share Moment"))
+        context.startActivity(Intent.createChooser(intent, "Share Moment").apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        })
     }
 }

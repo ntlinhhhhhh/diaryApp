@@ -11,7 +11,7 @@ import com.diary.moonpage.presentation.screens.auth.AuthViewModel
 import com.diary.moonpage.presentation.screens.calendar.CalendarRoute
 import com.diary.moonpage.presentation.screens.calendar.DailyLogRoute
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
-import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
+import com.diary.moonpage.presentation.screens.moment.momentScreen
 import com.diary.moonpage.presentation.screens.profile.*
 import com.diary.moonpage.presentation.screens.store.StoreScreen
 import com.diary.moonpage.presentation.screens.store.StoreViewModel
@@ -81,14 +81,7 @@ fun NavGraphBuilder.mainNavGraph(
             }
         }
 
-        composable(Screen.Camera.route) {
-            screenWrapper(Screen.Camera.route) {
-                MomentCameraScreen(
-                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route) },
-                    onNavigateToHistory = { /* TODO */ }
-                )
-            }
-        }
+        momentScreen(navController, screenWrapper)
 
         composable(Screen.Store.route) { backStackEntry ->
             val storeViewModel: StoreViewModel = hiltViewModel(backStackEntry)

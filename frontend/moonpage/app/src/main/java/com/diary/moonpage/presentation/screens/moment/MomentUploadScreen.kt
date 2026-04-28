@@ -14,18 +14,17 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.StarHalf
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.StarHalf
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -46,17 +45,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview as ComposePreview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.diary.moonpage.core.util.ImageUtils
 import com.diary.moonpage.presentation.components.moment.MomentTag
-import com.diary.moonpage.presentation.theme.MoonPageTheme
 import com.diary.moonpage.presentation.theme.nunitoFontFamily
 import kotlinx.coroutines.launch
 import java.io.File
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +63,7 @@ fun MomentUploadScreen(
     allTags: List<MomentTag>,
     userMessage: String,
     onUserMessageChange: (String) -> Unit,
-    userRating: Float, // Chuyển sang Float để hỗ trợ nửa sao
+    userRating: Float,
     onUserRatingChange: (Float) -> Unit,
     userLocation: String,
     onLocationClick: () -> Unit,
@@ -87,7 +83,6 @@ fun MomentUploadScreen(
     val focusRequester = remember { FocusRequester() }
     val onBgColor = MaterialTheme.colorScheme.onBackground
 
-    // Tự động focus và hiện bàn phím khi chuyển sang tag text, tự động xin quyền khi lướt sang location/weather
     LaunchedEffect(pagerState.currentPage) {
         val currentTag = allTags[pagerState.currentPage]
         if (currentTag.id == "text") {
@@ -113,7 +108,6 @@ fun MomentUploadScreen(
             },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Bar
         Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).height(56.dp)) {
             Text(
                 text = "Upload",
@@ -127,14 +121,11 @@ fun MomentUploadScreen(
 
         Spacer(modifier = Modifier.height(60.dp))
 
-        // Image Box
-        // Pinch-to-zoom state
         var scale by remember { mutableFloatStateOf(1f) }
         var offsetX by remember { mutableFloatStateOf(0f) }
         var offsetY by remember { mutableFloatStateOf(0f) }
         val transformState = rememberTransformableState { zoomChange, panChange, _ ->
             scale = (scale * zoomChange).coerceIn(1f, 4f)
-            // Giới hạn pan theo tỉ lệ zoom để không khỏi ra ngoài ảnh
             val maxOffset = 500f * (scale - 1f)
             offsetX = (offsetX + panChange.x).coerceIn(-maxOffset, maxOffset)
             offsetY = (offsetY + panChange.y).coerceIn(-maxOffset, maxOffset)
@@ -146,7 +137,6 @@ fun MomentUploadScreen(
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(32.dp))
                 .background(Color.Black)
-                // Double-tap để reset zoom
                 .pointerInput(Unit) {
                     detectTapGestures(onDoubleTap = {
                         scale = 1f; offsetX = 0f; offsetY = 0f
@@ -169,7 +159,6 @@ fun MomentUploadScreen(
                 contentScale = ContentScale.Crop
             )
 
-            // Magic Icon in Top Right
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -246,7 +235,7 @@ fun MomentUploadScreen(
                                                 val starIndex = index + 1
                                                 val starIcon = when {
                                                     userRating >= starIndex -> Icons.Default.Star
-                                                    userRating >= starIndex - 0.5f -> Icons.Default.StarHalf
+                                                    userRating >= starIndex - 0.5f -> Icons.AutoMirrored.Filled.StarHalf
                                                     else -> Icons.Default.StarBorder
                                                 }
                                                 Icon(
@@ -289,7 +278,6 @@ fun MomentUploadScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Actions
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -351,37 +339,5 @@ fun MomentUploadScreen(
             }
         }
         Spacer(modifier = Modifier.height(100.dp))
-    }
-}
-
-@ComposePreview(showBackground = true)
-@Composable
-fun MomentUploadScreenPreview() {
-    val pagerState = rememberPagerState(pageCount = { 4 })
-    MoonPageTheme {
-        MomentUploadScreen(
-            capturedImageUri = Uri.EMPTY,
-            capturedLensFacing = 0,
-            pagerState = pagerState,
-            allTags = listOf(
-                MomentTag("text", Icons.Rounded.TextFields, "Text", Color.White, Color.Black.copy(0.6f)),
-                MomentTag("location", Icons.Rounded.LocationOn, "Location", Color.White, Color.Blue.copy(0.6f)),
-                MomentTag("weather", Icons.Rounded.Cloud, "Weather", Color.White, Color.Cyan.copy(0.6f)),
-                MomentTag("review", Icons.Rounded.Star, "Review", Color.White, Color.Yellow.copy(0.6f))
-            ),
-            userMessage = "Hello World",
-            onUserMessageChange = {},
-            userRating = 4.5f,
-            onUserRatingChange = {},
-            userLocation = "Hanoi",
-            onLocationClick = {},
-            userWeather = "Sunny",
-            onWeatherClick = {},
-            isLoading = false,
-            isSuccess = false,
-            onCancel = {},
-            onUpload = { _, _ -> },
-            onShowTagSheet = {}
-        )
     }
 }

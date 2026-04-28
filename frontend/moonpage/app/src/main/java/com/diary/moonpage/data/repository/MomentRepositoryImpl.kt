@@ -1,7 +1,7 @@
 package com.diary.moonpage.data.repository
 
 import com.diary.moonpage.data.remote.api.MomentApi
-import com.diary.moonpage.data.remote.api.MomentResponse
+import com.diary.moonpage.domain.model.Moment
 import com.diary.moonpage.domain.repository.MomentRepository
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -10,11 +10,11 @@ import javax.inject.Inject
 class MomentRepositoryImpl @Inject constructor(
     private val api: MomentApi
 ) : MomentRepository {
-    override suspend fun getMyMoments(): Result<List<MomentResponse>> {
+    override suspend fun getMyMoments(): Result<List<Moment>> {
         return try {
             val response = api.getMyMoments()
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()!!.map { it.toDomain() })
             } else {
                 Result.failure(Exception("Failed to fetch moments"))
             }
@@ -23,11 +23,11 @@ class MomentRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getMoment(id: String): Result<MomentResponse> {
+    override suspend fun getMoment(id: String): Result<Moment> {
         return try {
             val response = api.getMoment(id)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()!!.toDomain())
             } else {
                 Result.failure(Exception("Failed to fetch moment"))
             }
@@ -58,11 +58,11 @@ class MomentRepositoryImpl @Inject constructor(
         location: RequestBody?,
         weather: RequestBody?,
         rating: RequestBody?
-    ): Result<MomentResponse> {
+    ): Result<Moment> {
         return try {
             val response = api.uploadMoment(dailyLogId, imageFile, caption, isPublic, capturedAt, location, weather, rating)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()!!.toDomain())
             } else {
                 Result.failure(Exception("Upload failed"))
             }

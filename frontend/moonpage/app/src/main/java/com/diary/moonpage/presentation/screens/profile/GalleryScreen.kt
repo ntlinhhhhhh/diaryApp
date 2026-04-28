@@ -1,6 +1,5 @@
 package com.diary.moonpage.presentation.screens.profile
 
-import android.content.res.Configuration
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,7 +30,7 @@ import coil.request.ImageRequest
 import coil.size.Scale
 import coil.size.Size
 import com.diary.moonpage.presentation.screens.moment.MomentViewModel
-import com.diary.moonpage.presentation.theme.MoonPageTheme
+import com.diary.moonpage.domain.model.Moment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,8 +40,9 @@ fun GalleryScreen(
     viewModel: MomentViewModel = hiltViewModel()
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val moments by viewModel.moments.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val moments = uiState.moments
+    val isLoading = uiState.isLoading
 
     // Sort moments by capturedAt descending (newest first)
     val sortedMoments = remember(moments) {
@@ -80,17 +79,15 @@ fun GalleryScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (sortedMoments.isEmpty() && !isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    androidx.compose.foundation.layout.Column(
+                    Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.PhotoLibrary,
                             contentDescription = null,
                             tint = colorScheme.onBackground.copy(alpha = 0.25f),
-                            modifier = androidx.compose.ui.Modifier.then(
-                                androidx.compose.ui.Modifier.size(72.dp)
-                            )
+                            modifier = Modifier.size(72.dp)
                         )
                         Text(
                             "No photos yet",
@@ -118,10 +115,9 @@ fun GalleryScreen(
                         items = sortedMoments,
                         key = { it.id }
                     ) { moment ->
-                        val localPaths by viewModel.localPaths.collectAsState()
                         GalleryItem(
                             url = moment.imageUrl,
-                            localPath = localPaths[moment.imageUrl],
+                            localPath = uiState.localPaths[moment.imageUrl],
                             onClick = { onNavigateToMomentDetail(moment.id) }
                         )
                     }
@@ -139,7 +135,7 @@ fun GalleryItem(
 ) {
     val context = LocalContext.current
 
-    // remember để tránh File.exists() chạy lại mỗi recomposition (disk IO trên main thread)
+    // remember to avoid File.exists() running on every recomposition
     val imageData = remember(localPath, url) {
         if (localPath != null && java.io.File(localPath).exists()) java.io.File(localPath) else url
     }
@@ -149,12 +145,10 @@ fun GalleryItem(
     val imageRequest = remember(imageData) {
         ImageRequest.Builder(context)
             .data(imageData)
-            .size(Size(600, 600))               // decode ngay không chờ layout
-            .scale(Scale.FILL)                  // khớp ContentScale.Crop
+            .size(Size(600, 600))
+            .scale(Scale.FILL)
             .crossfade(200)
             .memoryCacheKey(imageData.toString())
-            // File local đã có sẵn trên disk – không cần ghi lại vào Coil disk cache
-            // chỉ dùng memory cache để truy cập nhanh khi scroll qua lại
             .diskCachePolicy(if (isLocalFile) CachePolicy.DISABLED else CachePolicy.ENABLED)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .build()

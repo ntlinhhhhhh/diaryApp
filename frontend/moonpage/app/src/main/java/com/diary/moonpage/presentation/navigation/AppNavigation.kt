@@ -3,7 +3,7 @@ package com.diary.moonpage.presentation.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
-import com.diary.moonpage.presentation.screens.moment.MomentDetailScreen
+import com.diary.moonpage.presentation.screens.moment.MomentDetailRoute
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
@@ -28,7 +28,7 @@ import com.diary.moonpage.presentation.screens.auth.*
 import com.diary.moonpage.presentation.screens.calendar.DailyLogRoute
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
 import com.diary.moonpage.presentation.screens.calendar.calendarScreen
-import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
+import com.diary.moonpage.presentation.screens.moment.MomentCameraRoute
 import com.diary.moonpage.presentation.screens.profile.*
 import com.diary.moonpage.presentation.screens.store.StoreScreen
 import com.diary.moonpage.presentation.screens.store.StoreViewModel
@@ -226,7 +226,7 @@ fun AppNavigation() {
 
             composable(Screen.Camera.route) {
                 ScreenWrapper(Screen.Camera.route) {
-                    MomentCameraScreen(
+                    MomentCameraRoute(
                         onNavigateToGallery = { navController.navigate(Screen.Gallery.route) },
                         onNavigateToHistory = { /* TODO */ }
                     )
@@ -310,7 +310,7 @@ fun AppNavigation() {
             composable(Screen.MomentDetail.route) { backStackEntry ->
                 val momentId = backStackEntry.arguments?.getString("momentId") ?: ""
                 ScreenWrapper(Screen.MomentDetail.route) {
-                    MomentDetailScreen(
+                    MomentDetailRoute(
                         momentId = momentId,
                         onNavigateBack = { navController.popBackStack() },
                         onNavigateToGallery = { navController.popBackStack() }

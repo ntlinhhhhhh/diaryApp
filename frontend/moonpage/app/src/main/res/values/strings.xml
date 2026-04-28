@@ -12,4 +12,8 @@
     <string name="error_unknown">An unknown error occurred.</string>
     <string name="error_connection">Connection error.</string>
 
+    <!-- Moment -->
+    <string name="moment_upload_success">Moment uploaded successfully!</string>
+    <string name="moment_deleted">Moment deleted successfully.</string>
+
 </resources>

@@ -40,7 +40,7 @@ import coil.request.ImageRequest
 import coil.size.Precision
 import coil.size.Scale
 import coil.size.Size
-import com.diary.moonpage.data.remote.api.MomentResponse
+import com.diary.moonpage.domain.model.Moment
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -48,11 +48,10 @@ import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
+fun MomentFeedItem(moment: Moment, localPath: String? = null) {
     val onBgColor = MaterialTheme.colorScheme.onBackground
     val context = LocalContext.current
     
-    // remember để tránh File.exists() chạy lại mỗi recomposition (disk IO trên main thread)
     val imageData = remember(localPath, moment.imageUrl) {
         if (localPath != null && File(localPath).exists()) File(localPath) else moment.imageUrl
     }
@@ -62,12 +61,11 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
     val imageRequest = remember(imageData) {
         ImageRequest.Builder(context)
             .data(imageData)
-            .size(Size(1080, 1080))             // decode ngay không chờ layout
-            .scale(Scale.FILL)                  // khớp ContentScale.Crop
-            .precision(Precision.INEXACT)       // dùng ảnh gần đúng size từ cache
+            .size(Size(1080, 1080))
+            .scale(Scale.FILL)
+            .precision(Precision.INEXACT)
             .crossfade(200)
             .memoryCacheKey(imageData.toString())
-            // File local không cần Coil disk cache (đã có trên disk rồi)
             .diskCachePolicy(if (isLocalFile) CachePolicy.DISABLED else CachePolicy.ENABLED)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .build()
@@ -89,11 +87,9 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Space for top header
         Box(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp).height(56.dp))
         Spacer(modifier = Modifier.height(60.dp))
 
-        // Image Frame
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
@@ -124,7 +120,6 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
                 }
             }
 
-            // Tags overlay like in UploadScreen
             Box(modifier = Modifier.fillMaxSize().padding(bottom = 4.dp), contentAlignment = Alignment.BottomCenter) {
                 Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
                         val textToShow = when (inferredTag.id) {
@@ -204,7 +199,6 @@ fun MomentFeedItem(moment: MomentResponse, localPath: String? = null) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // User Info
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,

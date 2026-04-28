@@ -2,35 +2,25 @@ package com.diary.moonpage.presentation.screens.moment
 
 import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/**
- * Wrapper screen that opens MomentHistoryScreen scrolled to the specific moment
- * identified by [momentId]. Navigated to from GalleryScreen when a photo is tapped.
- */
 @Composable
-fun MomentDetailScreen(
+fun MomentDetailRoute(
     momentId: String,
+    viewModel: MomentViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToGallery: () -> Unit,
-    viewModel: MomentViewModel = hiltViewModel()
+    onNavigateToGallery: () -> Unit
 ) {
-    val moments by viewModel.moments.collectAsState()
-    val localPaths by viewModel.localPaths.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
-
-    // Sort the same way MomentHistoryScreen does, find the initial page index
-    val sortedMoments = remember(moments) {
-        moments.sortedByDescending { it.capturedAt }
-    }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     MomentHistoryScreen(
-        moments = sortedMoments,
-        localPaths = localPaths,
+        moments = uiState.moments,
+        localPaths = uiState.localPaths,
         initialMomentId = momentId,
         onNavigateToGallery = onNavigateToGallery,
         onBackToCamera = onNavigateBack,
-        onShare = { viewModel.shareMoment(context, it.imageUrl) },
-        onDownload = { viewModel.downloadMoment(it.imageUrl) },
-        onDelete = { viewModel.deleteMoment(it.id) }
+        onShare = { moment -> viewModel.onEvent(MomentUiEvent.ShareMoment(moment.imageUrl)) },
+        onDownload = { moment -> viewModel.onEvent(MomentUiEvent.DownloadMoment(moment.imageUrl)) },
+        onDelete = { moment -> viewModel.onEvent(MomentUiEvent.DeleteMoment(moment.id)) }
     )
 }
