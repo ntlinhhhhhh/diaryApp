@@ -3,9 +3,6 @@ package com.diary.moonpage.presentation.screens.calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,18 +22,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diary.moonpage.data.remote.api.DailyLogResponse
 import com.diary.moonpage.presentation.components.calendar.*
-import com.diary.moonpage.presentation.theme.MoonPageTheme
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.DayOfWeek
 
 import com.diary.moonpage.core.util.MoonIcons
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.res.painterResource
 
 // Mood helper data
@@ -60,7 +56,7 @@ fun CalendarScreen(
     onLogDateHandled: () -> Unit = {},
     logSavedMessage: String? = null,
     onMessageShown: () -> Unit = {},
-    onNavigateToFilter: () -> Unit,
+    onNavigateToFilter: () -> Unit = {}, // Vẫn giữ nhưng sẽ dùng BottomSheet
     onNavigateToSettings: () -> Unit,
     onNavigateToDailyLog: (String) -> Unit,
     onNavigateToThemeCalendar: () -> Unit = {},
@@ -72,12 +68,13 @@ fun CalendarScreen(
     val dynamicActivities by viewModel.dynamicActivities.collectAsState()
 
     var externalErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showMonthPicker by remember { mutableStateOf(false) }
+
+    // Thêm state để hiện Filter Screen
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
     val currentMonthName = currentYearMonth.format(monthFormatter)
-
-    // Month picker dialog
-    var showMonthPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(createdLogDate) {
         if (createdLogDate != null) {
@@ -103,7 +100,7 @@ fun CalendarScreen(
                 }
             }
         },
-        onFilterClick = onNavigateToFilter,
+        onFilterClick = { showFilterSheet = true }, // Mở Filter BottomSheet
         onSettingsClick = onNavigateToSettings,
         onShareClick = { /* TODO */ },
         onThemeClick = onNavigateToThemeCalendar,
@@ -127,7 +124,6 @@ fun CalendarScreen(
         }
     )
 
-    // Month picker bottom sheet
     if (showMonthPicker) {
         MonthYearPickerBottomSheet(
             currentYearMonth = currentYearMonth,
@@ -137,6 +133,24 @@ fun CalendarScreen(
             },
             onDismiss = { showMonthPicker = false }
         )
+    }
+
+    // Hiển thị Filter Screen dưới dạng Bottom Sheet
+    if (showFilterSheet) {
+        @OptIn(ExperimentalMaterial3Api::class)
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            containerColor = Color.Transparent, // Đã có Surface trong FilterScreen.kt
+            dragHandle = null
+        ) {
+            FilterScreen(
+                onDismiss = { showFilterSheet = false },
+                onSeeResults = {
+                    showFilterSheet = false
+                    // TODO: Gọi ViewModel để áp dụng Filter
+                }
+            )
+        }
     }
 }
 
@@ -187,7 +201,11 @@ fun CalendarContent(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
                 CalendarTopBar(
                     onFilterClick = onFilterClick,
                     onSettingsClick = onSettingsClick,
@@ -196,7 +214,6 @@ fun CalendarContent(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Month Year header
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center
@@ -234,77 +251,96 @@ fun CalendarContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.Top
-                ) {
-                    CalendarHeader()
+                CalendarHeader()
 
-                    val baseYearMonth = remember { currentYearMonth }
-                    val initialPage = 500 * 12
-                    val pagerState = rememberPagerState(
-                        initialPage = initialPage,
-                        pageCount = { initialPage * 2 }
-                    )
+                val baseYearMonth = remember { currentYearMonth }
+                val initialPage = 500 * 12
+                val pagerState = rememberPagerState(
+                    initialPage = initialPage,
+                    pageCount = { initialPage * 2 }
+                )
 
-                    LaunchedEffect(pagerState.currentPage) {
-                        val offset = pagerState.currentPage - initialPage
-                        val targetMonth = baseYearMonth.plusMonths(offset.toLong())
-                        if (targetMonth != currentYearMonth) {
-                            onMonthChanged(targetMonth)
-                        }
+                LaunchedEffect(pagerState.currentPage) {
+                    val offset = pagerState.currentPage - initialPage
+                    val targetMonth = baseYearMonth.plusMonths(offset.toLong())
+                    if (targetMonth != currentYearMonth) {
+                        onMonthChanged(targetMonth)
                     }
+                }
 
-                    LaunchedEffect(currentYearMonth) {
-                        val targetOffset = java.time.temporal.ChronoUnit.MONTHS.between(baseYearMonth, currentYearMonth).toInt()
-                        val targetPage = initialPage + targetOffset
-                        if (pagerState.currentPage != targetPage) {
-                            pagerState.animateScrollToPage(targetPage)
-                        }
+                LaunchedEffect(currentYearMonth) {
+                    val targetOffset = java.time.temporal.ChronoUnit.MONTHS.between(
+                        baseYearMonth,
+                        currentYearMonth
+                    ).toInt()
+                    val targetPage = initialPage + targetOffset
+                    if (pagerState.currentPage != targetPage) {
+                        pagerState.animateScrollToPage(targetPage)
                     }
+                }
 
-                    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
-                        val offset = page - initialPage
-                        val pageYearMonth = baseYearMonth.plusMonths(offset.toLong())
-                        val daysInMonth = (1..pageYearMonth.lengthOfMonth()).toList()
-                        val firstDayOfMonth = pageYearMonth.atDay(1)
-                        val firstDayOffset = if (firstDayOfMonth.dayOfWeek == java.time.DayOfWeek.SUNDAY) 0 else firstDayOfMonth.dayOfWeek.value
-                        val today = LocalDate.now()
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                    verticalAlignment = Alignment.Top
+                ) { page ->
+                    val offset = page - initialPage
+                    val pageYearMonth = baseYearMonth.plusMonths(offset.toLong())
+                    val daysInMonth = pageYearMonth.lengthOfMonth()
+                    val firstDayOfMonth = pageYearMonth.atDay(1)
+                    val firstDayOffset = if (firstDayOfMonth.dayOfWeek == java.time.DayOfWeek.SUNDAY) 0 else firstDayOfMonth.dayOfWeek.value
+                    val today = LocalDate.now()
 
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(7),
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            items(firstDayOffset) {
-                                DayItem(day = null, isSelected = false, moodColor = null, onClick = {})
-                            }
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val totalCells = firstDayOffset + daysInMonth
+                        val rows = (totalCells + 6) / 7
 
-                            items(daysInMonth) { day ->
-                                val date = pageYearMonth.atDay(day)
-                                val isSelected = date == selectedDate
-                                val isToday = date == today
-                                val logForDay = dailyLogs[date]
+                        for (rowIndex in 0 until rows) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                for (colIndex in 0 until 7) {
+                                    val cellIndex = rowIndex * 7 + colIndex
+                                    Box(
+                                        modifier = Modifier.weight(1f),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (cellIndex in firstDayOffset until totalCells) {
+                                            val day = cellIndex - firstDayOffset + 1
+                                            val date = pageYearMonth.atDay(day)
+                                            val isSelected = date == selectedDate
+                                            val isToday = date == today
+                                            val logForDay = dailyLogs[date]
 
-                                val mv = if (logForDay != null) moodVisualFor(logForDay.baseMoodId) else null
-                                val isLoggedToday = logForDay?.date == today.toString()
+                                            val mv = if (logForDay != null) moodVisualFor(logForDay.baseMoodId) else null
+                                            val isLoggedToday = logForDay?.date == today.toString()
 
-                                DayItem(
-                                    day = day,
-                                    isSelected = isSelected,
-                                    moodColor = mv?.color,
-                                    moodIcon = mv?.icon,
-                                    moodDrawable = mv?.drawableRes,
-                                    isToday = isToday,
-                                    isDimmed = logForDay != null && !isLoggedToday,
-                                    onClick = { onDateSelected(date) }
-                                )
+                                            DayItem(
+                                                day = day,
+                                                isSelected = isSelected,
+                                                moodColor = mv?.color,
+                                                moodIcon = mv?.icon,
+                                                moodDrawable = mv?.drawableRes,
+                                                isToday = isToday,
+                                                isDimmed = logForDay != null && !isLoggedToday,
+                                                onClick = { onDateSelected(date) }
+                                            )
+                                        } else {
+                                            DayItem(day = null, isSelected = false, moodColor = null, onClick = {})
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                // Inline Day Detail Area
+                Spacer(modifier = Modifier.height(24.dp))
+
                 val selectedLog = dailyLogs[selectedDate]
                 if (selectedLog != null) {
                     val mv = moodVisualFor(selectedLog.baseMoodId)
@@ -312,38 +348,73 @@ fun CalendarContent(
                         dynamicActivities.find { it.id == id }?.name
                     } ?: emptyList()
 
-                    DayDetailArea(
-                        date = selectedDate,
-                        moodIcon = mv.icon,
-                        moodDrawable = mv.drawableRes,
-                        moodColor = mv.color,
-                        moodLabel = mv.label,
-                        noteSnippet = selectedLog.note,
-                        activityNames = activityNames,
-                        onEdit = { onEditLog(selectedDate) },
-                        onDelete = { onDeleteLog(selectedDate) },
-                        onShare = {}
-                    )
-                }
+                    // --- DI CHUYỂN CÁC ICON RA NGOÀI CARD ---
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 8.dp), // Nằm ngay trên Card
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Rounded.Eco, // Mầm cây
+                            contentDescription = null,
+                            tint = Color(0xFF81C784),
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onShareClick) {
+                                Icon(Icons.Rounded.IosShare, contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
+                            }
+                            IconButton(onClick = { onEditLog(selectedDate) }) {
+                                Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
+                            }
+                            IconButton(onClick = { onDeleteLog(selectedDate) }) {
+                                Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
+                            }
+                        }
+                    }
+                    // ----------------------------------------
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        DayDetailArea(
+                            date = selectedDate,
+                            moodIcon = mv.icon,
+                            moodDrawable = mv.drawableRes,
+                            moodColor = mv.color,
+                            moodLabel = mv.label,
+                            noteSnippet = selectedLog.note,
+                            activityNames = activityNames
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(100.dp))
             }
 
-            // SnackbarHost as overlay at top
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 52.dp)
             ) { data ->
-                val isError = data.visuals.message.contains("future", ignoreCase = true) || 
-                              data.visuals.message.contains("Failed", ignoreCase = true)
-                val isSuccess = data.visuals.message.contains("success", ignoreCase = true) || 
-                                data.visuals.message.contains("deleted", ignoreCase = true) ||
-                                data.visuals.message.contains("recorded", ignoreCase = true) ||
-                                data.visuals.message.contains("edited", ignoreCase = true)
-                
+                val isError = data.visuals.message.contains("future", ignoreCase = true) ||
+                        data.visuals.message.contains("Failed", ignoreCase = true)
+                val isSuccess = data.visuals.message.contains("success", ignoreCase = true) ||
+                        data.visuals.message.contains("deleted", ignoreCase = true) ||
+                        data.visuals.message.contains("recorded", ignoreCase = true) ||
+                        data.visuals.message.contains("updated", ignoreCase = true) ||
+                        data.visuals.message.contains("edited", ignoreCase = true)
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -356,8 +427,8 @@ fun CalendarContent(
                             isError -> Icons.Rounded.Error
                             isSuccess -> Icons.Rounded.CheckCircle
                             else -> Icons.Rounded.Info
-                        }, 
-                        contentDescription = null, 
+                        },
+                        contentDescription = null,
                         tint = when {
                             isError -> Color(0xFFD32F2F)
                             isSuccess -> Color(0xFF4CAF50)
@@ -367,7 +438,7 @@ fun CalendarContent(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = data.visuals.message, 
+                        text = data.visuals.message,
                         color = Color.White,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -386,174 +457,135 @@ fun DayDetailArea(
     moodColor: Color,
     moodLabel: String,
     noteSnippet: String?,
-    activityNames: List<String> = emptyList(),
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onShare: () -> Unit
+    activityNames: List<String> = emptyList()
 ) {
     val cs = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(16.dp)
     ) {
-        // Top row with Sprout icon and Action Icons
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Rounded.Eco,
-                contentDescription = null,
-                tint = Color(0xFF81C784),
-                modifier = Modifier.size(24.dp)
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onShare) {
-                    Icon(Icons.Rounded.IosShare, contentDescription = "Share", tint = cs.onSurface.copy(alpha = 0.35f), modifier = Modifier.size(22.dp))
-                }
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = cs.onSurface.copy(alpha = 0.35f), modifier = Modifier.size(22.dp))
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = cs.onSurface.copy(alpha = 0.35f), modifier = Modifier.size(22.dp))
-                }
-            }
-        }
+        // Đã xóa phần chứa 4 icons ở đây để chuyển lên trên Card
 
-        // Main Card
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = cs.surface,
-            tonalElevation = 2.dp,
-            shadowElevation = 1.dp
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), // Thu hẹp padding dọc một chút
+            verticalAlignment = Alignment.Top
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.Top
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(80.dp)
             ) {
-                // Left side: Mood and Date
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(80.dp)
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(moodColor.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .background(moodColor.copy(alpha = 0.2f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (moodDrawable != null) {
-                            Image(
-                                painter = painterResource(id = moodDrawable),
-                                contentDescription = null,
-                                modifier = Modifier.size(42.dp)
-                            )
-                        } else if (moodIcon != null) {
-                            Icon(
-                                imageVector = moodIcon,
-                                contentDescription = null,
-                                tint = moodColor,
-                                modifier = Modifier.size(38.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Surface(
-                        color = cs.onSurface.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "${date.dayOfMonth} ${date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = cs.onSurface.copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Bold
+                    if (moodDrawable != null) {
+                        Image(
+                            painter = painterResource(id = moodDrawable),
+                            contentDescription = null,
+                            modifier = Modifier.size(42.dp)
+                        )
+                    } else if (moodIcon != null) {
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = null,
+                            tint = moodColor,
+                            modifier = Modifier.size(38.dp)
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    color = cs.onSurface.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "${date.dayOfMonth} ${date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = cs.onSurface.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
-                // Vertical Divider
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .width(1.dp)
-                        .height(120.dp)
-                        .background(cs.onSurface.copy(alpha = 0.05f))
-                )
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .width(1.dp)
+                    .height(120.dp)
+                    .background(cs.onSurface.copy(alpha = 0.05f))
+            )
 
-                // Right side: Activities Grid and Steps
-                Column(modifier = Modifier.weight(1f)) {
-                    if (activityNames.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            activityNames.forEach { name ->
-                                val icon = com.diary.moonpage.core.util.MoonIcons.getIconForActivity(name)
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(cs.onSurface.copy(alpha = 0.04f), CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (icon.drawableRes != null) {
-                                        Image(
-                                            painter = painterResource(id = icon.drawableRes),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    } else if (icon.vector != null) {
-                                        Icon(
-                                            imageVector = icon.vector,
-                                            contentDescription = null,
-                                            tint = icon.color,
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                    }
+            Column(modifier = Modifier.weight(1f)) {
+                if (activityNames.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        activityNames.forEach { name ->
+                            val icon = com.diary.moonpage.core.util.MoonIcons.getIconForActivity(name)
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(cs.onSurface.copy(alpha = 0.04f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (icon.drawableRes != null) {
+                                    Image(
+                                        painter = painterResource(id = icon.drawableRes),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                } else if (icon.vector != null) {
+                                    Icon(
+                                        imageVector = icon.vector,
+                                        contentDescription = null,
+                                        tint = icon.color,
+                                        modifier = Modifier.size(22.dp)
+                                    )
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
-                    if (!noteSnippet.isNullOrBlank()) {
-                        Text(
-                            text = noteSnippet,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = cs.onSurface.copy(alpha = 0.7f),
-                            lineHeight = 18.sp,
-                            maxLines = 3
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                    
-                    // Steps Bar (Pill style)
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = cs.onSurface.copy(alpha = 0.03f)
+                if (!noteSnippet.isNullOrBlank()) {
+                    Text(
+                        text = noteSnippet,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cs.onSurface.copy(alpha = 0.7f),
+                        lineHeight = 18.sp,
+                        maxLines = 3
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = cs.onSurface.copy(alpha = 0.03f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Rounded.DirectionsWalk,
-                                contentDescription = null,
-                                tint = Color(0xFF7895CB),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "3,546 steps",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = cs.onSurface.copy(alpha = 0.5f)
-                            )
-                        }
+                        Icon(
+                            Icons.Rounded.DirectionsWalk,
+                            contentDescription = null,
+                            tint = Color(0xFF7895CB),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "3,546 steps",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = cs.onSurface.copy(alpha = 0.5f)
+                        )
                     }
                 }
             }
@@ -561,9 +593,7 @@ fun DayDetailArea(
     }
 }
 
-/**
- * Wheel-style BottomSheet for picking month + year, similar to DailyBean.
- */
+// Giữ nguyên phần MonthYearPickerBottomSheet và MonthYearWheelColumn...
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MonthYearPickerBottomSheet(
@@ -599,7 +629,6 @@ fun MonthYearPickerBottomSheet(
             Spacer(modifier = Modifier.height(24.dp))
 
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Selection indicator
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -612,7 +641,6 @@ fun MonthYearPickerBottomSheet(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Month picker
                     MonthYearWheelColumn(
                         items = monthNames,
                         initialIndex = selectedMonthIndex,
@@ -620,7 +648,6 @@ fun MonthYearPickerBottomSheet(
                         modifier = Modifier.width(96.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
-                    // Year picker
                     MonthYearWheelColumn(
                         items = years.map { it.toString() },
                         initialIndex = selectedYearIndex,
@@ -695,19 +722,5 @@ private fun MonthYearWheelColumn(
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CalendarScreenPreview() {
-    MoonPageTheme(darkTheme = false) {
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CalendarScreenDarkPreview() {
-    MoonPageTheme(darkTheme = true) {
     }
 }

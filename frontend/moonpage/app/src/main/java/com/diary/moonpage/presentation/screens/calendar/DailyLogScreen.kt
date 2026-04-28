@@ -326,7 +326,7 @@ fun DailyLogScreen(
                             isMenstruation = false,
                             activityIds = selectedActivities.toList(),
                             onSuccess = {
-                                val msg = if (existingLog != null) "Record updated!" else "Day recorded!"
+                                val msg = if (existingLog != null) "Record updated successfully!" else "Record created successfully!"
                                 onDone(msg)
                             },
                             onFailure = { errorMsg ->

@@ -105,13 +105,14 @@ fun LoadingScreen(
             )
 
             LinearProgressIndicator(
-                progress = animatedProgress,
+                progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth(0.5f)
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer
+                color = MaterialTheme.colorScheme.primary, 
+                trackColor = MaterialTheme.colorScheme.surfaceVariant, 
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Butt
             )
 
             Spacer(modifier = Modifier.height(8.dp))

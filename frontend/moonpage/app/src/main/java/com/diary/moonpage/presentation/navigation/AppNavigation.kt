@@ -259,10 +259,14 @@ fun AppNavigation() {
                 val savedStateHandle = backStackEntry.savedStateHandle
                 val createdLogDate by savedStateHandle.getStateFlow<String?>("created_log_date", null).collectAsState()
 
+                val logSavedMessage by savedStateHandle.getStateFlow<String?>("logSavedMessage", null).collectAsState()
+
                 ScreenWrapper(Screen.Calendar.route) {
                     CalendarScreen(
                         createdLogDate = createdLogDate,
                         onLogDateHandled = { savedStateHandle.set("created_log_date", null) },
+                        logSavedMessage = logSavedMessage,
+                        onMessageShown = { savedStateHandle.set("logSavedMessage", null) },
                         onNavigateToFilter = { navController.navigate(Screen.Filter.route) },
                         onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                         onNavigateToDailyLog = { dateStr -> navController.navigate("daily_log_screen/$dateStr") },
@@ -286,8 +290,11 @@ fun AppNavigation() {
                     DailyLogScreen(
                         dateString = dateStr,
                         onNavigateBack = { navController.popBackStack() },
-                        onDone = {
-                            navController.previousBackStackEntry?.savedStateHandle?.set("created_log_date", dateStr)
+                        onDone = { message ->
+                            navController.previousBackStackEntry?.savedStateHandle?.apply {
+                                set("created_log_date", dateStr)
+                                set("logSavedMessage", message)
+                            }
                             navController.popBackStack()
                         }
                     )
