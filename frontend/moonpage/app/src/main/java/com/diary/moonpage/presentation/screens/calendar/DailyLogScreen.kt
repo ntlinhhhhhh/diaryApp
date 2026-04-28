@@ -2,9 +2,10 @@ package com.diary.moonpage.presentation.screens.calendar
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,8 +32,23 @@ import com.diary.moonpage.core.util.MoonIcons
 import com.diary.moonpage.core.util.ActivityPreferencesManager
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.rotate
+import androidx.compose.runtime.rememberCoroutineScope
 
 data class DailyActivity(val id: String, val label: String, val icon: MoonIcon)
 
@@ -43,11 +59,18 @@ fun DailyLogScreen(
     onDone: (String) -> Unit,
     viewModel: DailyLogViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(dateString) { viewModel.fetchLogForDate(dateString) }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var currentSelectedDate by remember { mutableStateOf(LocalDate.parse(dateString)) }
+    
+    LaunchedEffect(currentSelectedDate) { 
+        viewModel.fetchLogForDate(currentSelectedDate.toString()) 
+    }
 
     val existingLog by viewModel.existingLog.collectAsState()
     val enabledCategories by viewModel.enabledCategories.collectAsState()
     val dynamicActivities by viewModel.dynamicActivities.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     val colorScheme = MaterialTheme.colorScheme
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
@@ -61,6 +84,7 @@ fun DailyLogScreen(
             selectedActivities.clear()
             log.activityIds?.let { selectedActivities.addAll(it) }
             noteText = log.note ?: ""
+            sleepHours = log.sleepHours?.toFloat() ?: 7f
         }
     }
 
@@ -68,9 +92,13 @@ fun DailyLogScreen(
         derivedStateOf { selectedMood != null || selectedActivities.isNotEmpty() || noteText.isNotBlank() }
     }
     var showExitDialog by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showOverwriteDialog by remember { mutableStateOf(false) }
+    var pendingDate by remember { mutableStateOf<LocalDate?>(null) }
+
     BackHandler(enabled = hasChanges) { showExitDialog = true }
 
-    // Unsaved Changes Dialog – theme-aware
+    // ── Unsaved Changes Dialog ──────────────────────────────────────────────
     if (showExitDialog) {
         Dialog(
             onDismissRequest = { showExitDialog = false },
@@ -132,6 +160,92 @@ fun DailyLogScreen(
         }
     }
 
+    // ── Overwrite Warning Dialog ─────────────────────────────────────────────
+    if (showOverwriteDialog) {
+        Dialog(
+            onDismissRequest = { showOverwriteDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = colorScheme.surface,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Rounded.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFE57373),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Data already exists",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "There is already a record for this day. Do you want to overwrite it with your current changes?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TextButton(
+                            onClick = { showOverwriteDialog = false },
+                            modifier = Modifier.weight(1f).height(48.dp)
+                        ) {
+                            Text("Cancel", color = colorScheme.onSurfaceVariant)
+                        }
+                        Button(
+                            onClick = { 
+                                showOverwriteDialog = false
+                                pendingDate?.let { currentSelectedDate = it }
+                            },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Overwrite", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Date Picker Dialog ──────────────────────────────────────────────────
+    if (showDatePicker) {
+        DailyLogDatePickerDialog(
+            initialDate = currentSelectedDate,
+            onDateSelected = { date ->
+                showDatePicker = false
+                if (date.isAfter(LocalDate.now())) {
+                    scope.launch { snackbarHostState.showSnackbar("You cannot record logs for future dates!") }
+                } else {
+                    viewModel.checkLogExists(date.toString()) { exists ->
+                        if (exists) {
+                            pendingDate = date
+                            showOverwriteDialog = true
+                        } else {
+                            currentSelectedDate = date
+                        }
+                    }
+                }
+            },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+
     // ── Activity data definitions ─────────────────────────────────────────────
 
     val moods = listOf(
@@ -158,8 +272,7 @@ fun DailyLogScreen(
         if (selectedActivities.contains(id)) selectedActivities.remove(id) else selectedActivities.add(id)
     }
 
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+
 
     // ── Scaffold ──────────────────────────────────────────────────────────────
 
@@ -174,8 +287,19 @@ fun DailyLogScreen(
                 IconButton(onClick = { if (hasChanges) showExitDialog = true else onNavigateBack() }) {
                     Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = colorScheme.onBackground)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {}) {
-                    Text(dateString, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically, 
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showDatePicker = true }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = currentSelectedDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy")), 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.Bold, 
+                        color = colorScheme.onBackground
+                    )
                     Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = colorScheme.onBackground)
                 }
                 IconButton(onClick = {}) {
@@ -184,8 +308,6 @@ fun DailyLogScreen(
             }
         },
         bottomBar = {
-            var showSuccess by remember { mutableStateOf(false) }
-
             Box {
                 Button(
                     onClick = {
@@ -197,19 +319,15 @@ fun DailyLogScreen(
                         }
                         
                         viewModel.saveDailyLog(
-                            date = dateString,
+                            date = currentSelectedDate.toString(),
                             baseMoodId = selectedMood!!,
                             note = noteText.takeIf { it.isNotBlank() },
                             sleepHours = sleepHours.toDouble(),
                             isMenstruation = false,
                             activityIds = selectedActivities.toList(),
                             onSuccess = {
-                                showSuccess = true
-                                scope.launch {
-                                    delay(1000)
-                                    val msg = if (existingLog != null) "Record edited!" else "Day recorded!"
-                                    onDone(msg)
-                                }
+                                val msg = if (existingLog != null) "Record updated!" else "Day recorded!"
+                                onDone(msg)
                             },
                             onFailure = { errorMsg ->
                                 scope.launch {
@@ -220,12 +338,16 @@ fun DailyLogScreen(
                     },
                     modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !isLoading
                 ) {
-                    AnimatedVisibility(visible = showSuccess, enter = scaleIn() + fadeIn(), exit = fadeOut()) {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
-                    }
-                    AnimatedVisibility(visible = !showSuccess, enter = fadeIn(), exit = fadeOut()) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = colorScheme.onPrimary,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
                         Text("Done", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onPrimary)
                     }
                 }
@@ -399,13 +521,41 @@ fun DailyActivitySection(
     onItemClick: (String) -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    var isCollapsed by remember { mutableStateOf(false) }
+    val rotation by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isCollapsed) -90f else 0f,
+        label = "arrowRotation"
+    )
+
     Column {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { isCollapsed = !isCollapsed }
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(title, color = colorScheme.onBackground, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = colorScheme.onBackground)
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = colorScheme.onBackground.copy(alpha = 0.4f),
+                modifier = Modifier.rotate(rotation)
+            )
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        DailyLogGrid(items = items, selectedIds = selectedIds, onItemClick = onItemClick)
+        
+        AnimatedVisibility(
+            visible = !isCollapsed,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(16.dp))
+                DailyLogGrid(items = items, selectedIds = selectedIds, onItemClick = onItemClick)
+            }
+        }
     }
 }
 
@@ -464,6 +614,119 @@ fun DailyLogGrid(
                     maxLines = 1,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun DailyLogDatePickerDialog(
+    initialDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val initialPage = 500 * 12
+    val baseYearMonth = YearMonth.from(initialDate)
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { initialPage * 2 }
+    )
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = colorScheme.surface,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    "Select Date",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth()
+                ) { page ->
+                    val offset = page - initialPage
+                    val pageYearMonth = baseYearMonth.plusMonths(offset.toLong())
+                    val daysInMonth = (1..pageYearMonth.lengthOfMonth()).toList()
+                    val firstDayOfMonth = pageYearMonth.atDay(1)
+                    val firstDayOffset = if (firstDayOfMonth.dayOfWeek == java.time.DayOfWeek.SUNDAY) 0 else firstDayOfMonth.dayOfWeek.value
+                    
+                    Column {
+                        // Month Header in Picker
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                pageYearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = colorScheme.primary
+                            )
+                        }
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(7),
+                            modifier = Modifier.height(260.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(firstDayOffset) { Spacer(Modifier) }
+                            items(daysInMonth) { day ->
+                                val date = pageYearMonth.atDay(day)
+                                val isFuture = date.isAfter(LocalDate.now())
+                                val isSelected = date == initialDate
+                                val isToday = date == LocalDate.now()
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .aspectRatio(1f)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when {
+                                                isSelected -> colorScheme.primary
+                                                isToday -> colorScheme.primary.copy(alpha = 0.1f)
+                                                else -> Color.Transparent
+                                            }
+                                        )
+                                        .clickable(enabled = !isFuture) { onDateSelected(date) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = day.toString(),
+                                        color = when {
+                                            isSelected -> colorScheme.onPrimary
+                                            isFuture -> colorScheme.onSurface.copy(alpha = 0.2f)
+                                            isToday -> colorScheme.primary
+                                            else -> colorScheme.onSurface
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = colorScheme.primary, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

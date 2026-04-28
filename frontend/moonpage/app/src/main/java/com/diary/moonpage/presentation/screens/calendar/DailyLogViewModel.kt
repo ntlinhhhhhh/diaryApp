@@ -46,6 +46,16 @@ class DailyLogViewModel @Inject constructor(
         }
     }
 
+    fun checkLogExists(date: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            repository.getDailyLogByDate(date).onSuccess {
+                onResult(true)
+            }.onFailure {
+                onResult(false)
+            }
+        }
+    }
+
     fun saveDailyLog(
         date: String,
         baseMoodId: Int,

@@ -234,8 +234,8 @@ object MoonIcons {
     }
 
     // 1. Lưu cache danh sách List để không phải flatten lại nhiều lần
-    val allIconsList: List<MoonIcon> by lazy { 
-        getAllCategories().values.flatten() 
+    val allIconsList: List<MoonIcon> by lazy {
+        getAllCategories().values.flatten()
     }
 
     // 2. Tạo một Map siêu tốc (O(1)) để tìm kiếm Icon theo tên

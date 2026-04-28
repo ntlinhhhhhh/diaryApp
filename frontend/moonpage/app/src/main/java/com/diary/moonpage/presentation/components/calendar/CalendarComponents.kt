@@ -4,7 +4,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +18,7 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -162,7 +167,10 @@ fun DayItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
             .padding(horizontal = 2.dp, vertical = 4.dp)
     ) {
         // ── Circle cố định 42dp ──────────────────────────────────────────────
@@ -170,6 +178,7 @@ fun DayItem(
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
+                .clickable { onClick() }
                 .then(
                     when {
                         isSelected && moodColor == null ->
@@ -391,40 +400,41 @@ fun DayDetailBottomSheet(
                             color = cs.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.padding(bottom = 10.dp)
                         )
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             activityNames.forEach { name ->
                                 val icon = com.diary.moonpage.core.util.MoonIcons.getIconForActivity(name)
                                 Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = icon.color.copy(alpha = 0.12f)
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = cs.surfaceVariant.copy(alpha = 0.5f),
+                                    border = BorderStroke(1.dp, icon.color.copy(alpha = 0.2f))
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         if (icon.drawableRes != null) {
                                             Image(
                                                 painter = painterResource(id = icon.drawableRes),
                                                 contentDescription = null,
-                                                modifier = Modifier.size(16.dp)
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         } else if (icon.vector != null) {
                                             Icon(
                                                 imageVector = icon.vector,
                                                 contentDescription = null,
                                                 tint = icon.color,
-                                                modifier = Modifier.size(16.dp)
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                         Text(
                                             text = name,
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.Medium,
-                                            color = icon.color
+                                            color = cs.onSurface
                                         )
                                     }
                                 }

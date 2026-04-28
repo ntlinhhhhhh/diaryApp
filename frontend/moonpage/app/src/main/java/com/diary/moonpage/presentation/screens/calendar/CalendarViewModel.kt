@@ -14,10 +14,16 @@ import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
+import com.diary.moonpage.core.util.ActivityPreferencesManager
+import com.diary.moonpage.domain.model.Activity
+
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
-    private val repository: DailyLogRepository
+    private val repository: DailyLogRepository,
+    private val activityPreferencesManager: ActivityPreferencesManager
 ) : ViewModel() {
+
+    val dynamicActivities: StateFlow<List<Activity>> = activityPreferencesManager.activities
 
     private val _currentYearMonth = MutableStateFlow(YearMonth.now())
     val currentYearMonth: StateFlow<YearMonth> = _currentYearMonth.asStateFlow()
@@ -60,6 +66,17 @@ class CalendarViewModel @Inject constructor(
                 currentMap.putAll(logsMap)
                 _dailyLogs.value = currentMap
                 _isLoading.value = false // Stop loading once we have at least cache
+            }
+        }
+    }
+
+    fun deleteDailyLog(date: String, onSuccess: () -> Unit = {}, onFailure: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            repository.deleteDailyLog(date).onSuccess {
+                refreshLogs()
+                onSuccess()
+            }.onFailure {
+                onFailure(it.message ?: "Failed to delete log")
             }
         }
     }
