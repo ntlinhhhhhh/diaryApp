@@ -27,7 +27,7 @@ fun NavGraphBuilder.authNavGraph(
 
         composable(Screen.Login.route) {
             screenWrapper(Screen.Login.route) {
-                LoginScreen(
+                LoginRoute(
                     viewModel = authViewModel,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToRegister = {
@@ -36,7 +36,6 @@ fun NavGraphBuilder.authNavGraph(
                         }
                     },
                     onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
-                    onNavigateToLoginGoogle = { /* TODO */ },
                     onLoginSuccess = { _, isNewUser ->
                         if (isNewUser) {
                             navController.navigate(Screen.OnboardingBirthday.route) {
@@ -54,7 +53,7 @@ fun NavGraphBuilder.authNavGraph(
 
         composable(Screen.Register.route) {
             screenWrapper(Screen.Register.route) {
-                RegisterScreen(
+                RegisterRoute(
                     viewModel = authViewModel,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToLogin = {
@@ -62,7 +61,6 @@ fun NavGraphBuilder.authNavGraph(
                             popUpTo(Screen.Register.route) { inclusive = true }
                         }
                     },
-                    onNavigateToLoginGoogle = { /* TODO */ },
                     onRegisterSuccess = {
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Register.route) { inclusive = true }

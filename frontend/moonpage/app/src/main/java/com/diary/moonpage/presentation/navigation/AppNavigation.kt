@@ -3,13 +3,12 @@ package com.diary.moonpage.presentation.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import com.diary.moonpage.presentation.screens.moment.MomentDetailScreen
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.LayoutDirection
@@ -24,14 +23,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.runtime.collectAsState
 import com.diary.moonpage.presentation.components.core.navigation.MoonBottomNavBar
 import com.diary.moonpage.presentation.screens.auth.*
-import com.diary.moonpage.presentation.screens.calendar.CalendarScreen
-import com.diary.moonpage.presentation.screens.calendar.DailyLogScreen
+import com.diary.moonpage.presentation.screens.calendar.DailyLogRoute
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
+import com.diary.moonpage.presentation.screens.calendar.calendarScreen
 import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
-import com.diary.moonpage.presentation.screens.moment.MomentDetailScreen
 import com.diary.moonpage.presentation.screens.profile.*
 import com.diary.moonpage.presentation.screens.store.StoreScreen
 import com.diary.moonpage.presentation.screens.store.StoreViewModel
@@ -124,100 +121,26 @@ fun AppNavigation() {
                 }
             }
 
-            composable(Screen.Login.route) {
-                ScreenWrapper(Screen.Login.route) {
-                    LoginScreen(
-                        viewModel = authViewModel,
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToRegister = {
-                            navController.navigate(Screen.Register.route) {
-                                popUpTo(Screen.Login.route) { inclusive = true }
-                            }
-                        },
-                        onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
-                        onNavigateToLoginGoogle = { /* TODO */ },
-                        onLoginSuccess = { _, isNewUser ->
-                            if (isNewUser) {
-                                navController.navigate(Screen.OnboardingBirthday.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            } else {
-                                navController.navigate(Screen.Calendar.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            }
+            authGraph(
+                navController = navController,
+                authViewModel = authViewModel,
+                onLoginSuccess = { _, isNewUser ->
+                    if (isNewUser) {
+                        navController.navigate(Screen.OnboardingBirthday.route) {
+                            popUpTo(0) { inclusive = true }
                         }
-                    )
-                }
-            }
-
-            composable(Screen.Register.route) {
-                ScreenWrapper(Screen.Register.route) {
-                    RegisterScreen(
-                        viewModel = authViewModel,
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToLogin = {
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(Screen.Register.route) { inclusive = true }
-                            }
-                        },
-                        onNavigateToLoginGoogle = { /* TODO */ },
-                        onRegisterSuccess = {
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(Screen.Register.route) { inclusive = true }
-                            }
-                        },
-                        onLoginSuccess = { _, isNewUser ->
-                            if (isNewUser) {
-                                navController.navigate(Screen.OnboardingBirthday.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            } else {
-                                navController.navigate(Screen.Calendar.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            }
+                    } else {
+                        navController.navigate(Screen.Calendar.route) {
+                            popUpTo(0) { inclusive = true }
                         }
-                    )
+                    }
+                },
+                onRegisterSuccess = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Register.route) { inclusive = true }
+                    }
                 }
-            }
-
-            composable(Screen.ForgotPassword.route) {
-                ScreenWrapper(Screen.ForgotPassword.route) {
-                    ForgotPasswordScreen(
-                        viewModel = authViewModel,
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToVerifyOtp = { email ->
-                            navController.navigate(Screen.VerifyOtp.route)
-                        }
-                    )
-                }
-            }
-
-            composable(Screen.VerifyOtp.route) {
-                ScreenWrapper(Screen.VerifyOtp.route) {
-                    VerifyOtpScreen(
-                        viewModel = authViewModel,
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToResetPassword = { _, _ ->
-                            navController.navigate(Screen.ResetPassword.route)
-                        }
-                    )
-                }
-            }
-
-            composable(Screen.ResetPassword.route) {
-                ScreenWrapper(Screen.ResetPassword.route) {
-                    ResetPasswordScreen(
-                        viewModel = authViewModel,
-                        onNavigateToLogin = {
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(Screen.Login.route) { inclusive = true }
-                            }
-                        }
-                    )
-                }
-            }
+            )
 
             composable(Screen.OnboardingBirthday.route) {
                 ScreenWrapper(Screen.OnboardingBirthday.route) {
@@ -255,25 +178,11 @@ fun AppNavigation() {
                 }
             }
 
-            composable(Screen.Calendar.route) { backStackEntry ->
-                val savedStateHandle = backStackEntry.savedStateHandle
-                val createdLogDate by savedStateHandle.getStateFlow<String?>("created_log_date", null).collectAsState()
-
-                val logSavedMessage by savedStateHandle.getStateFlow<String?>("logSavedMessage", null).collectAsState()
-
-                ScreenWrapper(Screen.Calendar.route) {
-                    CalendarScreen(
-                        createdLogDate = createdLogDate,
-                        onLogDateHandled = { savedStateHandle.set("created_log_date", null) },
-                        logSavedMessage = logSavedMessage,
-                        onMessageShown = { savedStateHandle.set("logSavedMessage", null) },
-                        onNavigateToFilter = { navController.navigate(Screen.Filter.route) },
-                        onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                        onNavigateToDailyLog = { dateStr -> navController.navigate("daily_log_screen/$dateStr") },
-                        onNavigateToThemeCalendar = { navController.navigate(Screen.ThemeCalendar.route) }
-                    )
-                }
-            }
+            calendarScreen(
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToDailyLog = { dateStr -> navController.navigate("daily_log_screen/$dateStr") },
+                onNavigateToThemeCalendar = { navController.navigate(Screen.ThemeCalendar.route) }
+            )
 
             composable(Screen.Filter.route) {
                 ScreenWrapper(Screen.Filter.route) {
@@ -287,7 +196,7 @@ fun AppNavigation() {
             composable(Screen.DailyLog.route) { backStackEntry ->
                 val dateStr = backStackEntry.arguments?.getString("date") ?: ""
                 ScreenWrapper(Screen.DailyLog.route) {
-                    DailyLogScreen(
+                    DailyLogRoute(
                         dateString = dateStr,
                         onNavigateBack = { navController.popBackStack() },
                         onDone = { message ->
@@ -325,7 +234,6 @@ fun AppNavigation() {
             }
 
             composable(Screen.Store.route) { backStackEntry ->
-                // Scope StoreViewModel to this route to share it with ThemeDetail
                 val storeViewModel: StoreViewModel = hiltViewModel(backStackEntry)
                 ScreenWrapper(Screen.Store.route) {
                     StoreScreen(
@@ -337,7 +245,6 @@ fun AppNavigation() {
             }
 
             composable(Screen.ThemeDetail.route) {
-                // Get the same StoreViewModel instance by using the Store backstack entry
                 val storeEntry = remember(it) {
                     navController.getBackStackEntry(Screen.Store.route)
                 }

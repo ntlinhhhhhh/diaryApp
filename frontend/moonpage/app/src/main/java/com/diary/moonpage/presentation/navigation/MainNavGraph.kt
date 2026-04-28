@@ -8,8 +8,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.diary.moonpage.presentation.screens.auth.AuthViewModel
-import com.diary.moonpage.presentation.screens.calendar.CalendarScreen
-import com.diary.moonpage.presentation.screens.calendar.DailyLogScreen
+import com.diary.moonpage.presentation.screens.calendar.CalendarRoute
+import com.diary.moonpage.presentation.screens.calendar.DailyLogRoute
 import com.diary.moonpage.presentation.screens.calendar.FilterScreen
 import com.diary.moonpage.presentation.screens.moment.MomentCameraScreen
 import com.diary.moonpage.presentation.screens.profile.*
@@ -30,12 +30,11 @@ fun NavGraphBuilder.mainNavGraph(
             val logSavedMessage = backStackEntry.savedStateHandle.get<String>("log_saved_message")
 
             screenWrapper(Screen.Calendar.route) {
-                CalendarScreen(
+                CalendarRoute(
                     logSavedMessage = logSavedMessage,
                     onMessageShown = {
                         backStackEntry.savedStateHandle.remove<String>("log_saved_message")
                     },
-                    onNavigateToFilter = { navController.navigate(Screen.Filter.route) },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onNavigateToDailyLog = { date ->
                         navController.navigate("daily_log_screen/$date")
@@ -57,7 +56,7 @@ fun NavGraphBuilder.mainNavGraph(
         composable(Screen.DailyLog.route) { backStackEntry ->
             val dateStr = backStackEntry.arguments?.getString("date") ?: ""
             screenWrapper(Screen.DailyLog.route) {
-                DailyLogScreen(
+                DailyLogRoute(
                     dateString = dateStr,
                     onNavigateBack = { navController.popBackStack() },
                     onDone = { msg ->

@@ -12,13 +12,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.TextStyle
 import java.util.*
 
 @Composable
@@ -232,8 +235,152 @@ fun DayItem(
     }
 }
 
+@Composable
+fun DayDetailArea(
+    date: LocalDate,
+    moodIcon: ImageVector? = null,
+    moodDrawable: Int? = null,
+    moodColor: Color,
+    moodLabel: String,
+    noteSnippet: String?,
+    activityNames: List<String> = emptyList(),
+    modifier: Modifier = Modifier
+) {
+    val cs = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // ── Mood + Date Header ──────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(moodColor.copy(alpha = 0.10f))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(moodColor.copy(alpha = 0.22f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (moodDrawable != null) {
+                    Image(
+                        painter = painterResource(id = moodDrawable),
+                        contentDescription = null,
+                        modifier = Modifier.size(38.dp)
+                    )
+                } else if (moodIcon != null) {
+                    Icon(
+                        imageVector = moodIcon,
+                        contentDescription = null,
+                        tint = moodColor,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = moodLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = cs.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}, ${date.dayOfMonth} ${date.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }} ${date.year}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurface.copy(alpha = 0.55f)
+                )
+            }
+        }
 
+        // ── Activities ──────────────────────────────────────────────────
+        if (activityNames.isNotEmpty()) {
+            Column {
+                Text(
+                    "Activities",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = cs.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    activityNames.forEach { name ->
+                        val icon = com.diary.moonpage.core.util.MoonIcons.getIconForActivity(name)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = cs.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, icon.color.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (icon.drawableRes != null) {
+                                    Image(
+                                        painter = painterResource(id = icon.drawableRes),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                } else if (icon.vector != null) {
+                                    Icon(
+                                        imageVector = icon.vector,
+                                        contentDescription = null,
+                                        tint = icon.color,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Text(
+                                    text = name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = cs.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
+        // ── Note ─────────────────────────────────────────────────────────
+        if (!noteSnippet.isNullOrBlank()) {
+            Column {
+                Text(
+                    "Note",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = cs.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = cs.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Text(
+                        text = noteSnippet,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = cs.onSurface.copy(alpha = 0.85f),
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun DiaryEntryPreview(
@@ -303,7 +450,7 @@ fun DiaryEntryPreview(
  * Bottom sheet showing a diary "post card" for the selected day.
  * Shows: mood icon, date, full note, recorded activities, and Edit/Delete/Share actions.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayDetailBottomSheet(
     date: LocalDate,
@@ -511,6 +658,159 @@ fun DayDetailBottomSheet(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Delete", fontSize = 13.sp)
                     }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MonthYearPickerBottomSheet(
+    currentYearMonth: YearMonth,
+    onConfirm: (Int, Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val years = remember { (2000..2100).map { it.toString() } }
+    val months = remember { (1..12).map { 
+        java.time.Month.of(it).getDisplayName(TextStyle.FULL, Locale.getDefault()) 
+    } }
+    
+    var tempYear by remember { mutableIntStateOf(currentYearMonth.year) }
+    var tempMonth by remember { mutableIntStateOf(currentYearMonth.monthValue) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .width(40.dp)
+                    .height(4.dp)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), CircleShape)
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 40.dp, top = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Select Date",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Month Picker
+                Box(modifier = Modifier.weight(1f)) {
+                    WheelPicker(
+                        items = months,
+                        initialValue = java.time.Month.of(tempMonth).getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                        onItemSelected = { monthName ->
+                            val monthIndex = months.indexOf(monthName)
+                            if (monthIndex != -1) tempMonth = monthIndex + 1
+                        }
+                    )
+                }
+                
+                // Year Picker
+                Box(modifier = Modifier.weight(1f)) {
+                    WheelPicker(
+                        items = years,
+                        initialValue = tempYear.toString(),
+                        onItemSelected = { yearStr ->
+                            tempYear = yearStr.toIntOrNull() ?: tempYear
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { onConfirm(tempYear, tempMonth) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .height(54.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text("Confirm", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WheelPicker(
+    items: List<String>,
+    initialValue: String,
+    onItemSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val itemHeight = 44.dp
+    val startIndex = items.indexOf(initialValue).coerceAtLeast(0)
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
+    val snapFlingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    
+    LaunchedEffect(listState.firstVisibleItemIndex) {
+        val centerIndex = listState.firstVisibleItemIndex
+        if (centerIndex in items.indices) {
+            onItemSelected(items[centerIndex])
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .height(itemHeight * 3)
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        // Selection highlight
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemHeight),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+            shape = RoundedCornerShape(12.dp)
+        ) {}
+        
+        LazyColumn(
+            state = listState,
+            flingBehavior = snapFlingBehavior,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = itemHeight)
+        ) {
+            items(items.size) { index ->
+                val isSelected = listState.firstVisibleItemIndex == index
+                Box(
+                    modifier = Modifier
+                        .height(itemHeight)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = items[index],
+                        style = if (isSelected) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
             }
         }

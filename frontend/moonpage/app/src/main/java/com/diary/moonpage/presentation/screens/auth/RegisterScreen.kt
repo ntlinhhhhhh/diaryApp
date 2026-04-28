@@ -34,6 +34,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
@@ -52,17 +53,26 @@ import java.security.MessageDigest
 import java.util.UUID
 
 @Composable
-fun RegisterScreen(
+fun RegisterRoute(
     viewModel: AuthViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToLoginGoogle: () -> Unit,
     onRegisterSuccess: () -> Unit,
     onLoginSuccess: (String, Boolean) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    RegisterScreenContent(
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is AuthUiEvent.RegisterSuccess -> onRegisterSuccess()
+                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token, event.isNewUser)
+                else -> Unit
+            }
+        }
+    }
+
+    RegisterScreen(
         uiState = uiState,
         uiEvent = viewModel.uiEvent,
         onUsernameChange = viewModel::onUsernameChange,
@@ -72,15 +82,12 @@ fun RegisterScreen(
         onSignUpClick = viewModel::register,
         onGoogleLoginClick = viewModel::loginWithGoogle,
         onNavigateBack = onNavigateBack,
-        onNavigateToLogin = onNavigateToLogin,
-        onNavigateToLoginGoogle = onNavigateToLoginGoogle,
-        onRegisterSuccess = onRegisterSuccess,
-        onLoginSuccess = onLoginSuccess
+        onNavigateToLogin = onNavigateToLogin
     )
 }
 
 @Composable
-fun RegisterScreenContent(
+fun RegisterScreen(
     uiState: AuthUiState,
     uiEvent: Flow<AuthUiEvent>,
     onUsernameChange: (String) -> Unit,
@@ -90,10 +97,7 @@ fun RegisterScreenContent(
     onSignUpClick: () -> Unit,
     onGoogleLoginClick: (String) -> Unit,
     onNavigateBack: () -> Unit,
-    onNavigateToLogin: () -> Unit,
-    onNavigateToLoginGoogle: () -> Unit,
-    onRegisterSuccess: () -> Unit,
-    onLoginSuccess: (String, Boolean) -> Unit
+    onNavigateToLogin: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -108,16 +112,11 @@ fun RegisterScreenContent(
 
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
-            when (event) {
-                is AuthUiEvent.RegisterSuccess -> onRegisterSuccess()
-                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token, event.isNewUser)
-                is AuthUiEvent.ShowSnackBar -> {
-                    launch {
-                        snackBarHostState.currentSnackbarData?.dismiss()
-                        snackBarHostState.showSnackbar(event.message.asString(context))
-                    }
+            if (event is AuthUiEvent.ShowSnackBar) {
+                launch {
+                    snackBarHostState.currentSnackbarData?.dismiss()
+                    snackBarHostState.showSnackbar(event.message.asString(context))
                 }
-                else -> Unit
             }
         }
     }
@@ -282,10 +281,10 @@ fun RegisterScreenContent(
                                         val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
 
                                         val googleIdOption = GetGoogleIdOption.Builder()
-                                            .setFilterByAuthorizedAccounts(false) // HIỆN TẤT CẢ TÀI KHOẢN
+                                            .setFilterByAuthorizedAccounts(false)
                                             .setServerClientId(context.getString(R.string.google_web_client_id))
                                             .setNonce(hashedNonce)
-                                            .setAutoSelectEnabled(false) // LUÔN HIỆN DANH SÁCH CHỌN
+                                            .setAutoSelectEnabled(false)
                                             .build()
 
                                         val request = GetCredentialRequest.Builder()
@@ -297,21 +296,13 @@ fun RegisterScreenContent(
                                         if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                                             val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data)
                                             onGoogleLoginClick(googleIdToken.idToken)
-                                        } else {
-                                            Log.e("Auth", "Unexpected credential type: ${credential.type}")
-                                            snackBarHostState.showSnackbar("Unexpected registration error")
                                         }
                                     } catch (e: GetCredentialCancellationException) {
-                                        Log.d("Auth", "User cancelled the Google Sign-In selector")
+                                        Log.d("Auth", "User cancelled")
                                     } catch (e: NoCredentialException) {
-                                        Log.e("Auth", "Lỗi: Không tìm thấy tài khoản hoặc Client ID sai. Hãy kiểm tra SHA-1 và google-services.json.", e)
-                                        snackBarHostState.showSnackbar("Không tìm thấy tài khoản Google. Hãy đảm bảo bạn đã đăng nhập trên thiết bị.")
-                                    } catch (e: GetCredentialException) {
-                                        Log.e("Auth", "Google Sign-In Error: ${e.message}", e)
-                                        snackBarHostState.showSnackbar(e.message ?: "Google Sign-In failed")
+                                        snackBarHostState.showSnackbar("Please sign in to a Google account.")
                                     } catch (e: Exception) {
-                                        Log.e("Auth", "General Error: ${e.message}", e)
-                                        snackBarHostState.showSnackbar("An unexpected error occurred")
+                                        Log.e("Auth", "Error: ${e.message}")
                                     }
                                 }
                             }
@@ -348,7 +339,7 @@ fun RegisterScreenContent(
 @Composable
 fun RegisterScreenPreview() {
     MoonPageTheme {
-        RegisterScreenContent(
+        RegisterScreen(
             uiState = AuthUiState(),
             uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
             onUsernameChange = {},
@@ -358,10 +349,7 @@ fun RegisterScreenPreview() {
             onSignUpClick = {},
             onGoogleLoginClick = {},
             onNavigateBack = {},
-            onNavigateToLogin = {},
-            onNavigateToLoginGoogle = {},
-            onRegisterSuccess = {},
-            onLoginSuccess = { _, _ -> }
+            onNavigateToLogin = {}
         )
     }
 }

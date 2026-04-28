@@ -3,18 +3,16 @@ package com.diary.moonpage.presentation.screens.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.moonpage.core.util.ActivityPreferencesManager
-import com.diary.moonpage.data.remote.api.DailyLogResponse
 import com.diary.moonpage.domain.repository.DailyLogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import com.diary.moonpage.domain.model.Activity
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,32 +21,110 @@ class DailyLogViewModel @Inject constructor(
     private val activityPreferencesManager: ActivityPreferencesManager
 ) : ViewModel() {
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _uiState = MutableStateFlow(DailyLogUiState())
+    val uiState: StateFlow<DailyLogUiState> = _uiState.asStateFlow()
 
-    private val _existingLog = MutableStateFlow<DailyLogResponse?>(null)
-    val existingLog: StateFlow<DailyLogResponse?> = _existingLog.asStateFlow()
-
-    // Enabled activity categories from DataStore
-    val enabledCategories: StateFlow<Set<String>> = activityPreferencesManager.enabledCategories
-        
-    val dynamicActivities: StateFlow<List<Activity>> = activityPreferencesManager.activities
-
-    fun fetchLogForDate(date: String) {
+    init {
         viewModelScope.launch {
-            _isLoading.value = true
-            repository.getDailyLogByDate(date).onSuccess { log ->
-                _existingLog.value = log
-            }.onFailure {
-                _existingLog.value = null
+            activityPreferencesManager.enabledCategories.collect { categories ->
+                _uiState.update { it.copy(enabledCategories = categories.toList()) }
             }
-            _isLoading.value = false
+        }
+        viewModelScope.launch {
+            activityPreferencesManager.activities.collect { activities ->
+                _uiState.update { it.copy(dynamicActivities = activities) }
+            }
         }
     }
 
-    fun checkLogExists(date: String, onResult: (Boolean) -> Unit) {
+    fun onEvent(event: DailyLogUiEvent) {
+        when (event) {
+            is DailyLogUiEvent.OnMoodSelected -> {
+                _uiState.update { it.copy(selectedMood = event.moodId) }
+            }
+            is DailyLogUiEvent.OnActivityToggled -> {
+                _uiState.update { state ->
+                    val newList = if (state.selectedActivities.contains(event.activityId)) {
+                        state.selectedActivities - event.activityId
+                    } else {
+                        state.selectedActivities + event.activityId
+                    }
+                    state.copy(selectedActivities = newList)
+                }
+            }
+            is DailyLogUiEvent.OnNoteChanged -> {
+                _uiState.update { it.copy(noteText = event.note) }
+            }
+            is DailyLogUiEvent.OnSleepChanged -> {
+                _uiState.update { it.copy(sleepHours = event.hours) }
+            }
+            is DailyLogUiEvent.OnDateChanged -> {
+                _uiState.update { it.copy(date = event.date) }
+                fetchLogForDate(event.date)
+            }
+            DailyLogUiEvent.OnSaveClick -> {
+                saveDailyLog()
+            }
+            DailyLogUiEvent.OnExitClick -> {
+                _uiState.update { it.copy(showExitDialog = true) }
+            }
+            DailyLogUiEvent.OnDismissExitDialog -> {
+                _uiState.update { it.copy(showExitDialog = false) }
+            }
+            DailyLogUiEvent.OnDismissOverwriteDialog -> {
+                _uiState.update { it.copy(showOverwriteDialog = false) }
+            }
+            DailyLogUiEvent.OnConfirmOverwrite -> {
+                _uiState.value.pendingDate?.let { date ->
+                    _uiState.update { it.copy(date = date, showOverwriteDialog = false) }
+                    fetchLogForDate(date)
+                }
+            }
+            DailyLogUiEvent.OnDatePickerClick -> {
+                _uiState.update { it.copy(showDatePicker = true) }
+            }
+            DailyLogUiEvent.OnDatePickerDismiss -> {
+                _uiState.update { it.copy(showDatePicker = false) }
+            }
+            DailyLogUiEvent.DismissMessage -> {
+                _uiState.update { it.copy(snackbarMessage = null) }
+            }
+        }
+    }
+
+    fun setInitialDate(date: LocalDate) {
+        _uiState.update { it.copy(date = date) }
+        fetchLogForDate(date)
+    }
+
+    private fun fetchLogForDate(date: LocalDate) {
         viewModelScope.launch {
-            repository.getDailyLogByDate(date).onSuccess {
+            _uiState.update { it.copy(isLoading = true) }
+            repository.getDailyLogByDate(date.toString()).onSuccess { log ->
+                _uiState.update { it.copy(
+                    existingLog = log,
+                    selectedMood = log.baseMoodId,
+                    selectedActivities = log.activityIds ?: emptyList(),
+                    noteText = log.note ?: "",
+                    sleepHours = log.sleepHours?.toFloat() ?: 7f,
+                    isLoading = false
+                ) }
+            }.onFailure {
+                _uiState.update { it.copy(
+                    existingLog = null,
+                    selectedMood = null,
+                    selectedActivities = emptyList(),
+                    noteText = "",
+                    sleepHours = 7f,
+                    isLoading = false
+                ) }
+            }
+        }
+    }
+
+    fun checkLogExists(date: LocalDate, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            repository.getDailyLogByDate(date.toString()).onSuccess {
                 onResult(true)
             }.onFailure {
                 onResult(false)
@@ -56,29 +132,35 @@ class DailyLogViewModel @Inject constructor(
         }
     }
 
-    fun saveDailyLog(
-        date: String,
-        baseMoodId: Int,
-        note: String?,
-        sleepHours: Double?,
-        isMenstruation: Boolean,
-        activityIds: List<String>,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit = {}
-    ) {
+    fun setPendingDate(date: LocalDate) {
+        _uiState.update { it.copy(pendingDate = date, showOverwriteDialog = true) }
+    }
+
+    private var _onSaveSuccess: ((String) -> Unit)? = null
+    fun setOnSaveSuccess(callback: (String) -> Unit) {
+        _onSaveSuccess = callback
+    }
+
+    private fun saveDailyLog() {
+        val state = _uiState.value
+        if (state.selectedMood == null) {
+            _uiState.update { it.copy(snackbarMessage = "Please select a mood first!") }
+            return
+        }
+
         viewModelScope.launch {
-            _isLoading.value = true
-            val baseMoodIdBody = baseMoodId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-            val dateBody = date.toRequestBody("text/plain".toMediaTypeOrNull())
-            val noteBody = note?.toRequestBody("text/plain".toMediaTypeOrNull())
-            val sleepHoursBody = sleepHours?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
-            val isMenstruationBody = isMenstruation.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-            val activityParts = activityIds.map { id ->
-                okhttp3.MultipartBody.Part.createFormData("ActivityIds", id.toString())
+            _uiState.update { it.copy(isLoading = true) }
+            val baseMoodIdBody = state.selectedMood.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            val dateBody = state.date.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            val noteBody = state.noteText.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val sleepHoursBody = state.sleepHours.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            val isMenstruationBody = "false".toRequestBody("text/plain".toMediaTypeOrNull())
+            val activityParts = state.selectedActivities.map { id ->
+                okhttp3.MultipartBody.Part.createFormData("ActivityIds", id)
             }
 
             repository.createDailyLog(
-                date,
+                state.date.toString(),
                 baseMoodIdBody,
                 dateBody,
                 noteBody,
@@ -88,11 +170,11 @@ class DailyLogViewModel @Inject constructor(
                 activityParts,
                 null
             ).onSuccess {
-                onSuccess()
-            }.onFailure {
-                onFailure(it.message ?: "Failed to save log")
+                val msg = if (state.existingLog != null) "Record updated successfully!" else "Record created successfully!"
+                _onSaveSuccess?.invoke(msg)
+            }.onFailure { error ->
+                _uiState.update { it.copy(snackbarMessage = error.message ?: "Failed to save log", isLoading = false) }
             }
-            _isLoading.value = false
         }
     }
 }

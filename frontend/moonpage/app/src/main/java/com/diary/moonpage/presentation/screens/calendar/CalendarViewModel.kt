@@ -8,7 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -23,61 +23,86 @@ class CalendarViewModel @Inject constructor(
     private val activityPreferencesManager: ActivityPreferencesManager
 ) : ViewModel() {
 
-    val dynamicActivities: StateFlow<List<Activity>> = activityPreferencesManager.activities
-
-    private val _currentYearMonth = MutableStateFlow(YearMonth.now())
-    val currentYearMonth: StateFlow<YearMonth> = _currentYearMonth.asStateFlow()
-
-    private val _dailyLogs = MutableStateFlow<Map<LocalDate, DailyLogResponse>>(emptyMap())
-    val dailyLogs: StateFlow<Map<LocalDate, DailyLogResponse>> = _dailyLogs.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _uiState = MutableStateFlow(CalendarUiState())
+    val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
     init {
-        fetchLogsForMonth(_currentYearMonth.value)
+        viewModelScope.launch {
+            activityPreferencesManager.activities.collect { activities ->
+                _uiState.update { it.copy(dynamicActivities = activities) }
+            }
+        }
+        fetchLogsForMonth(_uiState.value.currentYearMonth)
     }
 
-    fun changeMonth(offset: Long) {
-        val newMonth = _currentYearMonth.value.plusMonths(offset)
-        _currentYearMonth.value = newMonth
-        fetchLogsForMonth(newMonth)
-    }
-
-    fun setYearMonth(year: Int, month: Int) {
-        val newMonth = YearMonth.of(year, month)
-        _currentYearMonth.value = newMonth
-        fetchLogsForMonth(newMonth)
+    fun onEvent(event: CalendarUiEvent) {
+        when (event) {
+            is CalendarUiEvent.OnDateSelected -> {
+                _uiState.update { it.copy(selectedDate = event.date) }
+            }
+            is CalendarUiEvent.OnMonthChanged -> {
+                _uiState.update { it.copy(currentYearMonth = event.yearMonth) }
+                fetchLogsForMonth(event.yearMonth)
+            }
+            is CalendarUiEvent.OnDeleteLog -> {
+                deleteDailyLog(event.date)
+            }
+            is CalendarUiEvent.OnMonthPickerConfirm -> {
+                val newMonth = YearMonth.of(event.year, event.month)
+                _uiState.update { it.copy(currentYearMonth = newMonth, showMonthPicker = false) }
+                fetchLogsForMonth(newMonth)
+            }
+            CalendarUiEvent.OnMonthPickerClick -> {
+                _uiState.update { it.copy(showMonthPicker = true) }
+            }
+            CalendarUiEvent.OnMonthPickerDismiss -> {
+                _uiState.update { it.copy(showMonthPicker = false) }
+            }
+            CalendarUiEvent.OnFilterClick -> {
+                _uiState.update { it.copy(showFilterSheet = true) }
+            }
+            CalendarUiEvent.OnFilterDismiss -> {
+                _uiState.update { it.copy(showFilterSheet = false) }
+            }
+            CalendarUiEvent.DismissMessage -> {
+                _uiState.update { it.copy(snackbarMessage = null) }
+            }
+        }
     }
 
     fun refreshLogs() {
-        fetchLogsForMonth(_currentYearMonth.value)
+        fetchLogsForMonth(_uiState.value.currentYearMonth)
     }
 
     private fun fetchLogsForMonth(yearMonth: YearMonth) {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
             val yearMonthStr = "${yearMonth.year}-${yearMonth.monthValue.toString().padStart(2, '0')}"
             
             repository.getDailyLogsByMonth(yearMonthStr).collect { logs ->
                 val logsMap = logs.associateBy { LocalDate.parse(it.date) }
-                val currentMap = _dailyLogs.value.toMutableMap()
-                currentMap.keys.removeAll { YearMonth.from(it) == yearMonth }
-                currentMap.putAll(logsMap)
-                _dailyLogs.value = currentMap
-                _isLoading.value = false // Stop loading once we have at least cache
+                _uiState.update { currentState ->
+                    val currentMap = currentState.dailyLogs.toMutableMap()
+                    currentMap.keys.removeAll { YearMonth.from(it) == yearMonth }
+                    currentMap.putAll(logsMap)
+                    currentState.copy(dailyLogs = currentMap, isLoading = false)
+                }
             }
         }
     }
 
-    fun deleteDailyLog(date: String, onSuccess: () -> Unit = {}, onFailure: (String) -> Unit = {}) {
+    private fun deleteDailyLog(date: LocalDate) {
         viewModelScope.launch {
-            repository.deleteDailyLog(date).onSuccess {
+            repository.deleteDailyLog(date.toString()).onSuccess {
                 refreshLogs()
-                onSuccess()
-            }.onFailure {
-                onFailure(it.message ?: "Failed to delete log")
+                _uiState.update { it.copy(snackbarMessage = "Record deleted successfully!") }
+            }.onFailure { exception ->
+                _uiState.update { it.copy(snackbarMessage = exception.message ?: "Failed to delete log") }
             }
         }
+    }
+
+    fun showSnackbar(message: String) {
+        _uiState.update { it.copy(snackbarMessage = message) }
     }
 }

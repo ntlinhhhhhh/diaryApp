@@ -31,17 +31,17 @@ import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
-import com.diary.moonpage.R
-import com.diary.moonpage.presentation.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.diary.moonpage.R
 import com.diary.moonpage.presentation.components.auth.AuthFooter
 import com.diary.moonpage.presentation.components.auth.AuthHeader
 import com.diary.moonpage.presentation.components.auth.SocialLoginButton
 import com.diary.moonpage.presentation.components.core.buttons.MoonPrimaryButton
 import com.diary.moonpage.presentation.components.core.inputs.MoonTextField
 import com.diary.moonpage.presentation.components.core.layout.MoonDivider
+import com.diary.moonpage.presentation.theme.MoonPageTheme
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.flow.Flow
@@ -50,17 +50,26 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(
+fun LoginRoute(
     viewModel: AuthViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
-    onNavigateToLoginGoogle: () -> Unit,
     onLoginSuccess: (String, Boolean) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    LoginScreenContent(
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token, event.isNewUser)
+                else -> Unit
+            }
+        }
+    }
+
+    LoginScreen(
         uiState = uiState,
         uiEvent = viewModel.uiEvent,
         onEmailChange = viewModel::onEmailChange,
@@ -69,14 +78,12 @@ fun LoginScreen(
         onGoogleLoginClick = viewModel::loginWithGoogle,
         onNavigateBack = onNavigateBack,
         onNavigateToRegister = onNavigateToRegister,
-        onNavigateToForgotPassword = onNavigateToForgotPassword,
-        onNavigateToLoginGoogle = onNavigateToLoginGoogle,
-        onLoginSuccess = onLoginSuccess
+        onNavigateToForgotPassword = onNavigateToForgotPassword
     )
 }
 
 @Composable
-fun LoginScreenContent(
+fun LoginScreen(
     uiState: AuthUiState,
     uiEvent: Flow<AuthUiEvent>,
     onEmailChange: (String) -> Unit,
@@ -85,9 +92,7 @@ fun LoginScreenContent(
     onGoogleLoginClick: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    onNavigateToForgotPassword: () -> Unit,
-    onNavigateToLoginGoogle:() -> Unit,
-    onLoginSuccess: (String, Boolean) -> Unit
+    onNavigateToForgotPassword: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -104,15 +109,11 @@ fun LoginScreenContent(
 
     LaunchedEffect(Unit) {
         uiEvent.collect { event ->
-            when (event) {
-                is AuthUiEvent.LoginSuccess -> onLoginSuccess(event.token, event.isNewUser)
-                is AuthUiEvent.ShowSnackBar -> {
-                    launch {
-                        snackBarHostState.currentSnackbarData?.dismiss()
-                        snackBarHostState.showSnackbar(event.message.asString(context))
-                    }
+            if (event is AuthUiEvent.ShowSnackBar) {
+                launch {
+                    snackBarHostState.currentSnackbarData?.dismiss()
+                    snackBarHostState.showSnackbar(event.message.asString(context))
                 }
-                else -> Unit
             }
         }
     }
@@ -284,7 +285,7 @@ fun LoginScreenContent(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)), // Sử dụng màu nền của theme thay vì màu đen tuyệt đối
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -298,7 +299,7 @@ fun LoginScreenContent(
 @Composable
 fun LoginScreenPreview() {
     MoonPageTheme {
-        LoginScreenContent(
+        LoginScreen(
             uiState = AuthUiState(),
             uiEvent = MutableSharedFlow<AuthUiEvent>().asSharedFlow(),
             onEmailChange = {},
@@ -307,9 +308,7 @@ fun LoginScreenPreview() {
             onGoogleLoginClick = {},
             onNavigateBack = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onNavigateToLoginGoogle = {},
-            onLoginSuccess = { _, _ -> },
+            onNavigateToForgotPassword = {}
         )
     }
 }
